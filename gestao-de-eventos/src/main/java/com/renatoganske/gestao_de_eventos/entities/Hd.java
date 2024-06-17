@@ -20,7 +20,7 @@ public class Hd {
     @Column(name = "data_aquisicao")
     private LocalDate dataAquisicao;
     @Column(name = "status")
-    private Enum status;
+    private String status;
 
     @OneToMany(mappedBy = "hd")
     private List<Evento> eventos;
