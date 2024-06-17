@@ -12,7 +12,7 @@
 	<artifactId>gestao-de-eventos</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>gestao-de-eventos</name>
-	<description>Aplicação para gestão de trabalhos de fotógrafos.</description>
+	<description>Aplicacao para gestao de trabalhos de fotografos.</description>
 	<properties>
 		<java.version>21</java.version>
 	</properties>
@@ -35,6 +35,11 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
