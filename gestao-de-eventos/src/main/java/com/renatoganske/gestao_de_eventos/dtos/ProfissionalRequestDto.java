@@ -14,13 +14,13 @@ public record ProfissionalRequestDto(
         String especialidade,
         String outrasInformacoes
 ) implements Serializable {
-    private Profissional toEntity(ProfissionalRequestDto requestDto) {
+    private Profissional toEntity() {
         return Profissional.builder()
-                .nome(requestDto.nome())
-                .tipo(requestDto.tipo())
-                .contato(requestDto.contato())
-                .especialidade(requestDto.especialidade())
-                .outrasInformacoes(requestDto.outrasInformacoes())
+                .nome(this.nome())
+                .tipo(this.tipo())
+                .contato(this.contato())
+                .especialidade(this.especialidade())
+                .outrasInformacoes(this.outrasInformacoes())
                 .build();
     }
 }

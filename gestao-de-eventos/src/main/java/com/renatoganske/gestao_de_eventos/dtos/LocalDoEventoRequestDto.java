@@ -14,13 +14,13 @@ public record LocalDoEventoRequestDto(
         String estado,
         String tipo
 ) implements Serializable {
-    public LocalDoEvento toEntity(LocalDoEventoRequestDto requestDto) {
+    public LocalDoEvento toEntity() {
         return LocalDoEvento.builder()
-                .nome(requestDto.nome())
-                .endereco(requestDto.endereco())
-                .cidade(requestDto.cidade())
-                .estado(requestDto.estado())
-                .tipo(requestDto.tipo())
+                .nome(this.nome())
+                .endereco(this.endereco())
+                .cidade(this.cidade())
+                .estado(this.estado())
+                .tipo(this.tipo())
                 .build();
     }
 }

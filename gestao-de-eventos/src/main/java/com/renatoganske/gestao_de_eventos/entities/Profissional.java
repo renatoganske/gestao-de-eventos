@@ -33,15 +33,15 @@ public class Profissional {
     @ManyToMany(mappedBy = "profissionais")
     private List<Evento> eventos;
 
-    public ProfissionalResponseDto toResponseDto(Profissional profissional) {
+    public ProfissionalResponseDto toResponseDto() {
         return new ProfissionalResponseDto(
-                profissional.id,
-                profissional.nome,
-                profissional.tipo,
-                profissional.contato,
-                profissional.especialidade,
-                profissional.outrasInformacoes,
-                profissional.eventos
+                this.id,
+                this.nome,
+                this.tipo,
+                this.contato,
+                this.especialidade,
+                this.outrasInformacoes,
+                this.eventos
         );
     }
 }

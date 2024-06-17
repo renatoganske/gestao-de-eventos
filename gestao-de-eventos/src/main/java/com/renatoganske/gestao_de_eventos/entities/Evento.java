@@ -60,22 +60,22 @@ public class Evento {
     )
     private List<Profissional> profissionais;
 
-    public static EventoResponseDto toDTO(Evento evento) {
+    public EventoResponseDto toDTO() {
         return new EventoResponseDto(
-                evento.getId(),
-                evento.getCodigoDoEvento(),
-                evento.getTipo(),
-                evento.getNome(),
-                evento.getDataDoEvento(),
-                evento.getCasamentoDeDia(),
-                evento.getCasamentoExterno(),
-                evento.getQuantidadeDeConvidados(),
-                evento.getDescricao(),
-                evento.getValor(),
-                evento.getHd(),
-                evento.getLocalDoEvento(),
-                evento.getCliente(),
-                evento.getProfissionais()
+                this.id,
+                this.codigoDoEvento,
+                this.tipo,
+                this.nome,
+                this.dataDoEvento,
+                this.casamentoDeDia,
+                this.casamentoExterno,
+                this.quantidadeDeConvidados,
+                this.descricao,
+                this.valor,
+                this.hd,
+                this.localDoEvento,
+                this.cliente,
+                this.profissionais
         );
     }
 }

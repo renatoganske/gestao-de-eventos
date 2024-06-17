@@ -32,14 +32,14 @@ public class Hd {
     @OneToMany(mappedBy = "hd")
     private List<Evento> eventos;
 
-    public HdResponseDto toResponseDto(Hd hd) {
+    public HdResponseDto toResponseDto() {
         return new HdResponseDto(
-                hd.id,
-                hd.nome,
-                hd.capacidade,
-                hd.dataAquisicao,
-                hd.status,
-                hd.eventos
+                this.id,
+                this.nome,
+                this.capacidade,
+                this.dataAquisicao,
+                this.status,
+                this.eventos
         );
     }
 }

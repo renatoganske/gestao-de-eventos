@@ -14,12 +14,12 @@ public record HdRequestDto(
         LocalDate dataAquisicao,
         String status
 ) implements Serializable {
-    public Hd toEntity(HdRequestDto requestDto) {
+    public Hd toEntity() {
         return Hd.builder()
-                .nome(requestDto.nome())
-                .capacidade(requestDto.capacidade())
-                .dataAquisicao(requestDto.dataAquisicao())
-                .status(requestDto.status())
+                .nome(this.nome())
+                .capacidade(this.capacidade())
+                .dataAquisicao(this.dataAquisicao())
+                .status(this.status())
                 .build();
     }
 }

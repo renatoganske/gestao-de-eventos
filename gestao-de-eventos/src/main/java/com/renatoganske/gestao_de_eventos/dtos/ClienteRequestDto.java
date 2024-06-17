@@ -14,12 +14,12 @@ public record ClienteRequestDto(
         String endereco,
         String observacoes
 ) implements Serializable {
-    public Cliente toEntity(ClienteRequestDto requestDto) {
+    public Cliente toEntity() {
         return Cliente.builder()
-                .nome(requestDto.nome())
-                .contato(requestDto.contato())
-                .endereco(requestDto.endereco())
-                .observacoes(requestDto.observacoes())
+                .nome(this.nome)
+                .contato(this.contato)
+                .endereco(this.endereco)
+                .observacoes(this.observacoes)
                 .build();
     }
 }

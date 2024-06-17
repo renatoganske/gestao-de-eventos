@@ -33,15 +33,15 @@ public class LocalDoEvento {
     @OneToMany(mappedBy = "localDoEvento")
     private List<Evento> eventos;
 
-    private LocalDoEventoResponseDto toResponseDto(LocalDoEvento localDoEvento) {
+    private LocalDoEventoResponseDto toResponseDto() {
         return new LocalDoEventoResponseDto(
-                localDoEvento.id,
-                localDoEvento.nome,
-                localDoEvento.endereco,
-                localDoEvento.cidade,
-                localDoEvento.estado,
-                localDoEvento.tipo,
-                localDoEvento.eventos
+                this.id,
+                this.nome,
+                this.endereco,
+                this.cidade,
+                this.estado,
+                this.tipo,
+                this.eventos
         );
     }
 }

@@ -31,13 +31,13 @@ public class Cliente {
     @OneToMany(mappedBy = "cliente")
     private List<Evento> eventos;
 
-    public ClienteResponseDto toResponseDto(Cliente cliente) {
+    public ClienteResponseDto toResponseDto() {
         return new ClienteResponseDto(
-                cliente.id,
-                cliente.nome,
-                cliente.contato,
-                cliente.endereco,
-                cliente.observacoes,
-                cliente.eventos);
+                this.id,
+                this.nome,
+                this.contato,
+                this.endereco,
+                this.observacoes,
+                this.eventos);
     }
 }
