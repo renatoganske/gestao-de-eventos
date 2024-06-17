@@ -1,12 +1,19 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
+import com.renatoganske.gestao_de_eventos.dtos.EventoResponseDto;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "TB_EVENTO")
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@Builder
 public class Evento {
 
     @Id
@@ -52,4 +59,23 @@ public class Evento {
             inverseJoinColumns = @JoinColumn(name = "profissional_id")
     )
     private List<Profissional> profissionais;
+
+    public static EventoResponseDto toDTO(Evento evento) {
+        return new EventoResponseDto(
+                evento.getId(),
+                evento.getCodigoDoEvento(),
+                evento.getTipo(),
+                evento.getNome(),
+                evento.getDataDoEvento(),
+                evento.getCasamentoDeDia(),
+                evento.getCasamentoExterno(),
+                evento.getQuantidadeDeConvidados(),
+                evento.getDescricao(),
+                evento.getValor(),
+                evento.getHd(),
+                evento.getLocalDoEvento(),
+                evento.getCliente(),
+                evento.getProfissionais()
+        );
+    }
 }

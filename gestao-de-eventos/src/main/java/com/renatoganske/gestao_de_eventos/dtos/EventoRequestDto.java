@@ -25,4 +25,19 @@ public record EventoRequestDto(
         LocalDoEvento localDoEvento,
         ClienteRequestDto cliente
 ) implements Serializable {
+    public Evento toEntity(EventoRequestDto requestDto) {
+        return Evento.builder()
+                .codigoDoEvento(requestDto.codigoDoEvento())
+                .tipo(requestDto.tipo())
+                .nome(requestDto.nome())
+                .dataDoEvento(requestDto.dataDoEvento())
+                .casamentoDeDia(requestDto.casamentoDeDia())
+                .casamentoExterno(requestDto.casamentoExterno())
+                .quantidadeDeConvidados(requestDto.quantidadeDeConvidados())
+                .descricao(requestDto.descricao())
+                .valor(requestDto.valor())
+                .hd(requestDto.hd())
+                .localDoEvento(requestDto.localDoEvento())
+                .build();
+    }
 }

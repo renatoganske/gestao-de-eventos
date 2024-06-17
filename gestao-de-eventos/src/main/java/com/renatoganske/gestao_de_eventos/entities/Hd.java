@@ -1,12 +1,19 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
+import com.renatoganske.gestao_de_eventos.dtos.HdResponseDto;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @Entity(name = "TB_HD")
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@Builder
 public class Hd {
 
     @Id
@@ -24,4 +31,15 @@ public class Hd {
 
     @OneToMany(mappedBy = "hd")
     private List<Evento> eventos;
+
+    public HdResponseDto toResponseDto(Hd hd) {
+        return new HdResponseDto(
+                hd.id,
+                hd.nome,
+                hd.capacidade,
+                hd.dataAquisicao,
+                hd.status,
+                hd.eventos
+        );
+    }
 }
