@@ -18,7 +18,6 @@ public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", nullable = false, columnDefinition = "VARCHAR(36)")
     private UUID id;
 
     @Column(name = "event_code")
