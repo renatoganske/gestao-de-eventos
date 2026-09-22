@@ -1,9 +1,9 @@
 package com.renatoganske.gestao_de_eventos.services;
 
-import com.renatoganske.gestao_de_eventos.dtos.ClienteResponseDto;
+import com.renatoganske.gestao_de_eventos.dtos.CustomerResponseDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
-import com.renatoganske.gestao_de_eventos.repositories.ClienteRepository;
+import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,13 +25,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ClienteServiceTest {
+class CustomerServiceTest {
 
     @Mock
-    private ClienteRepository clienteRepository;
+    private CustomerRepository customerRepository;
 
     @InjectMocks
-    private ClienteService clienteService;
+    private CustomerService customerService;
 
     private Customer customer;
     private CreateCustomerDto createCustomerDto;
@@ -40,128 +40,128 @@ class ClienteServiceTest {
     void setUp() {
         customer = Customer.builder()
                 .id(UUID.randomUUID())
-                .nome("Maria Silva")
-                .contato("(11) 99999-0000")
-                .endereco("Rua das Flores, 123")
-                .observacoes("Cliente preferencial")
+                .name("Maria Silva")
+                .contact("(11) 99999-0000")
+                .address("Rua das Flores, 123")
+                .notes("Cliente preferencial")
                 .build();
 
         createCustomerDto = new CreateCustomerDto(
-                customer.getNome(),
-                customer.getContato(),
-                customer.getEndereco(),
-                customer.getObservacoes());
+                customer.getName(),
+                customer.getContact(),
+                customer.getAddress(),
+                customer.getNotes());
     }
 
     @Test
-    void createCliente_savesAndReturnsResponseDto() {
+    void createCustomer_savesAndReturnsResponseDto() {
         ArgumentCaptor<Customer> captor = ArgumentCaptor.forClass(Customer.class);
-        when(clienteRepository.save(captor.capture())).thenReturn(customer);
+        when(customerRepository.save(captor.capture())).thenReturn(customer);
 
-        ClienteResponseDto result = clienteService.createCliente(createCustomerDto);
+        CustomerResponseDto result = customerService.createCustomer(createCustomerDto);
 
-        assertThat(captor.getValue().getNome()).isEqualTo(createCustomerDto.nome());
-        assertThat(captor.getValue().getContato()).isEqualTo(createCustomerDto.contato());
-        assertThat(captor.getValue().getEndereco()).isEqualTo(createCustomerDto.endereco());
-        assertThat(captor.getValue().getObservacoes()).isEqualTo(createCustomerDto.observacoes());
+        assertThat(captor.getValue().getName()).isEqualTo(createCustomerDto.name());
+        assertThat(captor.getValue().getContact()).isEqualTo(createCustomerDto.contact());
+        assertThat(captor.getValue().getAddress()).isEqualTo(createCustomerDto.address());
+        assertThat(captor.getValue().getNotes()).isEqualTo(createCustomerDto.notes());
 
         assertThat(result.id()).isEqualTo(customer.getId());
-        assertThat(result.nome()).isEqualTo(customer.getNome());
-        assertThat(result.contato()).isEqualTo(customer.getContato());
-        assertThat(result.endereco()).isEqualTo(customer.getEndereco());
-        assertThat(result.observacoes()).isEqualTo(customer.getObservacoes());
+        assertThat(result.name()).isEqualTo(customer.getName());
+        assertThat(result.contact()).isEqualTo(customer.getContact());
+        assertThat(result.address()).isEqualTo(customer.getAddress());
+        assertThat(result.notes()).isEqualTo(customer.getNotes());
     }
 
     @Test
-    void getAllClientes_returnsAllMappedCustomers() {
+    void getAllCustomers_returnsAllMappedCustomers() {
         Customer other = Customer.builder()
                 .id(UUID.randomUUID())
-                .nome("João Souza")
+                .name("João Souza")
                 .build();
-        when(clienteRepository.findAll()).thenReturn(List.of(customer, other));
+        when(customerRepository.findAll()).thenReturn(List.of(customer, other));
 
-        List<ClienteResponseDto> result = clienteService.getAllClientes();
+        List<CustomerResponseDto> result = customerService.getAllCustomers();
 
         assertThat(result).hasSize(2);
-        assertThat(result).extracting(ClienteResponseDto::nome)
-                .containsExactly(customer.getNome(), other.getNome());
+        assertThat(result).extracting(CustomerResponseDto::name)
+                .containsExactly(customer.getName(), other.getName());
     }
 
     @Test
-    void getAllClientes_returnsEmptyListWhenNoCustomers() {
-        when(clienteRepository.findAll()).thenReturn(List.of());
+    void getAllCustomers_returnsEmptyListWhenNoCustomers() {
+        when(customerRepository.findAll()).thenReturn(List.of());
 
-        List<ClienteResponseDto> result = clienteService.getAllClientes();
+        List<CustomerResponseDto> result = customerService.getAllCustomers();
 
         assertThat(result).isEmpty();
     }
 
     @Test
-    void getClienteById_returnsCustomerWhenFound() {
-        when(clienteRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
+    void getCustomerById_returnsCustomerWhenFound() {
+        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
 
-        ClienteResponseDto result = clienteService.getClienteById(customer.getId());
+        CustomerResponseDto result = customerService.getCustomerById(customer.getId());
 
         assertThat(result.id()).isEqualTo(customer.getId());
-        assertThat(result.nome()).isEqualTo(customer.getNome());
+        assertThat(result.name()).isEqualTo(customer.getName());
     }
 
     @Test
-    void getClienteById_throwsExceptionWhenNotFound() {
+    void getCustomerById_throwsExceptionWhenNotFound() {
         UUID id = UUID.randomUUID();
-        when(clienteRepository.findById(id)).thenReturn(Optional.empty());
+        when(customerRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> clienteService.getClienteById(id))
+        assertThatThrownBy(() -> customerService.getCustomerById(id))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining(id.toString());
     }
 
     @Test
-    void updateCliente_updatesAndReturnsCustomerWhenFound() {
+    void updateCustomer_updatesAndReturnsCustomerWhenFound() {
         UUID id = customer.getId();
         CreateCustomerDto updateDto = new CreateCustomerDto("Maria Souza", "(11) 98888-0000", "Rua Nova, 456", "Atualizado");
-        when(clienteRepository.findById(id)).thenReturn(Optional.of(customer));
-        when(clienteRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(customerRepository.findById(id)).thenReturn(Optional.of(customer));
+        when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ClienteResponseDto result = clienteService.updateCliente(id, updateDto);
+        CustomerResponseDto result = customerService.updateCustomer(id, updateDto);
 
-        assertThat(result.nome()).isEqualTo("Maria Souza");
-        assertThat(result.contato()).isEqualTo("(11) 98888-0000");
-        assertThat(result.endereco()).isEqualTo("Rua Nova, 456");
-        assertThat(result.observacoes()).isEqualTo("Atualizado");
+        assertThat(result.name()).isEqualTo("Maria Souza");
+        assertThat(result.contact()).isEqualTo("(11) 98888-0000");
+        assertThat(result.address()).isEqualTo("Rua Nova, 456");
+        assertThat(result.notes()).isEqualTo("Atualizado");
     }
 
     @Test
-    void updateCliente_throwsExceptionWhenNotFound() {
+    void updateCustomer_throwsExceptionWhenNotFound() {
         UUID id = UUID.randomUUID();
-        when(clienteRepository.findById(id)).thenReturn(Optional.empty());
+        when(customerRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> clienteService.updateCliente(id, createCustomerDto))
+        assertThatThrownBy(() -> customerService.updateCustomer(id, createCustomerDto))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining(id.toString());
 
-        verify(clienteRepository, never()).save(any());
+        verify(customerRepository, never()).save(any());
     }
 
     @Test
-    void deleteCliente_deletesWhenFound() {
+    void deleteCustomer_deletesWhenFound() {
         UUID id = customer.getId();
-        when(clienteRepository.findById(id)).thenReturn(Optional.of(customer));
+        when(customerRepository.findById(id)).thenReturn(Optional.of(customer));
 
-        clienteService.deleteCliente(id);
+        customerService.deleteCustomer(id);
 
-        verify(clienteRepository, times(1)).delete(customer);
+        verify(customerRepository, times(1)).delete(customer);
     }
 
     @Test
-    void deleteCliente_throwsExceptionWhenNotFound() {
+    void deleteCustomer_throwsExceptionWhenNotFound() {
         UUID id = UUID.randomUUID();
-        when(clienteRepository.findById(id)).thenReturn(Optional.empty());
+        when(customerRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> clienteService.deleteCliente(id))
+        assertThatThrownBy(() -> customerService.deleteCustomer(id))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining(id.toString());
 
-        verify(clienteRepository, never()).delete(any());
+        verify(customerRepository, never()).delete(any());
     }
 }
