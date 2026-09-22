@@ -8,17 +8,17 @@ import java.io.Serializable;
  * DTO for {@link Customer}
  */
 public record CreateCustomerDto(
-        String nome,
-        String contato,
-        String endereco,
-        String observacoes
+        String name,
+        String contact,
+        String address,
+        String notes
 ) implements Serializable {
     public Customer toEntity() {
         return Customer.builder()
-                .nome(this.nome)
-                .contato(this.contato)
-                .endereco(this.endereco)
-                .observacoes(this.observacoes)
+                .name(this.name)
+                .contact(this.contact)
+                .address(this.address)
+                .notes(this.notes)
                 .build();
     }
 }

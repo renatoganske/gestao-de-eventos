@@ -9,7 +9,7 @@ import java.io.Serializable;
  */
 public record CreateEventVenueDto(
         String name,
-        String adress,
+        String address,
         String city,
         String state,
         String type
@@ -17,7 +17,7 @@ public record CreateEventVenueDto(
     public EventVenue toEntity() {
         return EventVenue.builder()
                 .name(this.name())
-                .adress(this.adress())
+                .address(this.address())
                 .city(this.city())
                 .state(this.state())
                 .type(this.type())

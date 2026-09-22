@@ -8,19 +8,19 @@ import java.io.Serializable;
  * DTO for {@link Professional}
  */
 public record CreateProfessionalDto(
-        String nome,
-        String tipo,
-        String contato,
-        String especialidade,
-        String outrasInformacoes
+        String name,
+        String type,
+        String contact,
+        String specialty,
+        String otherInfo
 ) implements Serializable {
     private Professional toEntity() {
         return Professional.builder()
-                .nome(this.nome())
-                .tipo(this.tipo())
-                .contato(this.contato())
-                .especialidade(this.especialidade())
-                .outrasInformacoes(this.outrasInformacoes())
+                .name(this.name())
+                .type(this.type())
+                .contact(this.contact())
+                .specialty(this.specialty())
+                .otherInfo(this.otherInfo())
                 .build();
     }
 }

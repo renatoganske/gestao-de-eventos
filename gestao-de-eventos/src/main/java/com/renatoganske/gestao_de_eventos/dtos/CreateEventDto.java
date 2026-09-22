@@ -11,30 +11,30 @@ import java.time.LocalDate;
  * DTO for {@link Event}
  */
 public record CreateEventDto(
-        String codigoDoEvento,
-        String tipo,
-        String nome,
-        LocalDate dataDoEvento,
-        Boolean casamentoDeDia,
-        Boolean casamentoExterno,
-        Long quantidadeDeConvidados,
-        String descricao,
-        Double valor,
+        String eventCode,
+        String type,
+        String name,
+        LocalDate eventDate,
+        Boolean daytimeWedding,
+        Boolean outdoorWedding,
+        Long guestCount,
+        String description,
+        Double amount,
         Hd hd,
         EventVenue eventVenue,
-        CreateCustomerDto cliente
+        CreateCustomerDto customer
 ) implements Serializable {
     public Event toEntity() {
         return Event.builder()
-                .codigoDoEvento(this.codigoDoEvento())
-                .tipo(this.tipo())
-                .nome(this.nome())
-                .dataDoEvento(this.dataDoEvento())
-                .casamentoDeDia(this.casamentoDeDia())
-                .casamentoExterno(this.casamentoExterno())
-                .quantidadeDeConvidados(this.quantidadeDeConvidados())
-                .descricao(this.descricao())
-                .valor(this.valor())
+                .eventCode(this.eventCode())
+                .type(this.type())
+                .name(this.name())
+                .eventDate(this.eventDate())
+                .daytimeWedding(this.daytimeWedding())
+                .outdoorWedding(this.outdoorWedding())
+                .guestCount(this.guestCount())
+                .description(this.description())
+                .amount(this.amount())
                 .hd(this.hd())
                 .eventVenue(this.eventVenue())
                 .build();

@@ -1,13 +1,13 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
-import com.renatoganske.gestao_de_eventos.dtos.ClienteResponseDto;
+import com.renatoganske.gestao_de_eventos.dtos.CustomerResponseDto;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
 import java.util.UUID;
 
-@Entity(name = "TB_CLIENTE")
+@Entity(name = "TB_CUSTOMER")
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -18,25 +18,25 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "nome", nullable = false)
-    private String nome;
-    @Column(name = "contato")
-    private String contato;
-    @Column(name = "endereco")
-    private String endereco;
-    @Column(name = "observacoes")
-    private String observacoes;
+    @Column(name = "name", nullable = false)
+    private String name;
+    @Column(name = "contact")
+    private String contact;
+    @Column(name = "address")
+    private String address;
+    @Column(name = "notes")
+    private String notes;
 
     @OneToMany(mappedBy = "customer")
     private List<Event> events;
 
-    public ClienteResponseDto toResponseDto() {
-        return new ClienteResponseDto(
+    public CustomerResponseDto toResponseDto() {
+        return new CustomerResponseDto(
                 this.id,
-                this.nome,
-                this.contato,
-                this.endereco,
-                this.observacoes,
+                this.name,
+                this.contact,
+                this.address,
+                this.notes,
                 this.events);
     }
 }
