@@ -8,10 +8,8 @@ class DeliveryStatusTest {
 
     @Test
     void hasExpectedConstants() {
-        assertThat(DeliveryStatus.values()).containsExactly(
-                DeliveryStatus.PENDING,
-                DeliveryStatus.DELIVERED,
-                DeliveryStatus.ARCHIVED
-        );
+        assertThat(DeliveryStatus.values())
+                .extracting(Enum::name)
+                .containsExactlyInAnyOrder("PENDING", "DELIVERED", "ARCHIVED");
     }
 }

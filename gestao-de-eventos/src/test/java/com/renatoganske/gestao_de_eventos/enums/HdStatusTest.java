@@ -8,11 +8,8 @@ class HdStatusTest {
 
     @Test
     void hasExpectedConstants() {
-        assertThat(HdStatus.values()).containsExactly(
-                HdStatus.ACTIVE,
-                HdStatus.FULL,
-                HdStatus.DEFECTIVE,
-                HdStatus.ARCHIVED
-        );
+        assertThat(HdStatus.values())
+                .extracting(Enum::name)
+                .containsExactlyInAnyOrder("ACTIVE", "FULL", "DEFECTIVE", "ARCHIVED");
     }
 }

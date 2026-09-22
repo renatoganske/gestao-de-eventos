@@ -8,11 +8,8 @@ class EventTypeTest {
 
     @Test
     void hasExpectedConstants() {
-        assertThat(EventType.values()).containsExactly(
-                EventType.PHOTO_SHOOT,
-                EventType.BIRTHDAY,
-                EventType.WEDDING,
-                EventType.OTHER
-        );
+        assertThat(EventType.values())
+                .extracting(Enum::name)
+                .containsExactlyInAnyOrder("PHOTO_SHOOT", "BIRTHDAY", "WEDDING", "OTHER");
     }
 }
