@@ -7,6 +7,7 @@ import com.renatoganske.gestao_de_eventos.repositories.ClienteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -54,9 +55,15 @@ class ClienteServiceTest {
 
     @Test
     void createCliente_savesAndReturnsResponseDto() {
-        when(clienteRepository.save(any(Customer.class))).thenReturn(customer);
+        ArgumentCaptor<Customer> captor = ArgumentCaptor.forClass(Customer.class);
+        when(clienteRepository.save(captor.capture())).thenReturn(customer);
 
         ClienteResponseDto result = clienteService.createCliente(createCustomerDto);
+
+        assertThat(captor.getValue().getNome()).isEqualTo(createCustomerDto.nome());
+        assertThat(captor.getValue().getContato()).isEqualTo(createCustomerDto.contato());
+        assertThat(captor.getValue().getEndereco()).isEqualTo(createCustomerDto.endereco());
+        assertThat(captor.getValue().getObservacoes()).isEqualTo(createCustomerDto.observacoes());
 
         assertThat(result.id()).isEqualTo(customer.getId());
         assertThat(result.nome()).isEqualTo(customer.getNome());
