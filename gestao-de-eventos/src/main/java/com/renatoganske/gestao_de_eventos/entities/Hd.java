@@ -1,6 +1,7 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
+import com.renatoganske.gestao_de_eventos.enums.HdStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,12 +23,19 @@ public class Hd {
 
     @Column(name = "name", nullable = false)
     private String name;
-    @Column(name = "capacidade")
-    private Integer capacidade;
+    @Column(name = "capacity_gb")
+    private Integer capacityGb;
+    @Column(name = "used_space_gb")
+    private Integer usedSpaceGb;
+    @Column(name = "physical_location")
+    private String physicalLocation;
+    @Column(name = "serial_number")
+    private String serialNumber;
     @Column(name = "acquisition_date")
     private LocalDate acquisitionDate;
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private HdStatus status;
 
     @OneToMany(mappedBy = "hd")
     private List<Event> events;
@@ -36,7 +44,10 @@ public class Hd {
         return new HdDto(
                 this.id,
                 this.name,
-                this.capacidade,
+                this.capacityGb,
+                this.usedSpaceGb,
+                this.physicalLocation,
+                this.serialNumber,
                 this.acquisitionDate,
                 this.status,
                 this.events

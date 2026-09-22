@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
+import com.renatoganske.gestao_de_eventos.enums.HdStatus;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -13,9 +14,12 @@ import java.util.UUID;
  */
 public record HdDto(
         UUID id, String name,
-        Integer capacidade,
+        Integer capacityGb,
+        Integer usedSpaceGb,
+        String physicalLocation,
+        String serialNumber,
         LocalDate acquisitionDate,
-        String status,
+        HdStatus status,
         List<Event> events
 ) implements Serializable {
 }
