@@ -277,16 +277,20 @@ public record ValidationError(String field, String message) implements DomainErr
 
 ## 9. ADR — Decisões Registradas
 
-| Data | Decisão | Racional |
-|---|---|---|
-| 2026-09-22 | Manter `casamentoDeDia`/`casamentoExterno` no `Event` genérico, sem subtipo | Volume e complexidade atuais não justificam herança JPA; reavaliar se surgir 2º tipo com atributos próprios |
-| 2026-09-22 | `Event`↔`Professional` vira entidade `EventProfessional` com `funcaoNoEvento` | Métrica "quantos casamentos com profissional X" não precisa disso, mas registrar função foi pedido futuro identificado |
-| 2026-09-22 | Sem biblioteca de FP externa (Vavr etc.) | Java 21 nativo (Streams/Optional/switch de padrões/record) cobre a necessidade; projeto pessoal de baixo volume |
-| 2026-09-22 | Tratamento de erro fica com débito técnico documentado, não resolvido agora | Prioridade é fechar o CRUD de `Event`/`Hd` primeiro |
-| 2026-09-22 | Métricas de negócio não viram endpoints fixos um a um — consulta via combinação de `EventFilter` (5.1-f) e/ou endpoint de busca genérico | Renato quer liberdade para filtrar e cruzar dados livremente, não um checklist fixo de perguntas pré-definidas |
-| 2026-09-22 | Adotar Flyway para migrations; `ddl-auto` passa de `update` para `validate` | Pedido explícito do Renato — schema deixa de ser gerado implicitamente pelo Hibernate e passa a ter histórico versionado e auditável. Implementação: task GDE-14 |
-| 2026-09-22 | Inglês vira idioma padrão da aplicação; migração PT→EN existente será finalizada (não mais mantida incompleta por tempo indeterminado) | Pedido explícito do Renato — entidades/DTOs já em inglês, mas repositories/services/controllers e nomes de tabela/coluna ainda em português divergem do próprio código novo. Implementação: task GDE-15 |
-| 2026-09-22 | Sequenciamento: GDE-15 (rename PT→EN, ainda via `ddl-auto=update`) roda antes de GDE-14 (Flyway) — o baseline do Flyway já nasce em inglês | Banco local do Renato ainda não tem dados (confirmado 2026-09-22) — nada a preservar, então não há motivo para criar a baseline do Flyway em português só para renomear em seguida |
+Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/adr/` (formato: Data/Status/Contexto/Decisão/Racional). Esta seção é só o índice — não duplicar o conteúdo aqui.
+
+| ADR | Decisão |
+|---|---|
+| [0001](adr/0001-casamento-fields-sem-subtipo.md) | Manter `casamentoDeDia`/`casamentoExterno` no `Event` genérico, sem subtipo |
+| [0002](adr/0002-event-professional-entidade-associacao.md) | `Event`↔`Professional` vira entidade `EventProfessional` com `roleInEvent` |
+| [0003](adr/0003-sem-biblioteca-fp-externa.md) | Sem biblioteca de FP externa (Vavr etc.) |
+| [0004](adr/0004-tratamento-erro-debito-tecnico.md) | Tratamento de erro fica com débito técnico documentado, não resolvido agora |
+| [0005](adr/0005-metricas-via-filtros-composaveis.md) | Métricas de negócio via `EventFilter` composável / endpoint de busca genérico, não endpoints fixos |
+| [0006](adr/0006-adotar-flyway.md) | Adotar Flyway para migrations; `ddl-auto` passa de `update` para `validate` (GDE-14) |
+| [0007](adr/0007-ingles-idioma-padrao-migracao-pt-en.md) | Inglês vira idioma padrão da aplicação; migração PT→EN existente será finalizada (GDE-15) |
+| [0008](adr/0008-sequenciamento-gde15-antes-gde14.md) | Sequenciamento: GDE-15 (rename PT→EN) roda antes de GDE-14 (Flyway) |
+
+Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
 ---
 

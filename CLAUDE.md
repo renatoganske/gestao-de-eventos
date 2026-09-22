@@ -37,7 +37,7 @@ Swagger/OpenAPI UI is served at `/swagger-ui.html` (raw docs at `/api-docs`) onc
 
 ## Development workflow
 
-Task tracking lives on Jira, board **"Gestão de Eventos"** (key `GDE`) — no MCP/CLI access is configured yet, so cards are drafted here and pasted in manually until that's set up.
+Task tracking lives on Jira, board **"Gestão de Eventos"** (key `GDE`). An `atlassian` MCP server is connected (site `renatoganskejr.atlassian.net`) — create/edit/transition cards directly via the `mcp__atlassian__*` tools rather than drafting them as text. Issue type is `Tarefa`; every card needs a user story ("Como… quero… para que…"), technical context, and an acceptance-criteria checklist — not a terse technical description.
 
 For every task pulled from the board:
 
@@ -46,7 +46,7 @@ For every task pulled from the board:
 3. **Run the full test suite** (`./mvnw test`) before opening a PR; if anything is broken (by this change or pre-existing), fix it as part of the task.
 4. **Open a PR** and stop — wait for Renato's review, approval, and merge. Never merge your own PR.
 5. Only start the next task once Renato says the previous one was merged and tells you to pull the next one. Don't chain tasks autonomously.
-6. Any decision that changes architecture (new dependency/tool, schema-management approach, cross-cutting convention) gets an ADR entry in `docs/spec-gestao-de-eventos.md` §9, written through the `software-architect` skill's lens — don't just fold it into other docs in passing.
+6. Any decision that changes architecture (new dependency/tool, schema-management approach, cross-cutting convention) gets its own ADR document in `docs/adr/` (`NNNN-slug.md`, one file per decision: Data/Status/Contexto/Decisão/Racional), written through the `software-architect` skill's lens — don't just fold it into other docs in passing.
 
 ## Scope & approval
 
