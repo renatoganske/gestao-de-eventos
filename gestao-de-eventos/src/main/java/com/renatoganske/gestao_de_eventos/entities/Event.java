@@ -52,13 +52,8 @@ public class Event {
     @JoinColumn(name = "customer_id")
     private Customer customer;
 
-    @ManyToMany
-    @JoinTable(
-            name = "event_professional",
-            joinColumns = @JoinColumn(name = "event_id"),
-            inverseJoinColumns = @JoinColumn(name = "professional_id")
-    )
-    private List<Professional> professionals;
+    @OneToMany(mappedBy = "event")
+    private List<EventProfessional> eventProfessionals;
 
     public EventDto toDTO() {
         return new EventDto(
@@ -75,7 +70,7 @@ public class Event {
                 this.hd,
                 this.eventVenue,
                 this.customer,
-                this.professionals
+                this.eventProfessionals
         );
     }
 }

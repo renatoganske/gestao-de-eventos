@@ -30,8 +30,8 @@ public class Professional {
     @Column(name = "other_info")
     private String otherInfo;
 
-    @ManyToMany(mappedBy = "professionals")
-    private List<Event> events;
+    @OneToMany(mappedBy = "professional")
+    private List<EventProfessional> eventProfessionals;
 
     public ProfessionalDto toResponseDto() {
         return new ProfessionalDto(
@@ -41,7 +41,7 @@ public class Professional {
                 this.contact,
                 this.specialty,
                 this.otherInfo,
-                this.events
+                this.eventProfessionals
         );
     }
 }

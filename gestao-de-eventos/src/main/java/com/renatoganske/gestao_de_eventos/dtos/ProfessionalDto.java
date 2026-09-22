@@ -1,6 +1,6 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
-import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
 
 import java.io.Serializable;
@@ -17,6 +17,6 @@ public record ProfessionalDto(
         String contact,
         String specialty,
         String otherInfo,
-        List<Event> events
+        List<EventProfessional> eventProfessionals
 ) implements Serializable {
 }

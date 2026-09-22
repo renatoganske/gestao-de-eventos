@@ -22,6 +22,6 @@ public record EventDto(
         Double amount, Hd hd,
         EventVenue eventVenue,
         Customer customer,
-        List<Professional> professionals
+        List<EventProfessional> eventProfessionals
 ) implements Serializable {
 }
