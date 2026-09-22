@@ -53,7 +53,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void createCliente_deveSalvarEDevolverDtoDeResposta() {
+    void createCliente_savesAndReturnsResponseDto() {
         when(clienteRepository.save(any(Customer.class))).thenReturn(customer);
 
         ClienteResponseDto result = clienteService.createCliente(createCustomerDto);
@@ -66,7 +66,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void getAllClientes_deveDevolverTodosOsClientesMapeados() {
+    void getAllClientes_returnsAllMappedCustomers() {
         Customer other = Customer.builder()
                 .id(UUID.randomUUID())
                 .nome("João Souza")
@@ -81,7 +81,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void getAllClientes_devolveListaVaziaQuandoNaoHaClientes() {
+    void getAllClientes_returnsEmptyListWhenNoCustomers() {
         when(clienteRepository.findAll()).thenReturn(List.of());
 
         List<ClienteResponseDto> result = clienteService.getAllClientes();
@@ -90,7 +90,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void getClienteById_deveDevolverClienteQuandoEncontrado() {
+    void getClienteById_returnsCustomerWhenFound() {
         when(clienteRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
 
         ClienteResponseDto result = clienteService.getClienteById(customer.getId());
@@ -100,7 +100,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void getClienteById_deveLancarExcecaoQuandoNaoEncontrado() {
+    void getClienteById_throwsExceptionWhenNotFound() {
         UUID id = UUID.randomUUID();
         when(clienteRepository.findById(id)).thenReturn(Optional.empty());
 
@@ -110,7 +110,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void updateCliente_deveAtualizarEDevolverClienteQuandoEncontrado() {
+    void updateCliente_updatesAndReturnsCustomerWhenFound() {
         UUID id = customer.getId();
         CreateCustomerDto updateDto = new CreateCustomerDto("Maria Souza", "(11) 98888-0000", "Rua Nova, 456", "Atualizado");
         when(clienteRepository.findById(id)).thenReturn(Optional.of(customer));
@@ -125,7 +125,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void updateCliente_deveLancarExcecaoQuandoNaoEncontrado() {
+    void updateCliente_throwsExceptionWhenNotFound() {
         UUID id = UUID.randomUUID();
         when(clienteRepository.findById(id)).thenReturn(Optional.empty());
 
@@ -137,7 +137,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void deleteCliente_deveExcluirQuandoEncontrado() {
+    void deleteCliente_deletesWhenFound() {
         UUID id = customer.getId();
         when(clienteRepository.findById(id)).thenReturn(Optional.of(customer));
 
@@ -147,7 +147,7 @@ class ClienteServiceTest {
     }
 
     @Test
-    void deleteCliente_deveLancarExcecaoQuandoNaoEncontrado() {
+    void deleteCliente_throwsExceptionWhenNotFound() {
         UUID id = UUID.randomUUID();
         when(clienteRepository.findById(id)).thenReturn(Optional.empty());
 
