@@ -1,11 +1,11 @@
 package com.renatoganske.gestao_de_eventos.repositories;
 
-import com.renatoganske.gestao_de_eventos.entities.Professional;
+import com.renatoganske.gestao_de_eventos.entities.Customer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 @Repository
-public interface ProfissionalRepository extends JpaRepository<Professional, UUID> {
+public interface CustomerRepository extends JpaRepository<Customer, UUID> {
 }

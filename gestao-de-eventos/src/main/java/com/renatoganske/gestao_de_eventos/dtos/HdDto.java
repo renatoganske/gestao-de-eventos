@@ -12,9 +12,9 @@ import java.util.UUID;
  * DTO for {@link Hd}
  */
 public record HdDto(
-        UUID id, String nome,
+        UUID id, String name,
         Integer capacidade,
-        LocalDate dataAquisicao,
+        LocalDate acquisitionDate,
         String status,
         List<Event> events
 ) implements Serializable {

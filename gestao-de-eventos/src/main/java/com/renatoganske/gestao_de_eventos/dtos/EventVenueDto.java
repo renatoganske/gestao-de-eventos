@@ -13,7 +13,7 @@ import java.util.UUID;
 public record EventVenueDto(
         UUID id,
         String name,
-        String adress,
+        String address,
         String city,
         String state,
         String type,

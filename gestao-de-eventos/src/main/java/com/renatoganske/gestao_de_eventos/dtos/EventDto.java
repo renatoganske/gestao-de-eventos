@@ -12,16 +12,16 @@ import java.util.UUID;
  */
 public record EventDto(
         UUID id,
-        String codigoDoEvento,
-        String tipo, String nome,
-        LocalDate dataDoEvento,
-        Boolean casamentoDeDia,
-        Boolean casamentoExterno,
-        Long quantidadeDeConvidados,
-        String descricao,
-        Double valor, Hd hd,
+        String eventCode,
+        String type, String name,
+        LocalDate eventDate,
+        Boolean daytimeWedding,
+        Boolean outdoorWedding,
+        Long guestCount,
+        String description,
+        Double amount, Hd hd,
         EventVenue eventVenue,
         Customer customer,
-        List<Professional> profissionais
+        List<Professional> professionals
 ) implements Serializable {
 }

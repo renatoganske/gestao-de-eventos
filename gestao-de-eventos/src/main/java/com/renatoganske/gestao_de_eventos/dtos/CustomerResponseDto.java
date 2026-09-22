@@ -10,12 +10,12 @@ import java.util.UUID;
 /**
  * DTO for {@link Customer}
  */
-public record ClienteResponseDto(
+public record CustomerResponseDto(
         UUID id,
-        String nome,
-        String contato,
-        String endereco,
-        String observacoes,
+        String name,
+        String contact,
+        String address,
+        String notes,
         List<Event> events
 ) implements Serializable {
 }

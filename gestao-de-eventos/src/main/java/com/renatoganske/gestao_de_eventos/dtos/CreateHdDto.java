@@ -9,16 +9,16 @@ import java.time.LocalDate;
  * DTO for {@link com.renatoganske.gestao_de_eventos.entities.Hd}
  */
 public record CreateHdDto(
-        String nome,
+        String name,
         Integer capacidade,
-        LocalDate dataAquisicao,
+        LocalDate acquisitionDate,
         String status
 ) implements Serializable {
     public Hd toEntity() {
         return Hd.builder()
-                .nome(this.nome())
+                .name(this.name())
                 .capacidade(this.capacidade())
-                .dataAquisicao(this.dataAquisicao())
+                .acquisitionDate(this.acquisitionDate())
                 .status(this.status())
                 .build();
     }

@@ -7,7 +7,7 @@ import lombok.*;
 import java.util.List;
 import java.util.UUID;
 
-@Entity(name = "TB_LOCAL_DO_EVENTO")
+@Entity(name = "TB_EVENT_VENUE")
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -19,15 +19,15 @@ public class EventVenue {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "nome", nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
-    @Column(name = "endereco")
-    private String adress;
-    @Column(name = "cidade")
+    @Column(name = "address")
+    private String address;
+    @Column(name = "city")
     private String city;
-    @Column(name = "estado")
+    @Column(name = "state")
     private String state;
-    @Column(name = "tipo")
+    @Column(name = "type")
     private String type;
 
     @OneToMany(mappedBy = "eventVenue")
@@ -37,7 +37,7 @@ public class EventVenue {
         return new EventVenueDto(
                 this.id,
                 this.name,
-                this.adress,
+                this.address,
                 this.city,
                 this.state,
                 this.type,

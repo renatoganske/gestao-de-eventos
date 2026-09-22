@@ -20,12 +20,12 @@ public class Hd {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
-    @Column(name = "nome", nullable = false)
-    private String nome;
+    @Column(name = "name", nullable = false)
+    private String name;
     @Column(name = "capacidade")
     private Integer capacidade;
-    @Column(name = "data_aquisicao")
-    private LocalDate dataAquisicao;
+    @Column(name = "acquisition_date")
+    private LocalDate acquisitionDate;
     @Column(name = "status")
     private String status;
 
@@ -35,9 +35,9 @@ public class Hd {
     public HdDto toResponseDto() {
         return new HdDto(
                 this.id,
-                this.nome,
+                this.name,
                 this.capacidade,
-                this.dataAquisicao,
+                this.acquisitionDate,
                 this.status,
                 this.events
         );
