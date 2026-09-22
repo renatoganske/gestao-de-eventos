@@ -1,6 +1,7 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Hd;
+import com.renatoganske.gestao_de_eventos.enums.HdStatus;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -10,14 +11,20 @@ import java.time.LocalDate;
  */
 public record CreateHdDto(
         String name,
-        Integer capacidade,
+        Integer capacityGb,
+        Integer usedSpaceGb,
+        String physicalLocation,
+        String serialNumber,
         LocalDate acquisitionDate,
-        String status
+        HdStatus status
 ) implements Serializable {
     public Hd toEntity() {
         return Hd.builder()
                 .name(this.name())
-                .capacidade(this.capacidade())
+                .capacityGb(this.capacityGb())
+                .usedSpaceGb(this.usedSpaceGb())
+                .physicalLocation(this.physicalLocation())
+                .serialNumber(this.serialNumber())
                 .acquisitionDate(this.acquisitionDate())
                 .status(this.status())
                 .build();
