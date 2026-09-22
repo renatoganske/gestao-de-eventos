@@ -80,41 +80,41 @@ Mantido como já estabelecido no `Cliente`:
 | Atributo | Tipo | Observação |
 |---|---|---|
 | id | UUID | PK |
-| nome | String | not null — fica em português por ora (GDE-15 renomeia) |
-| capacityGb | Integer | renomear de `capacidade` — já nasce em inglês (GDE-4 é depois da decisão de padronizar idioma) |
+| name | String | not null — renomeado de `nome` pela GDE-15 |
+| capacityGb | Integer | renomear de `capacidade` — já nasce em inglês (GDE-4) |
 | usedSpaceGb | Integer | atualizado ao vincular/desvincular `Event` |
 | physicalLocation | String | gaveta, estante, "com fulano" |
 | serialNumber | String | rastreabilidade em caso de falha |
-| dataAquisicao | LocalDate | fica em português por ora (GDE-15 renomeia) |
-| status | `HdStatus` (enum) | `ATIVO`, `CHEIO`, `DEFEITO`, `ARQUIVADO` |
+| acquisitionDate | LocalDate | renomeado de `dataAquisicao` pela GDE-15 |
+| status | `HdStatus` (enum) | `ACTIVE`, `FULL`, `DEFECTIVE`, `ARCHIVED` — valores em inglês (ver ADR-0009) |
 | events | List\<Event\> | `@OneToMany`, mapped by `hd` |
 
-**`Event` (`TB_EVENTO`)** — `tipo` vira enum; adiciona status de entrega e tamanho:
+**`Event` (`TB_EVENTO`)** — `type` vira enum; adiciona status de entrega e tamanho:
 
 | Atributo | Tipo | Observação |
 |---|---|---|
 | id | UUID | PK |
-| codigoDoEvento | String | chave de correlação com nome de pasta/arquivo no HD |
-| tipo | `EventType` (enum) | `ENSAIO`, `ANIVERSARIO`, `CASAMENTO`, `EVENTO_DIVERSO` |
-| nome | String | not null |
-| dataDoEvento | LocalDate | |
-| casamentoDeDia | Boolean | **nullable, só relevante se `tipo = CASAMENTO`** — ver 3.2 |
-| casamentoExterno | Boolean | idem |
-| quantidadeDeConvidados | Long | |
-| descricao | String | |
-| valor | Double | |
+| eventCode | String | chave de correlação com nome de pasta/arquivo no HD — renomeado de `codigoDoEvento` pela GDE-15 |
+| type | `EventType` (enum) | `PHOTO_SHOOT`, `BIRTHDAY`, `WEDDING`, `OTHER` — valores em inglês (ver ADR-0009); renomeado de `tipo` pela GDE-15 |
+| name | String | not null — renomeado de `nome` pela GDE-15 |
+| eventDate | LocalDate | renomeado de `dataDoEvento` pela GDE-15 |
+| daytimeWedding | Boolean | **nullable, só relevante se `type = WEDDING`** — ver 3.2; renomeado de `casamentoDeDia` pela GDE-15 |
+| outdoorWedding | Boolean | idem; renomeado de `casamentoExterno` pela GDE-15 |
+| guestCount | Long | renomeado de `quantidadeDeConvidados` pela GDE-15 |
+| description | String | renomeado de `descricao` pela GDE-15 |
+| amount | Double | renomeado de `valor` pela GDE-15 |
 | sizeGb | Integer | alimenta `Hd.usedSpaceGb` — já nasce em inglês |
-| deliveryStatus | `DeliveryStatus` (enum) | `PENDENTE`, `ENTREGUE`, `ARQUIVADO` — já nasce em inglês |
+| deliveryStatus | `DeliveryStatus` (enum) | `PENDING`, `DELIVERED`, `ARCHIVED` — valores em inglês (ver ADR-0009); já nasce em inglês |
 | hd | Hd | `@ManyToOne` |
 | eventVenue | EventVenue | `@ManyToOne` |
 | customer | Customer | `@ManyToOne` |
-| profissionais | List\<EventProfessional\> | ver 3.3 |
+| professionals | List\<EventProfessional\> | ver 3.3; renomeado de `profissionais` pela GDE-15 |
 
 **`Customer` e `EventVenue`**: mantidos como estão — já atendem às métricas descritas (cidade/estado para "casamentos por local").
 
 ### 3.2 Decisão explícita: campos específicos de casamento no `Event` genérico
 
-`casamentoDeDia`/`casamentoExterno` ficam no `Event` (não em subtipo/tabela separada) por decisão consciente de simplicidade — modelar subtipo (herança JPA, tabela própria) seria over-engineering para o volume e o problema atuais. **Débito técnico aceito e documentado**, não ignorado: se um dia surgir um segundo tipo de evento com atributos próprios, reavaliar.
+`daytimeWedding`/`outdoorWedding` (`casamentoDeDia`/`casamentoExterno` antes da GDE-15) ficam no `Event` (não em subtipo/tabela separada) por decisão consciente de simplicidade — modelar subtipo (herança JPA, tabela própria) seria over-engineering para o volume e o problema atuais. **Débito técnico aceito e documentado**, não ignorado: se um dia surgir um segundo tipo de evento com atributos próprios, reavaliar.
 
 ### 3.3 Join `Event`↔`Professional` vira entidade própria
 
@@ -179,7 +179,7 @@ public ResponseEntity<EventResponseDto> get(UUID id) {
 ```java
 public long countDaytimeWeddingsByVenue(UUID venueId) {
     return eventRepository.findByEventVenueId(venueId).stream()
-        .filter(e -> e.getTipo() == EventType.CASAMENTO)
+        .filter(e -> e.getType() == EventType.WEDDING)
         .filter(e -> Boolean.TRUE.equals(e.getCasamentoDeDia()))
         .count();
 }
@@ -214,7 +214,7 @@ O service chama essa função pura e só ele lida com o efeito colateral (salvar
 ```java
 public interface EventFilter extends Predicate<Event> {
     static EventFilter byType(EventType type) {
-        return e -> type == null || e.getTipo() == type;
+        return e -> type == null || e.getType() == type;
     }
     static EventFilter byVenue(UUID venueId) {
         return e -> venueId == null || e.getEventVenue().getId().equals(venueId);
@@ -223,7 +223,7 @@ public interface EventFilter extends Predicate<Event> {
     static EventFilter byPeriod(LocalDate from, LocalDate to) { /* ... */ return e -> true; }
     // novos critérios entram aqui como mais um factory method, combináveis entre si
 }
-// uso: events.stream().filter(byType(CASAMENTO).and(byVenue(id)).and(byPeriod(from, to)))
+// uso: events.stream().filter(byType(WEDDING).and(byVenue(id)).and(byPeriod(from, to)))
 ```
 
 Um endpoint de consulta genérico (ex.: `GET /events/search` aceitando os parâmetros opcionais tipo/local/profissional/período/HD/status) que monta a combinação de `EventFilter` a partir da query string é preferível a criar um endpoint/métrica fixo por pergunta de negócio.
@@ -281,7 +281,8 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 
 | ADR | Decisão |
 |---|---|
-| [0001](adr/0001-casamento-fields-sem-subtipo.md) | Manter `casamentoDeDia`/`casamentoExterno` no `Event` genérico, sem subtipo |
+| [0001](adr/0001-casamento-fields-sem-subtipo.md) | Manter `daytimeWedding`/`outdoorWedding` no `Event` genérico, sem subtipo |
+| [0009](adr/0009-enum-values-em-ingles.md) | Valores de enum (`EventType`/`DeliveryStatus`/`HdStatus`) em inglês, não em português |
 | [0002](adr/0002-event-professional-entidade-associacao.md) | `Event`↔`Professional` vira entidade `EventProfessional` com `roleInEvent` |
 | [0003](adr/0003-sem-biblioteca-fp-externa.md) | Sem biblioteca de FP externa (Vavr etc.) |
 | [0004](adr/0004-tratamento-erro-debito-tecnico.md) | Tratamento de erro fica com débito técnico documentado, não resolvido agora |
