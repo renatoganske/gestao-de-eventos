@@ -1,6 +1,6 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
-import com.renatoganske.gestao_de_eventos.dtos.HdResponseDto;
+import com.renatoganske.gestao_de_eventos.dtos.HdDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,16 +30,16 @@ public class Hd {
     private String status;
 
     @OneToMany(mappedBy = "hd")
-    private List<Evento> eventos;
+    private List<Event> events;
 
-    public HdResponseDto toResponseDto() {
-        return new HdResponseDto(
+    public HdDto toResponseDto() {
+        return new HdDto(
                 this.id,
                 this.nome,
                 this.capacidade,
                 this.dataAquisicao,
                 this.status,
-                this.eventos
+                this.events
         );
     }
 }

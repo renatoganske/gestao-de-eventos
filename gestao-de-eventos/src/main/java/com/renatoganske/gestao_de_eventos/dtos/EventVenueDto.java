@@ -1,21 +1,22 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
-import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
 /**
- * DTO for {@link Customer}
+ * DTO for {@link EventVenue}
  */
-public record ClienteResponseDto(
+public record EventVenueDto(
         UUID id,
-        String nome,
-        String contato,
-        String endereco,
-        String observacoes,
+        String name,
+        String adress,
+        String city,
+        String state,
+        String type,
         List<Event> events
 ) implements Serializable {
 }

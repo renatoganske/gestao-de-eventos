@@ -1,6 +1,6 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
-import com.renatoganske.gestao_de_eventos.entities.Evento;
+import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 
 import java.io.Serializable;
@@ -11,11 +11,11 @@ import java.util.UUID;
 /**
  * DTO for {@link Hd}
  */
-public record HdResponseDto(
+public record HdDto(
         UUID id, String nome,
         Integer capacidade,
         LocalDate dataAquisicao,
         String status,
-        List<Evento> eventos
+        List<Event> events
 ) implements Serializable {
 }

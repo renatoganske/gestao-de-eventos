@@ -1,13 +1,12 @@
 package com.renatoganske.gestao_de_eventos.services;
 
-import com.renatoganske.gestao_de_eventos.dtos.ClienteRequestDto;
+import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.ClienteResponseDto;
-import com.renatoganske.gestao_de_eventos.entities.Cliente;
+import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.repositories.ClienteRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.ObjectNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,41 +22,41 @@ public class ClienteService {
     private final ClienteRepository clienteRepository;
 
     @Transactional
-    public ClienteResponseDto createCliente(ClienteRequestDto clienteRequestDto) {
-        return clienteRepository.save(clienteRequestDto.toEntity()).toResponseDto();
+    public ClienteResponseDto createCliente(CreateCustomerDto createCustomerDto) {
+        return clienteRepository.save(createCustomerDto.toEntity()).toResponseDto();
     }
 
     public List<ClienteResponseDto> getAllClientes() {
         return clienteRepository.findAll().stream()
-                .map(Cliente::toResponseDto)
+                .map(Customer::toResponseDto)
                 .collect(Collectors.toList());
     }
 
     public ClienteResponseDto getClienteById(UUID id) {
-        Optional<Cliente> optionalCliente = clienteRepository.findById(id);
-        return optionalCliente.map(Cliente::toResponseDto)
+        Optional<Customer> optionalCliente = clienteRepository.findById(id);
+        return optionalCliente.map(Customer::toResponseDto)
                 .orElseThrow(() -> new RuntimeException("Cliente not found with id: " + id));
     }
 
     @Transactional
-    public ClienteResponseDto updateCliente(UUID id, ClienteRequestDto clienteRequestDto) {
-        Cliente cliente = clienteRepository.findById(id)
+    public ClienteResponseDto updateCliente(UUID id, CreateCustomerDto createCustomerDto) {
+        Customer customer = clienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Cliente not found with id: " + id));
 
-        cliente.setNome(clienteRequestDto.nome());
-        cliente.setContato(clienteRequestDto.contato());
-        cliente.setEndereco(clienteRequestDto.endereco());
-        cliente.setObservacoes(clienteRequestDto.observacoes());
+        customer.setNome(createCustomerDto.nome());
+        customer.setContato(createCustomerDto.contato());
+        customer.setEndereco(createCustomerDto.endereco());
+        customer.setObservacoes(createCustomerDto.observacoes());
 
-        Cliente updatedCliente = clienteRepository.save(cliente);
-        return updatedCliente.toResponseDto();
+        Customer updatedCustomer = clienteRepository.save(customer);
+        return updatedCustomer.toResponseDto();
     }
 
     @Transactional
     public void deleteCliente(UUID id) {
-        Cliente cliente = clienteRepository.findById(id)
+        Customer customer = clienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Cliente not found with id: " + id));
-        clienteRepository.delete(cliente);
+        clienteRepository.delete(customer);
     }
 
 }

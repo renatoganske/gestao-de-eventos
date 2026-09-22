@@ -3,7 +3,6 @@ package com.renatoganske.gestao_de_eventos.entities;
 import com.renatoganske.gestao_de_eventos.dtos.ClienteResponseDto;
 import jakarta.persistence.*;
 import lombok.*;
-import org.antlr.v4.runtime.misc.NotNull;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +13,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class Cliente {
+public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
@@ -28,8 +27,8 @@ public class Cliente {
     @Column(name = "observacoes")
     private String observacoes;
 
-    @OneToMany(mappedBy = "cliente")
-    private List<Evento> eventos;
+    @OneToMany(mappedBy = "customer")
+    private List<Event> events;
 
     public ClienteResponseDto toResponseDto() {
         return new ClienteResponseDto(
@@ -38,6 +37,6 @@ public class Cliente {
                 this.contato,
                 this.endereco,
                 this.observacoes,
-                this.eventos);
+                this.events);
     }
 }

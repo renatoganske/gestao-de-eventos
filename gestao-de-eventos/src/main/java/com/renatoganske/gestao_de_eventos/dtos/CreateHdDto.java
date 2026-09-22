@@ -8,7 +8,7 @@ import java.time.LocalDate;
 /**
  * DTO for {@link com.renatoganske.gestao_de_eventos.entities.Hd}
  */
-public record HdRequestDto(
+public record CreateHdDto(
         String nome,
         Integer capacidade,
         LocalDate dataAquisicao,

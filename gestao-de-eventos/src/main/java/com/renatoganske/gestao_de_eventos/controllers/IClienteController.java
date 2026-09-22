@@ -1,6 +1,6 @@
 package com.renatoganske.gestao_de_eventos.controllers;
 
-import com.renatoganske.gestao_de_eventos.dtos.ClienteRequestDto;
+import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.ClienteResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,11 +28,11 @@ public interface IClienteController {
 
     @Operation(summary = "Cadastrar cliente", description = "Cadastra um novo cliente.")
     @PostMapping
-    ResponseEntity<ClienteResponseDto> create(@RequestBody @Valid ClienteRequestDto requestDto);
+    ResponseEntity<ClienteResponseDto> create(@RequestBody @Valid CreateCustomerDto requestDto);
 
     @Operation(summary = "Atualizar cliente", description = "Atualiza um cliente existente.")
     @PutMapping("/{id}")
-    ResponseEntity<ClienteResponseDto> update(@PathVariable UUID id, @RequestBody @Valid ClienteRequestDto requestDto);
+    ResponseEntity<ClienteResponseDto> update(@PathVariable UUID id, @RequestBody @Valid CreateCustomerDto requestDto);
 
     @Operation(summary = "Excluir cliente", description = "Exclui um cliente pelo ID.")
     @DeleteMapping("/{id}")

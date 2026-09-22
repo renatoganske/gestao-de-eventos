@@ -1,6 +1,6 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
-import com.renatoganske.gestao_de_eventos.dtos.EventoResponseDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,7 +14,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class Evento {
+public class Event {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -46,11 +46,11 @@ public class Evento {
 
     @ManyToOne
     @JoinColumn(name = "local_do_evento_id")
-    private LocalDoEvento localDoEvento;
+    private EventVenue eventVenue;
 
     @ManyToOne
     @JoinColumn(name = "cliente_id")
-    private Cliente cliente;
+    private Customer customer;
 
     @ManyToMany
     @JoinTable(
@@ -58,10 +58,10 @@ public class Evento {
             joinColumns = @JoinColumn(name = "evento_id"),
             inverseJoinColumns = @JoinColumn(name = "profissional_id")
     )
-    private List<Profissional> profissionais;
+    private List<Professional> profissionais;
 
-    public EventoResponseDto toDTO() {
-        return new EventoResponseDto(
+    public EventDto toDTO() {
+        return new EventDto(
                 this.id,
                 this.codigoDoEvento,
                 this.tipo,
@@ -73,8 +73,8 @@ public class Evento {
                 this.descricao,
                 this.valor,
                 this.hd,
-                this.localDoEvento,
-                this.cliente,
+                this.eventVenue,
+                this.customer,
                 this.profissionais
         );
     }

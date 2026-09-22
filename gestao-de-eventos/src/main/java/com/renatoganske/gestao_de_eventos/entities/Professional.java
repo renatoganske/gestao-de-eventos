@@ -1,6 +1,6 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
-import com.renatoganske.gestao_de_eventos.dtos.ProfissionalResponseDto;
+import com.renatoganske.gestao_de_eventos.dtos.ProfessionalDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,7 +13,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class Profissional {
+public class Professional {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -31,17 +31,17 @@ public class Profissional {
     private String outrasInformacoes;
 
     @ManyToMany(mappedBy = "profissionais")
-    private List<Evento> eventos;
+    private List<Event> events;
 
-    public ProfissionalResponseDto toResponseDto() {
-        return new ProfissionalResponseDto(
+    public ProfessionalDto toResponseDto() {
+        return new ProfessionalDto(
                 this.id,
                 this.nome,
                 this.tipo,
                 this.contato,
                 this.especialidade,
                 this.outrasInformacoes,
-                this.eventos
+                this.events
         );
     }
 }

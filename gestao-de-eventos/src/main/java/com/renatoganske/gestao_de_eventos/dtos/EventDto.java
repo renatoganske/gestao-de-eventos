@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * DTO for {@link Evento}
+ * DTO for {@link Event}
  */
-public record EventoResponseDto(
+public record EventDto(
         UUID id,
         String codigoDoEvento,
         String tipo, String nome,
@@ -20,8 +20,8 @@ public record EventoResponseDto(
         Long quantidadeDeConvidados,
         String descricao,
         Double valor, Hd hd,
-        LocalDoEvento localDoEvento,
-        Cliente cliente,
-        List<Profissional> profissionais
+        EventVenue eventVenue,
+        Customer customer,
+        List<Professional> profissionais
 ) implements Serializable {
 }

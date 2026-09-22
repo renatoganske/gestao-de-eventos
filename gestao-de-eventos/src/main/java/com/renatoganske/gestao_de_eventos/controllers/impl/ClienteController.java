@@ -1,7 +1,7 @@
 package com.renatoganske.gestao_de_eventos.controllers.impl;
 
 import com.renatoganske.gestao_de_eventos.controllers.IClienteController;
-import com.renatoganske.gestao_de_eventos.dtos.ClienteRequestDto;
+import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.ClienteResponseDto;
 import com.renatoganske.gestao_de_eventos.services.ClienteService;
 import jakarta.validation.Valid;
@@ -12,9 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,13 +33,13 @@ public class ClienteController implements IClienteController {
     }
 
     @Override
-    public ResponseEntity<ClienteResponseDto> create(@RequestBody @Valid ClienteRequestDto requestDto) {
+    public ResponseEntity<ClienteResponseDto> create(@RequestBody @Valid CreateCustomerDto requestDto) {
         ClienteResponseDto responseDto = clienteService.createCliente(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
     @Override
-    public ResponseEntity<ClienteResponseDto> update(@PathVariable UUID id, @RequestBody @Valid ClienteRequestDto requestDto) {
+    public ResponseEntity<ClienteResponseDto> update(@PathVariable UUID id, @RequestBody @Valid CreateCustomerDto requestDto) {
         return ResponseEntity.ok(clienteService.updateCliente(id, requestDto));
     }
 
