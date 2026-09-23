@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity(name = "TB_CUSTOMER")
 @NoArgsConstructor
@@ -37,6 +38,8 @@ public class Customer {
                 this.contact,
                 this.address,
                 this.notes,
-                this.events);
+                this.events == null ? List.of() : this.events.stream()
+                        .map(Event::toSummaryDto)
+                        .collect(Collectors.toList()));
     }
 }

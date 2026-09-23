@@ -175,7 +175,8 @@ class EventServiceTest {
         assertThat(result.name()).isEqualTo("Aniversario Ana");
         assertThat(result.sizeGb()).isEqualTo(20);
         assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.DELIVERED);
-        assertThat(result.customer().getName()).isEqualTo("Ana Souza");
+        // CreateCustomerDto.toEntity() nao seta id em Customer novo, entao customerId fica null aqui
+        assertThat(result.customerId()).isNull();
     }
 
     @Test

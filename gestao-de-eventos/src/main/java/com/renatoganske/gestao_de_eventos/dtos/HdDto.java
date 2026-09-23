@@ -1,6 +1,5 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
-import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.enums.HdStatus;
 
@@ -20,6 +19,6 @@ public record HdDto(
         String serialNumber,
         LocalDate acquisitionDate,
         HdStatus status,
-        List<Event> events
+        List<EventSummaryDto> events
 ) implements Serializable {
 }

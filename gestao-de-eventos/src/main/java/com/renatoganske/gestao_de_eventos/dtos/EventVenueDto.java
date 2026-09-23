@@ -1,6 +1,5 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
-import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 
 import java.io.Serializable;
@@ -17,6 +16,6 @@ public record EventVenueDto(
         String city,
         String state,
         String type,
-        List<Event> events
+        List<EventSummaryDto> events
 ) implements Serializable {
 }

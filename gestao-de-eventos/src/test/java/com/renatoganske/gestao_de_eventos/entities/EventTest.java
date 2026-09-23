@@ -55,9 +55,9 @@ class EventTest {
         assertThat(dto.amount()).isEqualTo(8500.0);
         assertThat(dto.sizeGb()).isEqualTo(120);
         assertThat(dto.deliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
-        assertThat(dto.hd()).isEqualTo(hd);
-        assertThat(dto.eventVenue()).isEqualTo(eventVenue);
-        assertThat(dto.customer()).isEqualTo(customer);
-        assertThat(dto.eventProfessionals()).isEqualTo(eventProfessionals);
+        assertThat(dto.hdId()).isEqualTo(hd.getId());
+        assertThat(dto.eventVenueId()).isEqualTo(eventVenue.getId());
+        assertThat(dto.customerId()).isEqualTo(customer.getId());
+        assertThat(dto.eventProfessionals()).isEmpty();
     }
 }
