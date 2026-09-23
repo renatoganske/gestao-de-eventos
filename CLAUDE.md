@@ -35,7 +35,7 @@ Swagger/OpenAPI UI is served at `/swagger-ui.html` (raw docs at `/api-docs`) onc
 
 **Which resources have a full controller/service is a moving target — check `controllers/` (and its `impl/` subpackage) and `services/` for the current, authoritative list rather than trusting an enumeration in this doc.** Use the `Customer` stack (`ICustomerController` / `CustomerController` / `CustomerService`) as the template when building out a new resource's controller/service.
 
-**Entity relationships:** `Event` is the central entity — `@ManyToOne` to `Customer`, `Hd`, and `EventVenue`, and `@ManyToMany` to `Professional` (join table `evento_profissional`). All entity IDs are `UUID` with `GenerationType.AUTO`.
+**Entity relationships:** `Event` is the central entity — `@ManyToOne` to `Customer`, `Hd`, and `EventVenue`. The `Event`↔`Professional` relationship is not a plain `@ManyToMany`; GDE-6 replaced it with an `EventProfessional` association entity (composite key `EventProfessionalId`, table `TB_EVENT_PROFESSIONAL`) carrying a `roleInEvent` field, with `Event.eventProfessionals` as the `@OneToMany` side. All entity IDs are `UUID` with `GenerationType.AUTO`.
 
 ## Development workflow
 
