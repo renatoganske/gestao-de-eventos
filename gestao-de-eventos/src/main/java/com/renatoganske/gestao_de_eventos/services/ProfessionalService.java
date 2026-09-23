@@ -24,13 +24,7 @@ public class ProfessionalService {
 
     @Transactional
     public ProfessionalDto createProfessional(CreateProfessionalDto createProfessionalDto) {
-        Professional professional = Professional.builder()
-                .name(createProfessionalDto.name())
-                .type(createProfessionalDto.type())
-                .contact(createProfessionalDto.contact())
-                .specialty(createProfessionalDto.specialty())
-                .otherInfo(createProfessionalDto.otherInfo())
-                .build();
+        Professional professional = createProfessionalDto.toEntity();
 
         return professionalRepository.save(professional).toResponseDto();
     }
