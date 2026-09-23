@@ -3,6 +3,8 @@ package com.renatoganske.gestao_de_eventos.controllers.impl;
 import com.renatoganske.gestao_de_eventos.controllers.IEventController;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.renatoganske.gestao_de_eventos.enums.EventType;
 import com.renatoganske.gestao_de_eventos.services.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +33,12 @@ public class EventController implements IEventController {
     @Override
     public ResponseEntity<EventDto> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(eventService.getEventById(id));
+    }
+
+    @Override
+    public ResponseEntity<List<EventDto>> search(EventType type, UUID venueId, UUID professionalId,
+                                                  LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus) {
+        return ResponseEntity.ok(eventService.searchEvents(type, venueId, professionalId, from, to, hdId, deliveryStatus));
     }
 
     @Override

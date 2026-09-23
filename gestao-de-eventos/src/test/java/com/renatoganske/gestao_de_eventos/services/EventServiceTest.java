@@ -211,4 +211,31 @@ class EventServiceTest {
 
         verify(eventRepository, never()).delete(any());
     }
+
+    @Test
+    void searchEvents_appliesCombinedFiltersOverAllEvents() {
+        Event other = Event.builder()
+                .id(UUID.randomUUID())
+                .name("Aniversario 15 anos")
+                .type(EventType.BIRTHDAY)
+                .deliveryStatus(DeliveryStatus.DELIVERED)
+                .build();
+        when(eventRepository.findAll()).thenReturn(List.of(event, other));
+
+        List<EventDto> result = eventService.searchEvents(
+                EventType.WEDDING, null, null, null, null, null, null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id()).isEqualTo(event.getId());
+    }
+
+    @Test
+    void searchEvents_noFiltersReturnsAllEvents() {
+        Event other = Event.builder().id(UUID.randomUUID()).name("Aniversario 15 anos").build();
+        when(eventRepository.findAll()).thenReturn(List.of(event, other));
+
+        List<EventDto> result = eventService.searchEvents(null, null, null, null, null, null, null);
+
+        assertThat(result).hasSize(2);
+    }
 }
