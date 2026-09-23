@@ -43,6 +43,7 @@ public record CreateEventDto(
                 .deliveryStatus(this.deliveryStatus())
                 .hd(this.hd())
                 .eventVenue(this.eventVenue())
+                .customer(this.customer() != null ? this.customer().toEntity() : null)
                 .build();
     }
 }
