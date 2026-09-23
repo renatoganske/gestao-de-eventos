@@ -53,9 +53,7 @@ com.renato.gestaodeeventos
  ├─ services/                (regra de negócio, @Transactional)
  ├─ repositories/            (Spring Data JPA)
  ├─ entities/                (JPA, toResponseDto/toEntity)
- ├─ dtos/
- │   ├─ request/              (records de entrada, toEntity())
- │   └─ response/             (records de saída)
+ ├─ dtos/                     (pacote plano — sem subpacotes request/response; records de entrada com toEntity() e de saída convivem aqui)
  ├─ enums/                    (EventType, DeliveryStatus, HdStatus)
  └─ exceptions/                (hierarquia sealed — ver seção 7)
 ```
