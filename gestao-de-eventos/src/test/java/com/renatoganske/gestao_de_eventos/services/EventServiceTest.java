@@ -1,6 +1,5 @@
 package com.renatoganske.gestao_de_eventos.services;
 
-import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
@@ -9,8 +8,13 @@ import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.enums.EventType;
+import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
+import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
+import com.renatoganske.gestao_de_eventos.repositories.EventVenueRepository;
+import com.renatoganske.gestao_de_eventos.repositories.HdRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,17 +42,29 @@ class EventServiceTest {
     @Mock
     private EventRepository eventRepository;
 
+    @Mock
+    private CustomerRepository customerRepository;
+
+    @Mock
+    private HdRepository hdRepository;
+
+    @Mock
+    private EventVenueRepository eventVenueRepository;
+
     @InjectMocks
     private EventService eventService;
 
+    private Hd hd;
+    private EventVenue eventVenue;
+    private Customer customer;
     private Event event;
     private CreateEventDto createEventDto;
 
     @BeforeEach
     void setUp() {
-        Hd hd = Hd.builder().id(UUID.randomUUID()).name("HD Externo 1").build();
-        EventVenue eventVenue = EventVenue.builder().id(UUID.randomUUID()).name("Buffet Jardim das Rosas").build();
-        Customer customer = Customer.builder().id(UUID.randomUUID()).name("Maria Silva").build();
+        hd = Hd.builder().id(UUID.randomUUID()).name("HD Externo 1").usedSpaceGb(500).build();
+        eventVenue = EventVenue.builder().id(UUID.randomUUID()).name("Buffet Jardim das Rosas").build();
+        customer = Customer.builder().id(UUID.randomUUID()).name("Maria Silva").build();
 
         event = Event.builder()
                 .id(UUID.randomUUID())
@@ -80,13 +96,16 @@ class EventServiceTest {
                 event.getAmount(),
                 event.getSizeGb(),
                 event.getDeliveryStatus(),
-                hd,
-                eventVenue,
-                new CreateCustomerDto(customer.getName(), null, null, null));
+                hd.getId(),
+                eventVenue.getId(),
+                customer.getId());
     }
 
     @Test
-    void createEvent_savesAndReturnsResponseDto() {
+    void createEvent_resolvesAssociationsByIdSavesAndReturnsResponseDto() {
+        when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
+        when(eventVenueRepository.findById(eventVenue.getId())).thenReturn(Optional.of(eventVenue));
+        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
         ArgumentCaptor<Event> captor = ArgumentCaptor.forClass(Event.class);
         when(eventRepository.save(captor.capture())).thenReturn(event);
 
@@ -97,13 +116,75 @@ class EventServiceTest {
         assertThat(captor.getValue().getName()).isEqualTo(createEventDto.name());
         assertThat(captor.getValue().getSizeGb()).isEqualTo(createEventDto.sizeGb());
         assertThat(captor.getValue().getDeliveryStatus()).isEqualTo(createEventDto.deliveryStatus());
-        assertThat(captor.getValue().getHd()).isEqualTo(createEventDto.hd());
-        assertThat(captor.getValue().getEventVenue()).isEqualTo(createEventDto.eventVenue());
-        assertThat(captor.getValue().getCustomer().getName()).isEqualTo(createEventDto.customer().name());
+        assertThat(captor.getValue().getHd()).isEqualTo(hd);
+        assertThat(captor.getValue().getEventVenue()).isEqualTo(eventVenue);
+        assertThat(captor.getValue().getCustomer()).isEqualTo(customer);
 
         assertThat(result.id()).isEqualTo(event.getId());
         assertThat(result.name()).isEqualTo(event.getName());
         assertThat(result.deliveryStatus()).isEqualTo(event.getDeliveryStatus());
+    }
+
+    @Test
+    void createEvent_withoutAssociations_leavesThemNull() {
+        CreateEventDto dtoWithoutAssociations = new CreateEventDto(
+                "EVT-003", EventType.OTHER, "Ensaio solo", null,
+                null, null, null, null, null, null, null,
+                null, null, null);
+        ArgumentCaptor<Event> captor = ArgumentCaptor.forClass(Event.class);
+        when(eventRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        eventService.createEvent(dtoWithoutAssociations);
+
+        assertThat(captor.getValue().getHd()).isNull();
+        assertThat(captor.getValue().getEventVenue()).isNull();
+        assertThat(captor.getValue().getCustomer()).isNull();
+        verify(hdRepository, never()).save(any());
+    }
+
+    @Test
+    void createEvent_incrementsHdUsedSpaceBySizeGb() {
+        when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
+        when(eventVenueRepository.findById(eventVenue.getId())).thenReturn(Optional.of(eventVenue));
+        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
+
+        eventService.createEvent(createEventDto);
+
+        assertThat(hd.getUsedSpaceGb()).isEqualTo(550);
+        verify(hdRepository, times(1)).save(hd);
+    }
+
+    @Test
+    void createEvent_throwsCustomerNotFoundException_whenCustomerIdDoesNotExist() {
+        UUID missingCustomerId = UUID.randomUUID();
+        CreateEventDto dto = new CreateEventDto(
+                "EVT-004", EventType.OTHER, "Evento sem cliente valido", null,
+                null, null, null, null, null, null, null,
+                null, null, missingCustomerId);
+        when(customerRepository.findById(missingCustomerId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.createEvent(dto))
+                .isInstanceOf(CustomerNotFoundException.class)
+                .hasMessageContaining(missingCustomerId.toString());
+
+        verify(eventRepository, never()).save(any());
+    }
+
+    @Test
+    void createEvent_throwsHdNotFoundException_whenHdIdDoesNotExist() {
+        UUID missingHdId = UUID.randomUUID();
+        CreateEventDto dto = new CreateEventDto(
+                "EVT-005", EventType.OTHER, "Evento sem HD valido", null,
+                null, null, null, null, null, null, null,
+                missingHdId, null, null);
+        when(hdRepository.findById(missingHdId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.createEvent(dto))
+                .isInstanceOf(HdNotFoundException.class)
+                .hasMessageContaining(missingHdId.toString());
+
+        verify(eventRepository, never()).save(any());
     }
 
     @Test
@@ -162,11 +243,14 @@ class EventServiceTest {
                 3000.0,
                 20,
                 DeliveryStatus.DELIVERED,
-                createEventDto.hd(),
-                createEventDto.eventVenue(),
-                new CreateCustomerDto("Ana Souza", null, null, null));
+                hd.getId(),
+                eventVenue.getId(),
+                customer.getId());
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
+        when(eventVenueRepository.findById(eventVenue.getId())).thenReturn(Optional.of(eventVenue));
+        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
 
         EventDto result = eventService.updateEvent(id, updateDto);
 
@@ -175,8 +259,43 @@ class EventServiceTest {
         assertThat(result.name()).isEqualTo("Aniversario Ana");
         assertThat(result.sizeGb()).isEqualTo(20);
         assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.DELIVERED);
-        // CreateCustomerDto.toEntity() nao seta id em Customer novo, entao customerId fica null aqui
-        assertThat(result.customerId()).isNull();
+        assertThat(result.customerId()).isEqualTo(customer.getId());
+    }
+
+    @Test
+    void updateEvent_adjustsSameHdUsedSpaceByDeltaBetweenOldAndNewSizeGb() {
+        UUID id = event.getId();
+        CreateEventDto updateDto = new CreateEventDto(
+                "EVT-002", EventType.BIRTHDAY, "Aniversario Ana", null,
+                null, null, null, null, null, 20, DeliveryStatus.DELIVERED,
+                hd.getId(), null, null);
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
+
+        // event original tinha sizeGb=50 no mesmo hd (usedSpaceGb inicial = 500);
+        // update troca para sizeGb=20 -> delta = -50 + 20 = -30
+        eventService.updateEvent(id, updateDto);
+
+        assertThat(hd.getUsedSpaceGb()).isEqualTo(470);
+    }
+
+    @Test
+    void updateEvent_movesUsedSpaceFromOldHdToNewHd_whenHdChanges() {
+        UUID id = event.getId();
+        Hd newHd = Hd.builder().id(UUID.randomUUID()).name("HD Externo 2").usedSpaceGb(100).build();
+        CreateEventDto updateDto = new CreateEventDto(
+                "EVT-002", EventType.BIRTHDAY, "Aniversario Ana", null,
+                null, null, null, null, null, 50, DeliveryStatus.DELIVERED,
+                newHd.getId(), null, null);
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(hdRepository.findById(newHd.getId())).thenReturn(Optional.of(newHd));
+
+        eventService.updateEvent(id, updateDto);
+
+        assertThat(hd.getUsedSpaceGb()).isEqualTo(450);
+        assertThat(newHd.getUsedSpaceGb()).isEqualTo(150);
     }
 
     @Test
@@ -199,6 +318,17 @@ class EventServiceTest {
         eventService.deleteEvent(id);
 
         verify(eventRepository, times(1)).delete(event);
+    }
+
+    @Test
+    void deleteEvent_decrementsHdUsedSpaceBySizeGb() {
+        UUID id = event.getId();
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+
+        eventService.deleteEvent(id);
+
+        assertThat(hd.getUsedSpaceGb()).isEqualTo(450);
+        verify(hdRepository, times(1)).save(hd);
     }
 
     @Test
