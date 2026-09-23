@@ -48,6 +48,8 @@ For every task pulled from the board:
 5. Only start the next task once Renato says the previous one was merged and tells you to pull the next one. Don't chain tasks autonomously.
 6. Any decision that changes architecture (new dependency/tool, schema-management approach, cross-cutting convention) gets its own ADR document in `docs/adr/` (`NNNN-slug.md`, one file per decision: Data/Status/Contexto/Decisão/Racional), written through the `software-architect` skill's lens — don't just fold it into other docs in passing.
 
+**Parallel agents in isolated worktrees.** When multiple tasks run in parallel via `isolation: "worktree"`, the worktree has repeatedly (not once) been provisioned at the repository's very first commit instead of the current branch tip — a harness-level quirk, reported upstream, not something this repo can fix. Before doing anything else in an isolated worktree — before writing a file, before running a build — check `git log --oneline -3`: if it shows only `Initial commit` instead of recent project history, the worktree is on the wrong base. Fix it first: `git fetch origin && git checkout -b <branch-name> origin/develop`. Skipping this check wastes a full implementation cycle discovering the same problem the hard way.
+
 ## Scope & approval
 
 Renato likes hearing new ideas, but new scope always needs his sign-off before it's built. Concretely:
