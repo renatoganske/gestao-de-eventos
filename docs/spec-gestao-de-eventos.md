@@ -53,11 +53,9 @@ com.renato.gestaodeeventos
  ├─ services/                (regra de negócio, @Transactional)
  ├─ repositories/            (Spring Data JPA)
  ├─ entities/                (JPA, toResponseDto/toEntity)
- ├─ dtos/
- │   ├─ request/              (records de entrada, toEntity())
- │   └─ response/             (records de saída)
+ ├─ dtos/                     (pacote plano — sem subpacotes request/response; records de entrada com toEntity() e de saída convivem aqui)
  ├─ enums/                    (EventType, DeliveryStatus, HdStatus)
- └─ exceptions/                (hierarquia sealed — ver seção 7)
+ └─ exceptions/                (NotFoundException abstrata + subclasses por recurso + DomainExceptionHandler — ver seção 7)
 ```
 
 ### 2.4 Padrão Controller (interface + impl)
@@ -143,9 +141,9 @@ public class EventProfessional {
 
 ## 4. Convenções (já estabelecidas — manter)
 
-- **Inglês é o idioma padrão da aplicação a partir de agora.** A migração PT→EN não fica mais incompleta por tempo indeterminado — será finalizada pela task dedicada **GDE-15**: entidades/DTOs já estão em inglês, falta repositories/services/controllers (`ClienteRepository`→`CustomerRepository` etc.) e os nomes de tabela/coluna no banco. Até o GDE-15 rodar, não fazer rename em massa como efeito colateral de tarefa não relacionada — mas todo campo/classe **novo** já nasce em inglês, sem adicionar mais débito em português.
+- **Inglês é o idioma padrão da aplicação.** A migração PT→EN foi finalizada pela task dedicada **GDE-15** (mergeada em `develop`): entidades, DTOs, repositories, services e controllers estão todos em inglês, e os nomes de tabela/coluna no banco também já foram renomeados. Não há mais débito de nomenclatura PT→EN a rastrear; todo campo/classe novo já nasce em inglês.
 - **Conversão DTO↔Entity é manual**, via `toResponseDto()`/`toDTO()` na entidade e `toEntity()` no DTO de criação (record + `@Builder` Lombok na entidade). Não introduzir MapStruct/ModelMapper.
-- **`ddl-auto=update`, sem ferramenta de migration — até a GDE-14 (Flyway) ser implementada.** Depois disso, `ddl-auto` vira `validate` e toda alteração de schema (novos enums, nova entidade `EventProfessional`, renomeações) precisa vir acompanhada de um script de migration versionado em `src/main/resources/db/migration`, não apenas da mudança na entidade.
+- **Flyway está em uso (GDE-14, mergeado); `ddl-auto=validate`.** Toda alteração de schema (novos campos, nova entidade, renomeações) precisa vir acompanhada de um script de migration versionado em `src/main/resources/db/migration`, não apenas da mudança na entidade — o boot falha na validação do Hibernate caso contrário.
 - **IDs sempre `UUID`, `GenerationType.AUTO`.**
 
 ---
@@ -251,9 +249,26 @@ Um endpoint de consulta genérico (ex.: `GET /events/search` aceitando os parâm
 
 ---
 
-## 7. Tratamento de Erros (proposta — hoje não existe)
+## 7. Tratamento de Erros (implementado na GDE-7, mergeada em `develop`)
 
-Hoje o projeto lança `RuntimeException` genérica sem `@ControllerAdvice`. Proposta mínima, alinhada à seção 5 (sem exceções para fluxo de controle onde dá para evitar):
+A implementação real diverge um pouco da proposta original desta seção (mantida abaixo, riscada, para histórico): em vez de uma `sealed interface DomainError` com `NotFoundError`/`ValidationError` como records, o projeto usa uma classe abstrata `exceptions/NotFoundException` com uma subclasse por recurso, e um `@RestControllerAdvice` único:
+
+```java
+public abstract class NotFoundException extends RuntimeException {
+    protected NotFoundException(String resource, UUID id) {
+        super("%s not found with id: %s".formatted(resource, id));
+    }
+}
+// subclasses por recurso: CustomerNotFoundException, EventNotFoundException,
+// EventVenueNotFoundException, HdNotFoundException, ProfessionalNotFoundException
+```
+
+- Exceções de "não encontrado" usam exceção (é o caso idiomático em Spring), sempre **específicas** por recurso (`CustomerNotFoundException`, `EventNotFoundException`, `EventVenueNotFoundException`, `HdNotFoundException`, `ProfessionalNotFoundException`), nunca `RuntimeException` genérica — a única exceção é o `CustomerService` original, que ainda lança `RuntimeException` diretamente; isso é débito documentado, não o padrão a seguir em código novo.
+- Um único `exceptions/DomainExceptionHandler` (`@RestControllerAdvice`, estende `ResponseEntityExceptionHandler`) mapeia `NotFoundException` para `404` e erros de validação de `@Valid`/`@Validated` (via `handleMethodArgumentNotValid`) para `400`, ambos como `ApiErrorDto`. Não há um tipo `ValidationError` separado — a mensagem de validação é montada a partir dos `FieldError`/`ObjectError` do `BindingResult`.
+- Novos recursos devem seguir esse padrão: uma subclasse de `NotFoundException` por entidade, nunca `RuntimeException` genérica.
+
+<details>
+<summary>Proposta original (histórico, pré-GDE-7)</summary>
 
 ```java
 public sealed interface DomainError permits NotFoundError, ValidationError {}
@@ -261,9 +276,7 @@ public record NotFoundError(String resource, UUID id) implements DomainError {}
 public record ValidationError(String field, String message) implements DomainError {}
 ```
 
-- Exceções de "não encontrado" continuam usando exceção (é o caso idiomático em Spring), mas **específicas** (`EventNotFoundException`, `HdNotFoundException`), nunca `RuntimeException` genérica.
-- Um `@ControllerAdvice` único mapeia essas exceções para `ResponseEntity` com status correto (404, 400).
-- Isso é um débito técnico pré-existente, não bloqueante para continuar as próximas entidades — mas deve ser feito antes de expor a API para qualquer uso além do próprio Renato.
+</details>
 
 ---
 
@@ -301,14 +314,14 @@ Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo n�
 Backlog completo com critérios de aceite, dependências e prioridade vive no Jira (board "Gestão de Eventos", key `GDE`). Resumo:
 
 - [x] GDE-1 Corrigir encoding de `application.properties` (concluído 2026-09-22, direto em `develop`) — além do encoding, foi encontrado e corrigido um segundo bloqueador: o `JAVA_HOME` padrão da máquina aponta para JDK 25, que quebra silenciosamente o annotation processing do Lombok 1.18.32 (nenhum `builder()`/getter/setter é gerado). Ver nota em `CLAUDE.md` — build/testes precisam rodar com JDK 21.
-- [ ] GDE-2 Testes unitários para `ClienteService` (hoje sem cobertura)
-- [~] GDE-15 Finalizar migração de nomenclatura PT→EN — **parcialmente concluído em `develop`**: entidades (`Customer`, `Event`, `EventVenue`, `Professional`, `Hd`) e DTOs (`CreateCustomerDto`, `EventDto`, etc.) já renomeados para inglês. Falta: `ClienteRepository`→`CustomerRepository`, `EventoRepository`→`EventRepository`, `LocalDoEventoRepository`→`EventVenueRepository`, `ProfissionalRepository`→`ProfessionalRepository`, `ClienteService`→`CustomerService`, `IClienteController`→`ICustomerController`, `ClienteController`→`CustomerController`, `ClienteResponseDto`→`CustomerResponseDto`, e os nomes de tabela/coluna no banco
-- [ ] GDE-14 Introduzir Flyway (`ddl-auto` → `validate`), baseline já em inglês por rodar depois do GDE-15
-- [ ] GDE-3 Criar enums `EventType`, `DeliveryStatus`, `HdStatus`
-- [ ] GDE-4 Adicionar `physicalLocation`, `usedSpaceGb`, `serialNumber`, `capacityGb` em `Hd`
+- [x] GDE-2 Testes unitários para `CustomerService` (renomeado de `ClienteService` pela GDE-15)
+- [x] GDE-15 Finalizar migração de nomenclatura PT→EN — concluído em `develop`: entidades, DTOs, repositories, services, controllers e os nomes de tabela/coluna no banco já estão todos em inglês
+- [x] GDE-14 Introduzir Flyway (`ddl-auto` → `validate`)
+- [x] GDE-3 Criar enums `EventType`, `DeliveryStatus`, `HdStatus`
+- [x] GDE-4 Adicionar `physicalLocation`, `usedSpaceGb`, `serialNumber`, `capacityGb` em `Hd`
 - [ ] GDE-5 Adicionar `sizeGb`, `deliveryStatus` em `Event`
-- [ ] GDE-6 Criar entidade `EventProfessional` substituindo o `@ManyToMany` puro
-- [ ] GDE-7 Exceções específicas + `@ControllerAdvice` (seção 7) antes de qualquer exposição externa da API
-- [ ] GDE-8..11 Controller (interface+impl) + Service para `Event`, `Hd`, `Professional`, `EventVenue`, usando `Cliente` como template
+- [x] GDE-6 Criar entidade `EventProfessional` substituindo o `@ManyToMany` puro
+- [x] GDE-7 Exceções específicas + `@RestControllerAdvice` (seção 7) — implementado
+- [ ] GDE-8..11 Controller (interface+impl) + Service para `Event`, `Hd`, `Professional`, `EventVenue`, usando `Customer` como template — `Professional` (GDE-10) e `EventVenue` (GDE-11) já têm controller+service completos; `Event` (GDE-8) e `Hd` (GDE-9) ainda faltam
 - [ ] GDE-12 `EventFilter` (5.1-f) e endpoint de busca genérico (`GET /events/search`) — em vez de endpoints fixos por métrica
 - [ ] GDE-13 `HdCapacityPolicy` (função pura) e endpoint de alerta "HD perto da capacidade"
