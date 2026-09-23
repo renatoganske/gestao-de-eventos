@@ -1,6 +1,6 @@
 -- Baseline schema for gestao-de-eventos, generated from the JPA entities as they
 -- exist post GDE-15 (PT->EN rename), GDE-4 (Hd fields), GDE-6 (EventProfessional
--- association entity) and GDE-16 (Event.id as uuid).
+-- association entity), GDE-16 (Event.id as uuid) and GDE-5 (Event.sizeGb/deliveryStatus).
 --
 -- This project has no production deployment and no environment with real data
 -- yet, so this single baseline is kept in sync with the entities directly
@@ -61,6 +61,8 @@ create table tb_event (
     guest_count bigint,
     description varchar(255),
     amount float(53),
+    size_gb integer,
+    delivery_status varchar(255),
     hd_id uuid,
     event_venue_id uuid,
     customer_id uuid,
