@@ -55,7 +55,7 @@ com.renato.gestaodeeventos
  ├─ entities/                (JPA, toResponseDto/toEntity)
  ├─ dtos/                     (pacote plano — sem subpacotes request/response; records de entrada com toEntity() e de saída convivem aqui)
  ├─ enums/                    (EventType, DeliveryStatus, HdStatus)
- └─ exceptions/                (hierarquia sealed — ver seção 7)
+ └─ exceptions/                (NotFoundException abstrata + subclasses por recurso + DomainExceptionHandler — ver seção 7)
 ```
 
 ### 2.4 Padrão Controller (interface + impl)
