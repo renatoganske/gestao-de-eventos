@@ -1,5 +1,6 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
+import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalSummaryDto;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,4 +27,15 @@ public class EventProfessional {
 
     @Column(name = "role_in_event")
     private String roleInEvent;
+
+    public EventProfessionalSummaryDto toDTO() {
+        return new EventProfessionalSummaryDto(
+                this.event != null ? this.event.getId() : null,
+                this.event != null ? this.event.getEventCode() : null,
+                this.event != null ? this.event.getName() : null,
+                this.professional != null ? this.professional.getId() : null,
+                this.professional != null ? this.professional.getName() : null,
+                this.roleInEvent
+        );
+    }
 }

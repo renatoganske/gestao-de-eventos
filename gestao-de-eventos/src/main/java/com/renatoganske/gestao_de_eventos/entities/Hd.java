@@ -8,6 +8,7 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity(name = "TB_HD")
 @NoArgsConstructor
@@ -50,7 +51,9 @@ public class Hd {
                 this.serialNumber,
                 this.acquisitionDate,
                 this.status,
-                this.events
+                this.events == null ? List.of() : this.events.stream()
+                        .map(Event::toSummaryDto)
+                        .collect(Collectors.toList())
         );
     }
 }

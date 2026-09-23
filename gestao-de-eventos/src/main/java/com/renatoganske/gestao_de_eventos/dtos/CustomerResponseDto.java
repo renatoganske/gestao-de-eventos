@@ -1,7 +1,6 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Customer;
-import com.renatoganske.gestao_de_eventos.entities.Event;
 
 import java.io.Serializable;
 import java.util.List;
@@ -16,6 +15,6 @@ public record CustomerResponseDto(
         String contact,
         String address,
         String notes,
-        List<Event> events
+        List<EventSummaryDto> events
 ) implements Serializable {
 }

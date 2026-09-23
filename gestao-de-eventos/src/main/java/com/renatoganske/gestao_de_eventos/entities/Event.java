@@ -1,6 +1,7 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventSummaryDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.enums.EventType;
 import jakarta.persistence.*;
@@ -9,6 +10,7 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity(name = "TB_EVENT")
 @NoArgsConstructor
@@ -76,10 +78,23 @@ public class Event {
                 this.amount,
                 this.sizeGb,
                 this.deliveryStatus,
-                this.hd,
-                this.eventVenue,
-                this.customer,
-                this.eventProfessionals
+                this.hd != null ? this.hd.getId() : null,
+                this.eventVenue != null ? this.eventVenue.getId() : null,
+                this.customer != null ? this.customer.getId() : null,
+                this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
+                        .map(EventProfessional::toDTO)
+                        .collect(Collectors.toList())
+        );
+    }
+
+    public EventSummaryDto toSummaryDto() {
+        return new EventSummaryDto(
+                this.id,
+                this.eventCode,
+                this.type,
+                this.name,
+                this.eventDate,
+                this.deliveryStatus
         );
     }
 }

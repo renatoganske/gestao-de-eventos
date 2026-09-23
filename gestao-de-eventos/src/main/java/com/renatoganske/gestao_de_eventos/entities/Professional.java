@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Entity(name = "TB_PROFESSIONAL")
 @NoArgsConstructor
@@ -41,7 +42,9 @@ public class Professional {
                 this.contact,
                 this.specialty,
                 this.otherInfo,
-                this.eventProfessionals
+                this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
+                        .map(EventProfessional::toDTO)
+                        .collect(Collectors.toList())
         );
     }
 }

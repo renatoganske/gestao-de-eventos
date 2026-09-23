@@ -40,12 +40,14 @@ class EventProfessionalTest {
         ProfessionalDto professionalDto = professional.toResponseDto();
 
         assertThat(eventDto.eventProfessionals()).hasSize(1);
-        assertThat(eventDto.eventProfessionals().get(0).getRoleInEvent()).isEqualTo("Segundo fotógrafo");
-        assertThat(eventDto.eventProfessionals().get(0).getProfessional()).isEqualTo(professional);
+        assertThat(eventDto.eventProfessionals().get(0).roleInEvent()).isEqualTo("Segundo fotógrafo");
+        assertThat(eventDto.eventProfessionals().get(0).professionalId()).isEqualTo(professionalId);
+        assertThat(eventDto.eventProfessionals().get(0).professionalName()).isEqualTo("Fernanda Souza");
 
         assertThat(professionalDto.eventProfessionals()).hasSize(1);
-        assertThat(professionalDto.eventProfessionals().get(0).getRoleInEvent()).isEqualTo("Segundo fotógrafo");
-        assertThat(professionalDto.eventProfessionals().get(0).getEvent()).isEqualTo(event);
+        assertThat(professionalDto.eventProfessionals().get(0).roleInEvent()).isEqualTo("Segundo fotógrafo");
+        assertThat(professionalDto.eventProfessionals().get(0).eventId()).isEqualTo(eventId);
+        assertThat(professionalDto.eventProfessionals().get(0).eventName()).isEqualTo("Casamento Ana e Bruno");
 
         assertThat(eventProfessional.getId().eventId()).isEqualTo(eventId);
         assertThat(eventProfessional.getId().professionalId()).isEqualTo(professionalId);

@@ -1,6 +1,6 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
-import com.renatoganske.gestao_de_eventos.entities.*;
+import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.enums.EventType;
 
@@ -24,9 +24,9 @@ public record EventDto(
         Double amount,
         Integer sizeGb,
         DeliveryStatus deliveryStatus,
-        Hd hd,
-        EventVenue eventVenue,
-        Customer customer,
-        List<EventProfessional> eventProfessionals
+        UUID hdId,
+        UUID eventVenueId,
+        UUID customerId,
+        List<EventProfessionalSummaryDto> eventProfessionals
 ) implements Serializable {
 }
