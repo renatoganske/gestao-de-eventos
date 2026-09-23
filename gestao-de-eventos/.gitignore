@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend build output (ADR-0012: copiado por frontend/npm run build:backend) ###
+/src/main/resources/static/
