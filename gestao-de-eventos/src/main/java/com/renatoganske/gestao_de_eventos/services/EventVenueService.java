@@ -23,18 +23,18 @@ public class EventVenueService {
 
     @Transactional
     public EventVenueDto createEventVenue(CreateEventVenueDto createEventVenueDto) {
-        return toResponseDto(eventVenueRepository.save(createEventVenueDto.toEntity()));
+        return eventVenueRepository.save(createEventVenueDto.toEntity()).toResponseDto();
     }
 
     public List<EventVenueDto> getAllEventVenues() {
         return eventVenueRepository.findAll().stream()
-                .map(this::toResponseDto)
+                .map(EventVenue::toResponseDto)
                 .collect(Collectors.toList());
     }
 
     public EventVenueDto getEventVenueById(UUID id) {
         return eventVenueRepository.findById(id)
-                .map(this::toResponseDto)
+                .map(EventVenue::toResponseDto)
                 .orElseThrow(() -> new EventVenueNotFoundException(id));
     }
 
@@ -50,7 +50,7 @@ public class EventVenueService {
         eventVenue.setType(createEventVenueDto.type());
 
         EventVenue updatedEventVenue = eventVenueRepository.save(eventVenue);
-        return toResponseDto(updatedEventVenue);
+        return updatedEventVenue.toResponseDto();
     }
 
     @Transactional
@@ -58,22 +58,5 @@ public class EventVenueService {
         EventVenue eventVenue = eventVenueRepository.findById(id)
                 .orElseThrow(() -> new EventVenueNotFoundException(id));
         eventVenueRepository.delete(eventVenue);
-    }
-
-    /**
-     * Builds the response DTO here rather than via EventVenue#toResponseDto(): that method exists
-     * on the entity but is declared {@code private}, so it is inaccessible from this class.
-     * Left as-is per task scope (EventVenue.java is off-limits for this ticket) — worth fixing
-     * as its own small task so this service can follow the standard entity-owns-conversion convention.
-     */
-    private EventVenueDto toResponseDto(EventVenue eventVenue) {
-        return new EventVenueDto(
-                eventVenue.getId(),
-                eventVenue.getName(),
-                eventVenue.getAddress(),
-                eventVenue.getCity(),
-                eventVenue.getState(),
-                eventVenue.getType(),
-                eventVenue.getEvents());
     }
 }

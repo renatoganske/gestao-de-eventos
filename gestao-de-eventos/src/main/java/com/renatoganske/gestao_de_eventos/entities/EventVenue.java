@@ -33,7 +33,7 @@ public class EventVenue {
     @OneToMany(mappedBy = "eventVenue")
     private List<Event> events;
 
-    private EventVenueDto toResponseDto() {
+    public EventVenueDto toResponseDto() {
         return new EventVenueDto(
                 this.id,
                 this.name,

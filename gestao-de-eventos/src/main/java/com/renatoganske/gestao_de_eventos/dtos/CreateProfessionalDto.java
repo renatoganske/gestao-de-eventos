@@ -14,7 +14,7 @@ public record CreateProfessionalDto(
         String specialty,
         String otherInfo
 ) implements Serializable {
-    private Professional toEntity() {
+    public Professional toEntity() {
         return Professional.builder()
                 .name(this.name())
                 .type(this.type())
