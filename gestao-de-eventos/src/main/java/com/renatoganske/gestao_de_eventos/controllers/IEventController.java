@@ -30,7 +30,7 @@ public interface IEventController {
     @GetMapping("/{id}")
     ResponseEntity<EventDto> findById(@PathVariable UUID id);
 
-    @Operation(summary = "Search events", description = "Searches events combining optional filters (type, venue, professional, period, HD, delivery status).")
+    @Operation(summary = "Search events", description = "Searches events combining optional filters (type, venue, professional, period, HD, delivery status, customer name, event code).")
     @GetMapping("/search")
     ResponseEntity<List<EventDto>> search(
             @RequestParam(required = false) EventType type,
@@ -39,7 +39,9 @@ public interface IEventController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) UUID hdId,
-            @RequestParam(required = false) DeliveryStatus deliveryStatus);
+            @RequestParam(required = false) DeliveryStatus deliveryStatus,
+            @RequestParam(required = false) String customerName,
+            @RequestParam(required = false) String eventCode);
 
     @Operation(summary = "Create event", description = "Creates a new event.")
     @PostMapping

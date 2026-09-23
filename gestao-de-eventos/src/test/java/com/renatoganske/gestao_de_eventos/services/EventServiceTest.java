@@ -223,7 +223,7 @@ class EventServiceTest {
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
         List<EventDto> result = eventService.searchEvents(
-                EventType.WEDDING, null, null, null, null, null, null);
+                EventType.WEDDING, null, null, null, null, null, null, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(event.getId());
@@ -234,8 +234,40 @@ class EventServiceTest {
         Event other = Event.builder().id(UUID.randomUUID()).name("Aniversario 15 anos").build();
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
-        List<EventDto> result = eventService.searchEvents(null, null, null, null, null, null, null);
+        List<EventDto> result = eventService.searchEvents(null, null, null, null, null, null, null, null, null);
 
         assertThat(result).hasSize(2);
+    }
+
+    @Test
+    void searchEvents_byCustomerNameMatchesPartialCaseInsensitive() {
+        Event other = Event.builder()
+                .id(UUID.randomUUID())
+                .name("Aniversario 15 anos")
+                .customer(Customer.builder().name("Ana Souza").build())
+                .build();
+        when(eventRepository.findAll()).thenReturn(List.of(event, other));
+
+        List<EventDto> result = eventService.searchEvents(
+                null, null, null, null, null, null, null, "maria", null);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id()).isEqualTo(event.getId());
+    }
+
+    @Test
+    void searchEvents_byEventCodeMatchesPartialCaseInsensitive() {
+        Event other = Event.builder()
+                .id(UUID.randomUUID())
+                .name("Aniversario 15 anos")
+                .eventCode("EVT-002")
+                .build();
+        when(eventRepository.findAll()).thenReturn(List.of(event, other));
+
+        List<EventDto> result = eventService.searchEvents(
+                null, null, null, null, null, null, null, null, "evt-001");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id()).isEqualTo(event.getId());
     }
 }

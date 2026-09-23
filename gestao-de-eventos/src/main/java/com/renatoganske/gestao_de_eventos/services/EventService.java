@@ -75,13 +75,16 @@ public class EventService {
     }
 
     public List<EventDto> searchEvents(EventType type, UUID venueId, UUID professionalId,
-                                        LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus) {
+                                        LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus,
+                                        String customerName, String eventCode) {
         Predicate<Event> filter = EventFilter.byType(type)
                 .and(EventFilter.byVenue(venueId))
                 .and(EventFilter.byProfessional(professionalId))
                 .and(EventFilter.byPeriod(from, to))
                 .and(EventFilter.byHd(hdId))
-                .and(EventFilter.byDeliveryStatus(deliveryStatus));
+                .and(EventFilter.byDeliveryStatus(deliveryStatus))
+                .and(EventFilter.byCustomerName(customerName))
+                .and(EventFilter.byEventCode(eventCode));
 
         return eventRepository.findAll().stream()
                 .filter(filter)

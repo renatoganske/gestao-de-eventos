@@ -37,8 +37,10 @@ public class EventController implements IEventController {
 
     @Override
     public ResponseEntity<List<EventDto>> search(EventType type, UUID venueId, UUID professionalId,
-                                                  LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus) {
-        return ResponseEntity.ok(eventService.searchEvents(type, venueId, professionalId, from, to, hdId, deliveryStatus));
+                                                  LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus,
+                                                  String customerName, String eventCode) {
+        return ResponseEntity.ok(eventService.searchEvents(
+                type, venueId, professionalId, from, to, hdId, deliveryStatus, customerName, eventCode));
     }
 
     @Override
