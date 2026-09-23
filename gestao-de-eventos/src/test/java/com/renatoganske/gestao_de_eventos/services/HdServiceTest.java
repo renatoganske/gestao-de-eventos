@@ -184,4 +184,29 @@ class HdServiceTest {
 
         verify(hdRepository, never()).delete(any());
     }
+
+    @Test
+    void getHdsNearCapacity_returnsOnlyHdsNearCapacity() {
+        Hd nearCapacityHd = Hd.builder()
+                .id(UUID.randomUUID())
+                .name("HD Externo 2")
+                .capacityGb(1000)
+                .usedSpaceGb(950)
+                .build();
+        when(hdRepository.findAll()).thenReturn(List.of(hd, nearCapacityHd));
+
+        List<HdDto> result = hdService.getHdsNearCapacity();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id()).isEqualTo(nearCapacityHd.getId());
+    }
+
+    @Test
+    void getHdsNearCapacity_returnsEmptyWhenNoneNearCapacity() {
+        when(hdRepository.findAll()).thenReturn(List.of(hd));
+
+        List<HdDto> result = hdService.getHdsNearCapacity();
+
+        assertThat(result).isEmpty();
+    }
 }
