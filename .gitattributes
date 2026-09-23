@@ -1,0 +1,7 @@
+# Shell scripts must keep LF line endings even when checked out on Windows,
+# otherwise "#!/bin/sh" gets a trailing \r and fails as "not found" in Linux
+# containers (hit building gestao-de-eventos/Dockerfile from a Windows checkout).
+gestao-de-eventos/mvnw text eol=lf
+
+# Windows batch files keep CRLF.
+gestao-de-eventos/mvnw.cmd text eol=crlf
