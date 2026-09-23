@@ -1,6 +1,13 @@
--- Baseline schema for gestao-de-eventos, generated from the (already English-renamed,
--- post-GDE-15) JPA entities via Hibernate's schema-generation-to-script tooling.
--- Hd.capacidade is intentionally still Portuguese here — GDE-4 owns renaming/retyping it.
+-- Baseline schema for gestao-de-eventos, generated from the JPA entities as they
+-- exist post GDE-15 (PT->EN rename), GDE-4 (Hd fields), GDE-6 (EventProfessional
+-- association entity) and GDE-16 (Event.id as uuid).
+--
+-- This project has no production deployment and no environment with real data
+-- yet, so this single baseline is kept in sync with the entities directly
+-- instead of layering a V2/V3/... on top of a baseline that was already wrong
+-- the day it was written. Once a real environment exists, this stops being an
+-- option and new schema changes go into their own versioned migration instead
+-- (see docs/adr/0010-squash-migrations-antes-do-primeiro-deploy.md).
 
 create table tb_customer (
     id uuid not null,
@@ -14,7 +21,10 @@ create table tb_customer (
 create table tb_hd (
     id uuid not null,
     name varchar(255) not null,
-    capacidade integer,
+    capacity_gb integer,
+    used_space_gb integer,
+    physical_location varchar(255),
+    serial_number varchar(255),
     acquisition_date date,
     status varchar(255),
     primary key (id)
@@ -41,7 +51,7 @@ create table tb_professional (
 );
 
 create table tb_event (
-    id VARCHAR(36) not null,
+    id uuid not null,
     event_code varchar(255),
     type varchar(255),
     name varchar(255) not null,
@@ -57,9 +67,11 @@ create table tb_event (
     primary key (id)
 );
 
-create table event_professional (
-    event_id VARCHAR(36) not null,
-    professional_id uuid not null
+create table tb_event_professional (
+    event_id uuid not null,
+    professional_id uuid not null,
+    role_in_event varchar(255),
+    primary key (event_id, professional_id)
 );
 
 alter table if exists tb_event
@@ -71,8 +83,8 @@ alter table if exists tb_event
 alter table if exists tb_event
     add constraint fk_event_customer foreign key (customer_id) references tb_customer;
 
-alter table if exists event_professional
+alter table if exists tb_event_professional
     add constraint fk_event_professional_event foreign key (event_id) references tb_event;
 
-alter table if exists event_professional
+alter table if exists tb_event_professional
     add constraint fk_event_professional_professional foreign key (professional_id) references tb_professional;
