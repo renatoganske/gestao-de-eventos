@@ -306,6 +306,9 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0010](adr/0010-squash-migrations-antes-do-primeiro-deploy.md) | Squash de migrations é permitido até o primeiro deploy real; depois disso, nunca mais reescrever migration já aplicada |
 | [0011](adr/0011-response-dtos-sem-entidade-jpa-direta.md) | DTOs de resposta nunca embutem entidade JPA: coleção vira `List<XSummaryDto>`, referência singular vira `UUID` |
 | [0012](adr/0012-stack-frontend-react-ts-vite.md) | Frontend em React + TypeScript + Vite (SPA), monorepo em `frontend/`, build estático servido pelo próprio Spring Boot |
+| [0013](adr/0013-ci-github-actions.md) | CI via GitHub Actions rodando `./mvnw clean test` em push/PR para `develop`/`main`, com serviço Postgres no job |
+| [0014](adr/0014-spring-profiles-dev-prod.md) | Configuração separada por Spring profiles: `dev` (padrão local) e `prod` (variáveis de ambiente) |
+| [0015](adr/0015-dockerfile-backend.md) | Backend containerizado via Dockerfile multi-stage (build com `mvnw`, runtime só com JRE) |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
