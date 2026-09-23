@@ -305,6 +305,7 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0008](adr/0008-sequenciamento-gde15-antes-gde14.md) | Sequenciamento: GDE-15 (rename PT→EN) roda antes de GDE-14 (Flyway) |
 | [0010](adr/0010-squash-migrations-antes-do-primeiro-deploy.md) | Squash de migrations é permitido até o primeiro deploy real; depois disso, nunca mais reescrever migration já aplicada |
 | [0011](adr/0011-response-dtos-sem-entidade-jpa-direta.md) | DTOs de resposta nunca embutem entidade JPA: coleção vira `List<XSummaryDto>`, referência singular vira `UUID` |
+| [0012](adr/0012-stack-frontend-react-ts-vite.md) | Frontend em React + TypeScript + Vite (SPA), monorepo em `frontend/`, build estático servido pelo próprio Spring Boot |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
