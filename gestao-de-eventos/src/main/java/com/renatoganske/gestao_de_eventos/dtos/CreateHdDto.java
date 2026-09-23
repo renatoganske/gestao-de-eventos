@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.enums.HdStatus;
+import jakarta.validation.constraints.NotBlank;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -10,7 +11,7 @@ import java.time.LocalDate;
  * DTO for {@link com.renatoganske.gestao_de_eventos.entities.Hd}
  */
 public record CreateHdDto(
-        String name,
+        @NotBlank String name,
         Integer capacityGb,
         Integer usedSpaceGb,
         String physicalLocation,

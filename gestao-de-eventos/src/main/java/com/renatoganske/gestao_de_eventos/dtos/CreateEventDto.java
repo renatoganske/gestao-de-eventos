@@ -1,13 +1,13 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Event;
-import com.renatoganske.gestao_de_eventos.entities.Hd;
-import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.enums.EventType;
+import jakarta.validation.constraints.NotBlank;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.UUID;
 
 /**
  * DTO for {@link Event}
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public record CreateEventDto(
         String eventCode,
         EventType type,
-        String name,
+        @NotBlank String name,
         LocalDate eventDate,
         Boolean daytimeWedding,
         Boolean outdoorWedding,
@@ -24,9 +24,9 @@ public record CreateEventDto(
         Double amount,
         Integer sizeGb,
         DeliveryStatus deliveryStatus,
-        Hd hd,
-        EventVenue eventVenue,
-        CreateCustomerDto customer
+        UUID hdId,
+        UUID eventVenueId,
+        UUID customerId
 ) implements Serializable {
     public Event toEntity() {
         return Event.builder()
@@ -41,9 +41,6 @@ public record CreateEventDto(
                 .amount(this.amount())
                 .sizeGb(this.sizeGb())
                 .deliveryStatus(this.deliveryStatus())
-                .hd(this.hd())
-                .eventVenue(this.eventVenue())
-                .customer(this.customer() != null ? this.customer().toEntity() : null)
                 .build();
     }
 }
