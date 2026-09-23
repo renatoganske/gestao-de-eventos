@@ -290,6 +290,7 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0006](adr/0006-adotar-flyway.md) | Adotar Flyway para migrations; `ddl-auto` passa de `update` para `validate` (GDE-14) |
 | [0007](adr/0007-ingles-idioma-padrao-migracao-pt-en.md) | Inglês vira idioma padrão da aplicação; migração PT→EN existente será finalizada (GDE-15) |
 | [0008](adr/0008-sequenciamento-gde15-antes-gde14.md) | Sequenciamento: GDE-15 (rename PT→EN) roda antes de GDE-14 (Flyway) |
+| [0010](adr/0010-squash-migrations-antes-do-primeiro-deploy.md) | Squash de migrations é permitido até o primeiro deploy real; depois disso, nunca mais reescrever migration já aplicada |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 

@@ -13,7 +13,7 @@ A correção inicial (GDE-16 + achado de schema) foi feita como `V2__sync_hd_fie
 
 Enquanto o projeto não tiver um primeiro deploy real (produção, ou qualquer ambiente compartilhado cujo `flyway_schema_history` precise ser preservado), é permitido **reescrever migrations já commitadas** para consolidá-las, em vez de empilhar uma migration de correção sobre outra que nasceu errada. Nesse caso específico: `V1__baseline.sql` foi reescrita para refletir o schema correto pós-GDE-4/GDE-6/GDE-16 diretamente, e `V2__sync_hd_fields_and_event_professional.sql` foi removida.
 
-Isso exige recriar (ou resetar o volume d)o Postgres local/dos containers de teste, já que o checksum da migration muda — mas nenhum desses bancos tem dado a preservar (ADR-0008 já estabeleceu esse mesmo raciocínio para o schema local antes do GDE-14).
+Isso exige recriar (ou resetar o volume de) o Postgres local/dos containers de teste, já que o checksum da migration muda — mas nenhum desses bancos tem dado a preservar (ADR-0008 já estabeleceu esse mesmo raciocínio para o schema local antes do GDE-14).
 
 **A partir do primeiro deploy real**, essa margem desaparece: qualquer ambiente que já tenha aplicado uma migration com um checksum específico não pode mais tê-la reescrita — daí em diante, toda correção de schema vira uma migration nova (`V(n+1)`), nunca uma edição de migration já aplicada em produção.
 
