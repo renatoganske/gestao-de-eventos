@@ -1,6 +1,8 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.*;
+import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.renatoganske.gestao_de_eventos.enums.EventType;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -13,13 +15,16 @@ import java.util.UUID;
 public record EventDto(
         UUID id,
         String eventCode,
-        String type, String name,
+        EventType type, String name,
         LocalDate eventDate,
         Boolean daytimeWedding,
         Boolean outdoorWedding,
         Long guestCount,
         String description,
-        Double amount, Hd hd,
+        Double amount,
+        Integer sizeGb,
+        DeliveryStatus deliveryStatus,
+        Hd hd,
         EventVenue eventVenue,
         Customer customer,
         List<EventProfessional> eventProfessionals

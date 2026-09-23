@@ -1,6 +1,8 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.renatoganske.gestao_de_eventos.enums.EventType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,8 +24,9 @@ public class Event {
 
     @Column(name = "event_code")
     private String eventCode;
+    @Enumerated(EnumType.STRING)
     @Column(name = "type")
-    private String type;
+    private EventType type;
     @Column(name = "name", nullable = false)
     private String name;
     @Column(name = "event_date")
@@ -38,6 +41,11 @@ public class Event {
     private String description;
     @Column(name = "amount")
     private Double amount;
+    @Column(name = "size_gb")
+    private Integer sizeGb;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_status")
+    private DeliveryStatus deliveryStatus;
 
     @ManyToOne
     @JoinColumn(name = "hd_id")
@@ -66,6 +74,8 @@ public class Event {
                 this.guestCount,
                 this.description,
                 this.amount,
+                this.sizeGb,
+                this.deliveryStatus,
                 this.hd,
                 this.eventVenue,
                 this.customer,

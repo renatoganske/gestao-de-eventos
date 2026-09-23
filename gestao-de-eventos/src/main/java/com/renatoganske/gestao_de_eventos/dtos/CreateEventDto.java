@@ -3,6 +3,8 @@ package com.renatoganske.gestao_de_eventos.dtos;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
+import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.renatoganske.gestao_de_eventos.enums.EventType;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -12,7 +14,7 @@ import java.time.LocalDate;
  */
 public record CreateEventDto(
         String eventCode,
-        String type,
+        EventType type,
         String name,
         LocalDate eventDate,
         Boolean daytimeWedding,
@@ -20,6 +22,8 @@ public record CreateEventDto(
         Long guestCount,
         String description,
         Double amount,
+        Integer sizeGb,
+        DeliveryStatus deliveryStatus,
         Hd hd,
         EventVenue eventVenue,
         CreateCustomerDto customer
@@ -35,6 +39,8 @@ public record CreateEventDto(
                 .guestCount(this.guestCount())
                 .description(this.description())
                 .amount(this.amount())
+                .sizeGb(this.sizeGb())
+                .deliveryStatus(this.deliveryStatus())
                 .hd(this.hd())
                 .eventVenue(this.eventVenue())
                 .build();
