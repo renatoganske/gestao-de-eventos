@@ -26,6 +26,10 @@ public interface IHdController {
     @GetMapping("/{id}")
     ResponseEntity<HdDto> findById(@PathVariable UUID id);
 
+    @Operation(summary = "List HDs near capacity", description = "Fetches HDs whose used space is at or above 90% of their capacity.")
+    @GetMapping("/near-capacity")
+    ResponseEntity<List<HdDto>> findNearCapacity();
+
     @Operation(summary = "Create HD", description = "Creates a new HD.")
     @PostMapping
     ResponseEntity<HdDto> create(@RequestBody @Valid CreateHdDto requestDto);

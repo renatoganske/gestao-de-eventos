@@ -4,6 +4,7 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
+import com.renatoganske.gestao_de_eventos.policies.HdCapacityPolicy;
 import com.renatoganske.gestao_de_eventos.repositories.HdRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +62,13 @@ public class HdService {
         Hd hd = hdRepository.findById(id)
                 .orElseThrow(() -> new HdNotFoundException(id));
         hdRepository.delete(hd);
+    }
+
+    public List<HdDto> getHdsNearCapacity() {
+        return hdRepository.findAll().stream()
+                .filter(HdCapacityPolicy::isNearCapacity)
+                .map(Hd::toResponseDto)
+                .collect(Collectors.toList());
     }
 
 }

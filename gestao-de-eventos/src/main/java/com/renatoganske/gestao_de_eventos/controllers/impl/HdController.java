@@ -33,6 +33,11 @@ public class HdController implements IHdController {
     }
 
     @Override
+    public ResponseEntity<List<HdDto>> findNearCapacity() {
+        return ResponseEntity.ok(hdService.getHdsNearCapacity());
+    }
+
+    @Override
     public ResponseEntity<HdDto> create(@RequestBody @Valid CreateHdDto requestDto) {
         HdDto responseDto = hdService.createHd(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
