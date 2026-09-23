@@ -3,15 +3,20 @@ package com.renatoganske.gestao_de_eventos.services;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.renatoganske.gestao_de_eventos.enums.EventType;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
+import com.renatoganske.gestao_de_eventos.filters.EventFilter;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,5 +72,23 @@ public class EventService {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EventNotFoundException(id));
         eventRepository.delete(event);
+    }
+
+    public List<EventDto> searchEvents(EventType type, UUID venueId, UUID professionalId,
+                                        LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus,
+                                        String customerName, String eventCode) {
+        Predicate<Event> filter = EventFilter.byType(type)
+                .and(EventFilter.byVenue(venueId))
+                .and(EventFilter.byProfessional(professionalId))
+                .and(EventFilter.byPeriod(from, to))
+                .and(EventFilter.byHd(hdId))
+                .and(EventFilter.byDeliveryStatus(deliveryStatus))
+                .and(EventFilter.byCustomerName(customerName))
+                .and(EventFilter.byEventCode(eventCode));
+
+        return eventRepository.findAll().stream()
+                .filter(filter)
+                .map(Event::toDTO)
+                .collect(Collectors.toList());
     }
 }
