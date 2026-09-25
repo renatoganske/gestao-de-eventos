@@ -43,7 +43,7 @@ Task tracking lives on Jira, board **"Gestão de Eventos"** (key `GDE`). An `atl
 
 For every task pulled from the board:
 
-1. **Branch from `develop`** using a semantic prefix matching the change type: `feat/`, `fix/`, `chore/`, `refactor/`, `test/`, `docs/` (e.g. `feat/event-crud`, `fix/application-properties-encoding`).
+1. **Branch from `develop`** using a semantic prefix matching the change type: `feat/`, `fix/`, `chore/`, `refactor/`, `test/`, `docs/` (e.g. `feat/event-crud`, `fix/application-properties-encoding`). This now applies to `frontend/` work too — decided 2026-09-25, once the backend merged to `main`: the `frontend` integration branch (used 2026-09-24–2026-09-25 to isolate the early bootstrap, GDE-20/PR #24) is retired once its batch merge into `develop` lands; new frontend branches target `develop` directly like everything else.
 2. **Write unit tests** covering the change — no task is done without tests.
 3. **Run the full test suite** (`./mvnw test`) before opening a PR; if anything is broken (by this change or pre-existing), fix it as part of the task.
 4. **Open a PR** and stop — wait for Renato's review, approval, and merge. Never merge your own PR.
