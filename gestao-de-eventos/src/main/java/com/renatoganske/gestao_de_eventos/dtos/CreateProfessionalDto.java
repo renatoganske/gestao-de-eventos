@@ -1,6 +1,7 @@
 package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Professional;
+import jakarta.validation.constraints.NotBlank;
 
 import java.io.Serializable;
 
@@ -8,7 +9,7 @@ import java.io.Serializable;
  * DTO for {@link Professional}
  */
 public record CreateProfessionalDto(
-        String name,
+        @NotBlank String name,
         String type,
         String contact,
         String specialty,
