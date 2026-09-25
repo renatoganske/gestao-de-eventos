@@ -70,4 +70,33 @@ class LoginRateLimiterTest {
 
         assertThat(limiter.isBlocked("admin")).isFalse();
     }
+
+    @Test
+    void purgeExpiredEntries_removesEntriesNobodyQueriedAgain() throws InterruptedException {
+        // Simula um atacante mandando um username diferente a cada tentativa: cada
+        // chave e' escrita uma unica vez e nunca mais consultada, entao a unica forma
+        // de nao acumular sem limite e' o expurgo ativo, nao a limpeza sob demanda de
+        // isBlocked()/onSuccess().
+        LoginRateLimiter limiter = new LoginRateLimiter(5, Duration.ofMillis(50));
+
+        for (int i = 0; i < 100; i++) {
+            limiter.onFailure("attacker-username-" + i);
+        }
+        assertThat(limiter.trackedUsernameCount()).isEqualTo(100);
+
+        Thread.sleep(80);
+        limiter.purgeExpiredEntries();
+
+        assertThat(limiter.trackedUsernameCount()).isZero();
+    }
+
+    @Test
+    void purgeExpiredEntries_keepsEntriesStillWithinTheWindow() {
+        LoginRateLimiter limiter = new LoginRateLimiter(5, Duration.ofMinutes(15));
+
+        limiter.onFailure("admin");
+        limiter.purgeExpiredEntries();
+
+        assertThat(limiter.trackedUsernameCount()).isEqualTo(1);
+    }
 }

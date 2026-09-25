@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.configs.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -12,6 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * Bloqueio simples em memoria por usuario, sem dependencia externa (Bucket4j etc.) --
  * suficiente para uma instancia unica (Render) protegendo uma unica conta admin.
  * Reseta se o processo reiniciar; aceitavel para este escopo (ver ADR-0017).
+ *
+ * O username do POST /api/auth/login e' controlado pelo cliente e nunca precisa
+ * ser um valor real -- sem alguma limpeza ativa, um atacante mandando um username
+ * diferente a cada tentativa faria este mapa crescer sem limite (achado da
+ * auditoria de seguranca da PR #29). purgeExpiredEntries() roda periodicamente
+ * para isso nao depender de alguem consultar de novo a mesma chave.
  */
 @Component
 public class LoginRateLimiter {
@@ -62,7 +69,17 @@ public class LoginRateLimiter {
         attemptsByUsername.remove(key(username));
     }
 
+    @Scheduled(fixedDelayString = "${app.security.login.cleanup-interval-ms:60000}")
+    void purgeExpiredEntries() {
+        Instant now = Instant.now();
+        attemptsByUsername.entrySet().removeIf(entry -> now.isAfter(entry.getValue().windowStart().plus(lockoutWindow)));
+    }
+
     private String key(String username) {
         return username == null ? "" : username.toLowerCase();
+    }
+
+    int trackedUsernameCount() {
+        return attemptsByUsername.size();
     }
 }
