@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 import com.renatoganske.gestao_de_eventos.dtos.CreateProfessionalDto;
 import com.renatoganske.gestao_de_eventos.dtos.ProfessionalDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,8 @@ public interface IProfessionalController {
     @PutMapping("/{id}")
     ResponseEntity<ProfessionalDto> update(@PathVariable UUID id, @RequestBody @Valid CreateProfessionalDto requestDto);
 
-    @Operation(summary = "Delete professional", description = "Deletes a professional by ID.")
+    @Operation(summary = "Delete professional", description = "Deletes a professional by ID.",
+            responses = @ApiResponse(responseCode = "204", description = "Professional deleted."))
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable UUID id);
 }

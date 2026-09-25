@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.CustomerResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,8 @@ public interface ICustomerController {
     @PutMapping("/{id}")
     ResponseEntity<CustomerResponseDto> update(@PathVariable UUID id, @RequestBody @Valid CreateCustomerDto requestDto);
 
-    @Operation(summary = "Delete customer", description = "Deletes a customer by ID.")
+    @Operation(summary = "Delete customer", description = "Deletes a customer by ID.",
+            responses = @ApiResponse(responseCode = "204", description = "Customer deleted."))
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable UUID id);
 }

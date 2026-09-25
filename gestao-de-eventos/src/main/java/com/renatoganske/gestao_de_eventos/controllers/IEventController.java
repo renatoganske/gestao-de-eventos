@@ -4,6 +4,7 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -50,7 +51,8 @@ public interface IEventController {
     @PutMapping("/{id}")
     ResponseEntity<EventDto> update(@PathVariable UUID id, @RequestBody @Valid CreateEventDto requestDto);
 
-    @Operation(summary = "Delete event", description = "Deletes an event by ID.")
+    @Operation(summary = "Delete event", description = "Deletes an event by ID.",
+            responses = @ApiResponse(responseCode = "204", description = "Event deleted."))
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable UUID id);
 }

@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,8 @@ public interface IHdController {
     @PutMapping("/{id}")
     ResponseEntity<HdDto> update(@PathVariable UUID id, @RequestBody @Valid CreateHdDto requestDto);
 
-    @Operation(summary = "Delete HD", description = "Deletes an HD by ID.")
+    @Operation(summary = "Delete HD", description = "Deletes an HD by ID.",
+            responses = @ApiResponse(responseCode = "204", description = "HD deleted."))
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable UUID id);
 }
