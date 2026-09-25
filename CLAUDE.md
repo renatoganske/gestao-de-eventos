@@ -23,6 +23,15 @@ A `docker-compose.yml` at the repo root brings up a matching Postgres instance (
 
 Swagger/OpenAPI UI is served at `/swagger-ui.html` (raw docs at `/api-docs`) once the app is running.
 
+Run from `frontend/` (React + TypeScript + Vite SPA, ADR-0012 — see `frontend/README.md` for the fuller dev/build/test walkthrough):
+
+- Install: `npm install --legacy-peer-deps` (**the flag is required**, not optional — see below)
+- Dev server: `npm run dev` (proxies `/api` to the backend on `:8080`)
+- Run tests: `npm test` (Vitest + React Testing Library + jsdom, ADR-0019)
+- Build for production (copies the build into the backend's static resources): `npm run build:backend`
+
+**Always pass `--legacy-peer-deps` to `npm install`/`npm ci` in `frontend/`.** This machine's npm (9.7.1) has an arborist bug (`Cannot read properties of null (reading 'edgesOut')`) triggered by Vitest's optional peer dependencies (`msw`, `@vitest/ui`, browser providers) — both `npm install` and `npm ci` fail without the flag. `frontend/package-lock.json` was generated with it, so `npm ci` also needs it to install cleanly from the lockfile (otherwise it reports lockfile entries as "missing").
+
 ## Architecture
 
 **Controller split into interface + impl.** Each REST resource has an `I<Name>Controller` interface in `controllers/` carrying `@RequestMapping`, `@Validated`, and all Swagger/OpenAPI annotations (`@Tag`, `@Operation`), and a `@Component` implementation in `controllers/impl/` that implements the interface and only delegates to a service. When adding a new endpoint, add the route + Swagger docs on the interface method, and the actual logic call in the impl class.
