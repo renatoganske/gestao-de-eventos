@@ -3,7 +3,6 @@ package com.renatoganske.gestao_de_eventos.controllers;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,7 +32,7 @@ public interface IEventController {
     @Operation(summary = "Search events", description = "Searches events combining optional filters (type, venue, professional, period, HD, delivery status, customer name, event code).")
     @GetMapping("/search")
     ResponseEntity<List<EventDto>> search(
-            @RequestParam(required = false) EventType type,
+            @RequestParam(required = false) UUID eventTypeId,
             @RequestParam(required = false) UUID venueId,
             @RequestParam(required = false) UUID professionalId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

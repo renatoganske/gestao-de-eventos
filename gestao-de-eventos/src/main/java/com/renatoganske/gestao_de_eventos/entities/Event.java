@@ -3,7 +3,6 @@ package com.renatoganske.gestao_de_eventos.entities;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventSummaryDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,8 +25,8 @@ public class Event {
 
     @Column(name = "event_code")
     private String eventCode;
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type")
+    @ManyToOne
+    @JoinColumn(name = "event_type_id")
     private EventType type;
     @Column(name = "name", nullable = false)
     private String name;
@@ -68,7 +67,7 @@ public class Event {
         return new EventDto(
                 this.id,
                 this.eventCode,
-                this.type,
+                this.type != null ? this.type.toResponseDto() : null,
                 this.name,
                 this.eventDate,
                 this.daytimeWedding,
@@ -91,7 +90,7 @@ public class Event {
         return new EventSummaryDto(
                 this.id,
                 this.eventCode,
-                this.type,
+                this.type != null ? this.type.toResponseDto() : null,
                 this.name,
                 this.eventDate,
                 this.deliveryStatus

@@ -2,7 +2,6 @@ package com.renatoganske.gestao_de_eventos.filters;
 
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -10,8 +9,9 @@ import java.util.function.Predicate;
 
 public interface EventFilter extends Predicate<Event> {
 
-    static EventFilter byType(EventType type) {
-        return e -> type == null || e.getType() == type;
+    static EventFilter byType(UUID eventTypeId) {
+        return e -> eventTypeId == null
+                || (e.getType() != null && eventTypeId.equals(e.getType().getId()));
     }
 
     static EventFilter byVenue(UUID venueId) {

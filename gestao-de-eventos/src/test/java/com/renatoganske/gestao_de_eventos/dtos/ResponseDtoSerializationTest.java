@@ -6,11 +6,11 @@ import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessionalId;
+import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import com.renatoganske.gestao_de_eventos.enums.HdStatus;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +42,7 @@ class ResponseDtoSerializationTest {
         Event event = Event.builder()
                 .id(UUID.randomUUID())
                 .eventCode("EVT-001")
-                .type(EventType.WEDDING)
+                .type(EventType.builder().id(UUID.randomUUID()).name("WEDDING").build())
                 .name("Casamento Maria e Joao")
                 .eventDate(LocalDate.of(2026, 10, 15))
                 .deliveryStatus(DeliveryStatus.PENDING)
