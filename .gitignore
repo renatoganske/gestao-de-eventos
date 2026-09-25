@@ -1,0 +1,6 @@
+# IntelliJ IDEA
+.idea/
+
+# Claude Code
+.claude/settings.local.json
+.claude/skills/*/references/memoria.md
