@@ -54,6 +54,22 @@ Faça `POST /api/auth/login` com o novo usuário/senha (Swagger UI, exige o
 próprio login funcionando antes de conseguir usar o resto da API — ver
 ADR-0017) e confirme que retorna um JWT.
 
+## Bloqueado por excesso de tentativas de login
+
+Depois de 5 tentativas de login falhas em 15 minutos, `POST /api/auth/login`
+passa a responder `429 Too Many Requests` para aquele usuário — mesmo que a
+próxima tentativa use a senha certa (`LoginRateLimiter`, ver ADR-0017). Isso
+vale tanto para um ataque de força bruta quanto para você mesmo errando a
+senha repetidas vezes.
+
+Esse bloqueio vive só em memória, não no banco — não tem UPDATE que destrave.
+As únicas saídas são:
+
+- **Esperar os 15 minutos** (mais simples, se não tiver pressa); ou
+- **Reiniciar o processo** (redeploy no Render, ou `./mvnw spring-boot:run`
+  de novo localmente) — isso limpa o contador na hora, já que ele some da
+  memória junto com o restart.
+
 ## Por que não existe reset por e-mail
 
 Decisão registrada na ADR-0017: como há um único usuário com acesso direto à
