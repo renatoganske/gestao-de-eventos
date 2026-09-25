@@ -3,11 +3,11 @@ package com.renatoganske.gestao_de_eventos.filters;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
+import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -22,13 +22,15 @@ class EventFilterTest {
     private final UUID venueId = UUID.randomUUID();
     private final UUID hdId = UUID.randomUUID();
     private final UUID professionalId = UUID.randomUUID();
+    private final EventType weddingType = EventType.builder().id(UUID.randomUUID()).name("WEDDING").build();
+    private final EventType birthdayType = EventType.builder().id(UUID.randomUUID()).name("BIRTHDAY").build();
 
     private Event weddingEvent() {
         Professional professional = Professional.builder().id(professionalId).name("Joao Fotografo").build();
         Event event = Event.builder()
                 .id(UUID.randomUUID())
                 .eventCode("EVT-001")
-                .type(EventType.WEDDING)
+                .type(weddingType)
                 .eventDate(LocalDate.of(2026, 6, 15))
                 .eventVenue(EventVenue.builder().id(venueId).build())
                 .hd(Hd.builder().id(hdId).build())
@@ -47,7 +49,7 @@ class EventFilterTest {
         return Event.builder()
                 .id(UUID.randomUUID())
                 .eventCode("EVT-002")
-                .type(EventType.BIRTHDAY)
+                .type(birthdayType)
                 .eventDate(LocalDate.of(2026, 1, 1))
                 .eventVenue(EventVenue.builder().id(UUID.randomUUID()).build())
                 .hd(Hd.builder().id(UUID.randomUUID()).build())
@@ -59,8 +61,8 @@ class EventFilterTest {
 
     @Test
     void byType_matchesOnlyGivenType() {
-        assertThat(EventFilter.byType(EventType.WEDDING).test(weddingEvent())).isTrue();
-        assertThat(EventFilter.byType(EventType.WEDDING).test(otherEvent())).isFalse();
+        assertThat(EventFilter.byType(weddingType.getId()).test(weddingEvent())).isTrue();
+        assertThat(EventFilter.byType(weddingType.getId()).test(otherEvent())).isFalse();
     }
 
     @Test
@@ -177,7 +179,7 @@ class EventFilterTest {
 
     @Test
     void combinedFilters_matchOnlyWhenAllCriteriaMatch() {
-        Predicate<Event> filter = EventFilter.byType(EventType.WEDDING)
+        Predicate<Event> filter = EventFilter.byType(weddingType.getId())
                 .and(EventFilter.byVenue(venueId))
                 .and(EventFilter.byPeriod(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30)));
 

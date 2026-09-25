@@ -2,7 +2,6 @@ package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import jakarta.validation.constraints.NotBlank;
 
 import java.io.Serializable;
@@ -14,7 +13,7 @@ import java.util.UUID;
  */
 public record CreateEventDto(
         String eventCode,
-        EventType type,
+        UUID eventTypeId,
         @NotBlank String name,
         LocalDate eventDate,
         Boolean daytimeWedding,
@@ -31,7 +30,6 @@ public record CreateEventDto(
     public Event toEntity() {
         return Event.builder()
                 .eventCode(this.eventCode())
-                .type(this.type())
                 .name(this.name())
                 .eventDate(this.eventDate())
                 .daytimeWedding(this.daytimeWedding())

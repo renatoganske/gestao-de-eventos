@@ -4,15 +4,17 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
+import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventVenueRepository;
 import com.renatoganske.gestao_de_eventos.repositories.HdRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +33,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,12 +54,17 @@ class EventServiceTest {
     @Mock
     private EventVenueRepository eventVenueRepository;
 
+    @Mock
+    private EventTypeRepository eventTypeRepository;
+
     @InjectMocks
     private EventService eventService;
 
     private Hd hd;
     private EventVenue eventVenue;
     private Customer customer;
+    private EventType weddingType;
+    private EventType birthdayType;
     private Event event;
     private CreateEventDto createEventDto;
 
@@ -65,11 +73,15 @@ class EventServiceTest {
         hd = Hd.builder().id(UUID.randomUUID()).name("HD Externo 1").usedSpaceGb(500).build();
         eventVenue = EventVenue.builder().id(UUID.randomUUID()).name("Buffet Jardim das Rosas").build();
         customer = Customer.builder().id(UUID.randomUUID()).name("Maria Silva").build();
+        weddingType = EventType.builder().id(UUID.randomUUID()).name("WEDDING").build();
+        birthdayType = EventType.builder().id(UUID.randomUUID()).name("BIRTHDAY").build();
+        lenient().when(eventTypeRepository.findById(weddingType.getId())).thenReturn(Optional.of(weddingType));
+        lenient().when(eventTypeRepository.findById(birthdayType.getId())).thenReturn(Optional.of(birthdayType));
 
         event = Event.builder()
                 .id(UUID.randomUUID())
                 .eventCode("EVT-001")
-                .type(EventType.WEDDING)
+                .type(weddingType)
                 .name("Casamento Maria e Joao")
                 .eventDate(LocalDate.of(2026, 10, 15))
                 .daytimeWedding(true)
@@ -86,7 +98,7 @@ class EventServiceTest {
 
         createEventDto = new CreateEventDto(
                 event.getEventCode(),
-                event.getType(),
+                weddingType.getId(),
                 event.getName(),
                 event.getEventDate(),
                 event.getDaytimeWedding(),
@@ -112,7 +124,7 @@ class EventServiceTest {
         EventDto result = eventService.createEvent(createEventDto);
 
         assertThat(captor.getValue().getEventCode()).isEqualTo(createEventDto.eventCode());
-        assertThat(captor.getValue().getType()).isEqualTo(createEventDto.type());
+        assertThat(captor.getValue().getType()).isEqualTo(weddingType);
         assertThat(captor.getValue().getName()).isEqualTo(createEventDto.name());
         assertThat(captor.getValue().getSizeGb()).isEqualTo(createEventDto.sizeGb());
         assertThat(captor.getValue().getDeliveryStatus()).isEqualTo(createEventDto.deliveryStatus());
@@ -128,7 +140,7 @@ class EventServiceTest {
     @Test
     void createEvent_withoutAssociations_leavesThemNull() {
         CreateEventDto dtoWithoutAssociations = new CreateEventDto(
-                "EVT-003", EventType.OTHER, "Ensaio solo", null,
+                "EVT-003", null, "Ensaio solo", null,
                 null, null, null, null, null, null, null,
                 null, null, null);
         ArgumentCaptor<Event> captor = ArgumentCaptor.forClass(Event.class);
@@ -159,7 +171,7 @@ class EventServiceTest {
     void createEvent_throwsCustomerNotFoundException_whenCustomerIdDoesNotExist() {
         UUID missingCustomerId = UUID.randomUUID();
         CreateEventDto dto = new CreateEventDto(
-                "EVT-004", EventType.OTHER, "Evento sem cliente valido", null,
+                "EVT-004", null, "Evento sem cliente valido", null,
                 null, null, null, null, null, null, null,
                 null, null, missingCustomerId);
         when(customerRepository.findById(missingCustomerId)).thenReturn(Optional.empty());
@@ -175,7 +187,7 @@ class EventServiceTest {
     void createEvent_throwsHdNotFoundException_whenHdIdDoesNotExist() {
         UUID missingHdId = UUID.randomUUID();
         CreateEventDto dto = new CreateEventDto(
-                "EVT-005", EventType.OTHER, "Evento sem HD valido", null,
+                "EVT-005", null, "Evento sem HD valido", null,
                 null, null, null, null, null, null, null,
                 missingHdId, null, null);
         when(hdRepository.findById(missingHdId)).thenReturn(Optional.empty());
@@ -183,6 +195,22 @@ class EventServiceTest {
         assertThatThrownBy(() -> eventService.createEvent(dto))
                 .isInstanceOf(HdNotFoundException.class)
                 .hasMessageContaining(missingHdId.toString());
+
+        verify(eventRepository, never()).save(any());
+    }
+
+    @Test
+    void createEvent_throwsEventTypeNotFoundException_whenEventTypeIdDoesNotExist() {
+        UUID missingEventTypeId = UUID.randomUUID();
+        CreateEventDto dto = new CreateEventDto(
+                "EVT-006", missingEventTypeId, "Evento sem tipo valido", null,
+                null, null, null, null, null, null, null,
+                null, null, null);
+        when(eventTypeRepository.findById(missingEventTypeId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.createEvent(dto))
+                .isInstanceOf(EventTypeNotFoundException.class)
+                .hasMessageContaining(missingEventTypeId.toString());
 
         verify(eventRepository, never()).save(any());
     }
@@ -233,7 +261,7 @@ class EventServiceTest {
         UUID id = event.getId();
         CreateEventDto updateDto = new CreateEventDto(
                 "EVT-002",
-                EventType.BIRTHDAY,
+                birthdayType.getId(),
                 "Aniversario Ana",
                 LocalDate.of(2026, 12, 1),
                 false,
@@ -255,7 +283,8 @@ class EventServiceTest {
         EventDto result = eventService.updateEvent(id, updateDto);
 
         assertThat(result.eventCode()).isEqualTo("EVT-002");
-        assertThat(result.type()).isEqualTo(EventType.BIRTHDAY);
+        assertThat(result.type().id()).isEqualTo(birthdayType.getId());
+        assertThat(result.type().name()).isEqualTo("BIRTHDAY");
         assertThat(result.name()).isEqualTo("Aniversario Ana");
         assertThat(result.sizeGb()).isEqualTo(20);
         assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.DELIVERED);
@@ -266,7 +295,7 @@ class EventServiceTest {
     void updateEvent_adjustsSameHdUsedSpaceByDeltaBetweenOldAndNewSizeGb() {
         UUID id = event.getId();
         CreateEventDto updateDto = new CreateEventDto(
-                "EVT-002", EventType.BIRTHDAY, "Aniversario Ana", null,
+                "EVT-002", null, "Aniversario Ana", null,
                 null, null, null, null, null, 20, DeliveryStatus.DELIVERED,
                 hd.getId(), null, null);
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
@@ -285,7 +314,7 @@ class EventServiceTest {
         UUID id = event.getId();
         Hd newHd = Hd.builder().id(UUID.randomUUID()).name("HD Externo 2").usedSpaceGb(100).build();
         CreateEventDto updateDto = new CreateEventDto(
-                "EVT-002", EventType.BIRTHDAY, "Aniversario Ana", null,
+                "EVT-002", null, "Aniversario Ana", null,
                 null, null, null, null, null, 50, DeliveryStatus.DELIVERED,
                 newHd.getId(), null, null);
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
@@ -348,13 +377,13 @@ class EventServiceTest {
         Event other = Event.builder()
                 .id(UUID.randomUUID())
                 .name("Aniversario 15 anos")
-                .type(EventType.BIRTHDAY)
+                .type(birthdayType)
                 .deliveryStatus(DeliveryStatus.DELIVERED)
                 .build();
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
         List<EventDto> result = eventService.searchEvents(
-                EventType.WEDDING, null, null, null, null, null, null, null, null);
+                weddingType.getId(), null, null, null, null, null, null, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(event.getId());

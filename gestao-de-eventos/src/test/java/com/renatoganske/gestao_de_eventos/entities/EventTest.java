@@ -2,7 +2,6 @@ package com.renatoganske.gestao_de_eventos.entities;
 
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -21,11 +20,12 @@ class EventTest {
         Hd hd = Hd.builder().id(UUID.randomUUID()).name("HD Externo 1TB").build();
         EventVenue eventVenue = EventVenue.builder().id(UUID.randomUUID()).name("Salao de Festas").build();
         Customer customer = Customer.builder().id(UUID.randomUUID()).name("Ana e Bruno").build();
+        EventType type = EventType.builder().id(UUID.randomUUID()).name("WEDDING").build();
 
         Event event = Event.builder()
                 .id(id)
                 .eventCode("EVT-001")
-                .type(EventType.WEDDING)
+                .type(type)
                 .name("Casamento Ana e Bruno")
                 .eventDate(LocalDate.of(2026, 10, 10))
                 .daytimeWedding(false)
@@ -45,7 +45,8 @@ class EventTest {
 
         assertThat(dto.id()).isEqualTo(id);
         assertThat(dto.eventCode()).isEqualTo("EVT-001");
-        assertThat(dto.type()).isEqualTo(EventType.WEDDING);
+        assertThat(dto.type().id()).isEqualTo(type.getId());
+        assertThat(dto.type().name()).isEqualTo("WEDDING");
         assertThat(dto.name()).isEqualTo("Casamento Ana e Bruno");
         assertThat(dto.eventDate()).isEqualTo(LocalDate.of(2026, 10, 10));
         assertThat(dto.daytimeWedding()).isFalse();

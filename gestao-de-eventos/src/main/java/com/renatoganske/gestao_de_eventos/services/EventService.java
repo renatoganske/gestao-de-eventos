@@ -5,16 +5,18 @@ import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
+import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.enums.EventType;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.filters.EventFilter;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
+import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventVenueRepository;
 import com.renatoganske.gestao_de_eventos.repositories.HdRepository;
 import jakarta.transaction.Transactional;
@@ -37,10 +39,12 @@ public class EventService {
     private final CustomerRepository customerRepository;
     private final HdRepository hdRepository;
     private final EventVenueRepository eventVenueRepository;
+    private final EventTypeRepository eventTypeRepository;
 
     @Transactional
     public EventDto createEvent(CreateEventDto createEventDto) {
         Event event = createEventDto.toEntity();
+        event.setType(resolveEventType(createEventDto.eventTypeId()));
         event.setHd(resolveHd(createEventDto.hdId()));
         event.setEventVenue(resolveEventVenue(createEventDto.eventVenueId()));
         event.setCustomer(resolveCustomer(createEventDto.customerId()));
@@ -72,7 +76,7 @@ public class EventService {
         Integer previousSizeGb = event.getSizeGb();
 
         event.setEventCode(createEventDto.eventCode());
-        event.setType(createEventDto.type());
+        event.setType(resolveEventType(createEventDto.eventTypeId()));
         event.setName(createEventDto.name());
         event.setEventDate(createEventDto.eventDate());
         event.setDaytimeWedding(createEventDto.daytimeWedding());
@@ -107,10 +111,10 @@ public class EventService {
         adjustHdUsedSpace(hd, sizeGb == null ? null : -sizeGb);
     }
 
-    public List<EventDto> searchEvents(EventType type, UUID venueId, UUID professionalId,
+    public List<EventDto> searchEvents(UUID eventTypeId, UUID venueId, UUID professionalId,
                                         LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus,
                                         String customerName, String eventCode) {
-        Predicate<Event> filter = EventFilter.byType(type)
+        Predicate<Event> filter = EventFilter.byType(eventTypeId)
                 .and(EventFilter.byVenue(venueId))
                 .and(EventFilter.byProfessional(professionalId))
                 .and(EventFilter.byPeriod(from, to))
@@ -123,6 +127,14 @@ public class EventService {
                 .filter(filter)
                 .map(Event::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    private EventType resolveEventType(UUID eventTypeId) {
+        if (eventTypeId == null) {
+            return null;
+        }
+        return eventTypeRepository.findById(eventTypeId)
+                .orElseThrow(() -> new EventTypeNotFoundException(eventTypeId));
     }
 
     private Hd resolveHd(UUID hdId) {
