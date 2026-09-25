@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -43,9 +44,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
-            } catch (JwtException | IllegalArgumentException e) {
-                // Token ausente/invalido/expirado: segue sem autenticar, a cadeia de
-                // seguranca rejeita a requisicao mais adiante com 401.
+            } catch (JwtException | IllegalArgumentException | AuthenticationException e) {
+                // Token ausente/invalido/expirado, ou usuario do token nao existe mais
+                // (ex.: username trocado via runbook manual, ADR-0017): segue sem
+                // autenticar, a cadeia de seguranca rejeita a requisicao mais adiante
+                // com 401 -- em vez de deixar a excecao subir como 500 sem tratamento.
             }
         }
 

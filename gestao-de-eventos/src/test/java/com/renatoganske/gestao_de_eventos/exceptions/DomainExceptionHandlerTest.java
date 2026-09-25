@@ -36,6 +36,16 @@ class DomainExceptionHandlerTest {
     }
 
     @Test
+    void mapsTooManyLoginAttemptsExceptionTo429WithMessage() {
+        ResponseEntity<ApiErrorDto> response = handler.handleTooManyLoginAttempts(
+                new TooManyLoginAttemptsException("Too many failed login attempts. Try again in a few minutes."));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(response.getBody().status()).isEqualTo(429);
+        assertThat(response.getBody().message()).contains("Too many failed login attempts");
+    }
+
+    @Test
     void mapsFieldValidationErrorsTo400WithMessage() throws NoSuchMethodException {
         MethodArgumentNotValidException ex = notValidException(
                 List.of(new FieldError("target", "name", "must not be blank")),

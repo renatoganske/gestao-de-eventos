@@ -12,8 +12,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -76,6 +78,18 @@ class JwtAuthenticationFilterTest {
         when(request.getHeader("Authorization")).thenReturn("Bearer not-a-real-jwt");
 
         filter.doFilterInternal(request, response, filterChain);
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_withTokenForUserThatNoLongerExists_leavesContextEmptyAndContinuesChainWithoutThrowing() throws Exception {
+        setUpFilter();
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + jwtService.generateToken("ghost-user"));
+        when(userDetailsService.loadUserByUsername("ghost-user")).thenThrow(new UsernameNotFoundException("nope"));
+
+        assertThatCode(() -> filter.doFilterInternal(request, response, filterChain)).doesNotThrowAnyException();
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(filterChain).doFilter(request, response);
