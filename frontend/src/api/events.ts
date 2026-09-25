@@ -1,6 +1,19 @@
 import { apiFetch } from './client'
+import type { PillStatus } from '../components/Pill'
 
 export type DeliveryStatus = 'PENDING' | 'DELIVERED' | 'ARCHIVED'
+
+export const DELIVERY_STATUS_LABEL: Record<DeliveryStatus, string> = {
+  PENDING: 'Pendente',
+  DELIVERED: 'Entregue',
+  ARCHIVED: 'Arquivado',
+}
+
+export const DELIVERY_STATUS_TO_PILL: Record<DeliveryStatus, PillStatus> = {
+  PENDING: 'pending',
+  DELIVERED: 'delivered',
+  ARCHIVED: 'archived',
+}
 
 export interface EventTypeDto {
   id: string
@@ -26,21 +39,45 @@ export interface EventDto {
 }
 
 export interface SearchEventsParams {
+  eventTypeId?: string
+  venueId?: string
+  professionalId?: string
   from?: string
   to?: string
+  hdId?: string
   deliveryStatus?: DeliveryStatus
+  customerName?: string
+  eventCode?: string
 }
 
 function buildSearchQuery(params: SearchEventsParams): string {
   const query = new URLSearchParams()
+  if (params.eventTypeId) {
+    query.set('eventTypeId', params.eventTypeId)
+  }
+  if (params.venueId) {
+    query.set('venueId', params.venueId)
+  }
+  if (params.professionalId) {
+    query.set('professionalId', params.professionalId)
+  }
   if (params.from) {
     query.set('from', params.from)
   }
   if (params.to) {
     query.set('to', params.to)
   }
+  if (params.hdId) {
+    query.set('hdId', params.hdId)
+  }
   if (params.deliveryStatus) {
     query.set('deliveryStatus', params.deliveryStatus)
+  }
+  if (params.customerName) {
+    query.set('customerName', params.customerName)
+  }
+  if (params.eventCode) {
+    query.set('eventCode', params.eventCode)
   }
   const queryString = query.toString()
   return queryString ? `?${queryString}` : ''

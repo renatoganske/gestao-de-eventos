@@ -2,24 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchHdsNearCapacity, type HdDto } from '../api/hds'
 import { ApiError } from '../api/client'
-import { searchEvents, type EventDto } from '../api/events'
+import { DELIVERY_STATUS_LABEL, DELIVERY_STATUS_TO_PILL, searchEvents, type EventDto } from '../api/events'
 import { Card } from '../components/Card'
-import { Pill, type PillStatus } from '../components/Pill'
+import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
 import { TopBar } from '../components/TopBar'
 import './DashboardPage.css'
-
-const DELIVERY_STATUS_TO_PILL: Record<EventDto['deliveryStatus'], PillStatus> = {
-  PENDING: 'pending',
-  DELIVERED: 'delivered',
-  ARCHIVED: 'archived',
-}
-
-const DELIVERY_STATUS_LABEL: Record<EventDto['deliveryStatus'], string> = {
-  PENDING: 'Pendente',
-  DELIVERED: 'Entregue',
-  ARCHIVED: 'Arquivado',
-}
 
 function toIsoDate(date: Date): string {
   return date.toISOString().slice(0, 10)

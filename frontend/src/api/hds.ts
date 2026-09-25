@@ -14,3 +14,7 @@ export interface HdDto {
 export function fetchHdsNearCapacity(): Promise<HdDto[]> {
   return apiFetch<HdDto[]>('/hds/near-capacity')
 }
+
+export function fetchHds(): Promise<HdDto[]> {
+  return apiFetch<HdDto[]>('/hds')
+}
