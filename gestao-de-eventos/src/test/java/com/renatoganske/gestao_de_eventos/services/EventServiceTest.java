@@ -156,6 +156,21 @@ class EventServiceTest {
     }
 
     @Test
+    void createEvent_withHdButNoSizeGb_doesNotAdjustUsedSpace() {
+        CreateEventDto dtoWithHdButNoSizeGb = new CreateEventDto(
+                "EVT-008", null, "Evento sem tamanho definido", null,
+                null, null, null, null, null, null, null,
+                hd.getId(), null, null);
+        when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        eventService.createEvent(dtoWithHdButNoSizeGb);
+
+        assertThat(hd.getUsedSpaceGb()).isEqualTo(500);
+        verify(hdRepository, never()).save(any());
+    }
+
+    @Test
     void createEvent_incrementsHdUsedSpaceBySizeGb() {
         when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
         when(eventVenueRepository.findById(eventVenue.getId())).thenReturn(Optional.of(eventVenue));
