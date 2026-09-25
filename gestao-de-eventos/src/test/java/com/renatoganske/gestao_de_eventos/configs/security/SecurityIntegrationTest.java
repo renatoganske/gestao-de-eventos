@@ -61,4 +61,16 @@ class SecurityIntegrationTest {
         mockMvc.perform(get("/api/customers").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void swaggerUi_withoutToken_isReachableOutsideProd() throws Exception {
+        mockMvc.perform(get("/swagger-ui.html"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void apiDocs_withoutToken_isReachableOutsideProd() throws Exception {
+        mockMvc.perform(get("/api-docs"))
+                .andExpect(status().isOk());
+    }
 }

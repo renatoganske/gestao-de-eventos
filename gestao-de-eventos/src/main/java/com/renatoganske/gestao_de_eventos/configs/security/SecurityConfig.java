@@ -5,6 +5,7 @@ import com.renatoganske.gestao_de_eventos.dtos.ApiErrorDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,9 +26,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String[] SWAGGER_PATHS = {
+            "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**"
+    };
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AppUserDetailsService appUserDetailsService;
     private final ObjectMapper objectMapper;
+    private final Environment environment;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -47,9 +53,17 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll();
+                    // ADR-0017: Swagger UI/api-docs travados em producao (nao vazar a
+                    // forma da API sem autenticacao), mas liberados fora de prod --
+                    // senao nao da pra sequer abrir a pagina para usar o botao
+                    // "Authorize" e colar o token.
+                    if (environment.matchesProfiles("!prod")) {
+                        auth.requestMatchers(SWAGGER_PATHS).permitAll();
+                    }
+                    auth.anyRequest().authenticated();
+                })
                 .exceptionHandling(exception -> exception.authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
