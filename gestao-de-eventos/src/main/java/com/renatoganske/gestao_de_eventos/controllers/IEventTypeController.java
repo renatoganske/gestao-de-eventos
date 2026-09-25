@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventTypeDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventTypeDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,8 @@ public interface IEventTypeController {
     @PutMapping("/{id}")
     ResponseEntity<EventTypeDto> update(@PathVariable UUID id, @RequestBody @Valid CreateEventTypeDto requestDto);
 
-    @Operation(summary = "Delete event type", description = "Deletes an event type by ID.")
+    @Operation(summary = "Delete event type", description = "Deletes an event type by ID.",
+            responses = @ApiResponse(responseCode = "204", description = "Event type deleted."))
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable UUID id);
 }

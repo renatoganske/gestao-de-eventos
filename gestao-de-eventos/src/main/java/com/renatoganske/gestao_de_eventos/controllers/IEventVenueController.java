@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,8 @@ public interface IEventVenueController {
     @PutMapping("/{id}")
     ResponseEntity<EventVenueDto> update(@PathVariable UUID id, @RequestBody @Valid CreateEventVenueDto requestDto);
 
-    @Operation(summary = "Delete event venue", description = "Deletes an event venue by ID.")
+    @Operation(summary = "Delete event venue", description = "Deletes an event venue by ID.",
+            responses = @ApiResponse(responseCode = "204", description = "Event venue deleted."))
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable UUID id);
 }
