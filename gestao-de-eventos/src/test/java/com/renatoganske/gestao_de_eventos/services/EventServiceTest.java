@@ -11,6 +11,7 @@ import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
@@ -195,6 +196,22 @@ class EventServiceTest {
         assertThatThrownBy(() -> eventService.createEvent(dto))
                 .isInstanceOf(HdNotFoundException.class)
                 .hasMessageContaining(missingHdId.toString());
+
+        verify(eventRepository, never()).save(any());
+    }
+
+    @Test
+    void createEvent_throwsEventVenueNotFoundException_whenEventVenueIdDoesNotExist() {
+        UUID missingEventVenueId = UUID.randomUUID();
+        CreateEventDto dto = new CreateEventDto(
+                "EVT-007", null, "Evento sem local valido", null,
+                null, null, null, null, null, null, null,
+                null, missingEventVenueId, null);
+        when(eventVenueRepository.findById(missingEventVenueId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.createEvent(dto))
+                .isInstanceOf(EventVenueNotFoundException.class)
+                .hasMessageContaining(missingEventVenueId.toString());
 
         verify(eventRepository, never()).save(any());
     }

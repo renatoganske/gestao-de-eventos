@@ -2,9 +2,11 @@ package com.renatoganske.gestao_de_eventos.services;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
+import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.CustomerResponseDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import jakarta.persistence.EntityManager;
@@ -41,19 +43,24 @@ class EventServiceIntegrationTest {
     private HdService hdService;
 
     @Autowired
+    private EventVenueService eventVenueService;
+
+    @Autowired
     private EntityManager entityManager;
 
     @Test
-    void createEvent_withExistingCustomerAndHdIds_persistsSuccessfully() {
+    void createEvent_withExistingCustomerHdAndEventVenueIds_persistsSuccessfully() {
         CustomerResponseDto customer = customerService.createCustomer(
                 new CreateCustomerDto("Integration Test Customer", null, null, null));
         HdDto hd = hdService.createHd(
                 new CreateHdDto("Integration Test HD", 1000, 0, null, null, null, null));
+        EventVenueDto eventVenue = eventVenueService.createEventVenue(
+                new CreateEventVenueDto("Integration Test Venue", null, null, null, null));
 
         CreateEventDto createEventDto = new CreateEventDto(
                 "EVT-INTEGRATION-001", null, "Integration Test Event", null,
                 null, null, null, null, null, 50, null,
-                hd.id(), null, customer.id());
+                hd.id(), eventVenue.id(), customer.id());
 
         EventDto result = eventService.createEvent(createEventDto);
         entityManager.flush();
@@ -61,6 +68,7 @@ class EventServiceIntegrationTest {
         assertThat(result.id()).isNotNull();
         assertThat(result.customerId()).isEqualTo(customer.id());
         assertThat(result.hdId()).isEqualTo(hd.id());
+        assertThat(result.eventVenueId()).isEqualTo(eventVenue.id());
         assertThat(hdService.getHdById(hd.id()).usedSpaceGb()).isEqualTo(50);
     }
 
