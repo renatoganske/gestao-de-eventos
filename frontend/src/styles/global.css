@@ -13,18 +13,56 @@ body {
 
 .app-shell {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid light-dark(#ddd, #333);
 }
 
 .app-nav {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-right: 1px solid light-dark(#ddd, #333);
+  gap: 16px;
 }
 
 .app-content {
   flex: 1;
   padding: 24px;
+}
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.login-form input {
+  padding: 8px;
+  font-size: 1rem;
+}
+
+.login-form button {
+  padding: 8px;
+  font-size: 1rem;
+  margin-top: 8px;
+}
+
+.login-error {
+  color: light-dark(#b91c1c, #f87171);
+  margin: 0;
 }
