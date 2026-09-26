@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ApiError } from '../api/client'
+import * as customersApi from '../api/customers'
 import * as eventsApi from '../api/events'
 import type { EventDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
@@ -15,6 +16,7 @@ vi.mock('../api/eventTypes')
 vi.mock('../api/eventVenues')
 vi.mock('../api/professionals')
 vi.mock('../api/hds')
+vi.mock('../api/customers')
 
 function makeEvent(overrides: Partial<EventDto>): EventDto {
   return {
@@ -47,6 +49,9 @@ function mockReferenceData() {
   ])
   vi.mocked(hdsApi.fetchHds).mockResolvedValue([
     { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE' },
+  ])
+  vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+    { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null },
   ])
 }
 
@@ -169,6 +174,22 @@ describe('EventsPage', () => {
         deliveryStatus: undefined,
       }),
     )
+  })
+
+  it('mostra o nome do cliente na coluna Cliente, e "—" quando o evento não tem cliente vinculado', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'evt-with-customer', eventCode: 'EVT-018', customerId: 'customer-1' }),
+      makeEvent({ id: 'evt-without-customer', eventCode: 'EVT-019', customerId: null }),
+    ])
+
+    renderEventsPage()
+
+    await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
+    expect(screen.getByRole('columnheader', { name: 'Cliente' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Evento' })).not.toBeInTheDocument()
+
+    const rows = screen.getAllByRole('row')
+    expect(rows[2]).toHaveTextContent('—')
   })
 
   it('navega para o detalhe do evento ao clicar numa linha', async () => {
