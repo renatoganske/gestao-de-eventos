@@ -15,6 +15,24 @@ npm run dev
 
 Abre em `http://localhost:5173`. Chamadas para `/api/*` são redirecionadas para `http://localhost:8080` pelo proxy do Vite (`vite.config.ts`) — **não precisa configurar CORS no backend** para desenvolver.
 
+### Rodando contra a API de produção (Render)
+
+Para testar o frontend local com os dados reais já deployados, sem subir o backend localmente, aponte o alvo do proxy do Vite para a API de produção em vez do `localhost:8080` (GDE-35):
+
+```bash
+cp .env.example .env.local
+# edite .env.local e descomente/preencha VITE_API_TARGET com a URL da API em produção
+npm run dev
+```
+
+Ou, sem arquivo, direto no comando (Git Bash/macOS/Linux):
+
+```bash
+VITE_API_TARGET=https://gestao-de-eventos-6jp9.onrender.com npm run dev
+```
+
+Como o alvo é lido pelo processo do Vite (proxy server-side), e não pelo navegador, isso continua sem exigir nenhuma configuração de CORS no backend — mesmo princípio do ADR-0012, só que apontando para outro host. `.env.local` é ignorado pelo git (`*.local`), então essa configuração fica só na sua máquina.
+
 ## Build de produção
 
 ```bash
