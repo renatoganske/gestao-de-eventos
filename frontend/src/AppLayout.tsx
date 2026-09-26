@@ -12,6 +12,7 @@ export function AppLayout() {
             Dashboard
           </NavLink>
           <NavLink to="/eventos">Eventos</NavLink>
+          <NavLink to="/hds">HDs</NavLink>
         </nav>
         <button type="button" onClick={logout}>
           Sair
