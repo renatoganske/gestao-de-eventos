@@ -38,6 +38,23 @@ export interface EventDto {
   customerId: string | null
 }
 
+export interface CreateEventDto {
+  eventCode: string
+  eventTypeId: string | null
+  name: string
+  eventDate: string | null
+  daytimeWedding: boolean | null
+  outdoorWedding: boolean | null
+  guestCount: number | null
+  description: string | null
+  amount: number | null
+  sizeGb: number | null
+  deliveryStatus: DeliveryStatus
+  hdId: string | null
+  eventVenueId: string | null
+  customerId: string | null
+}
+
 export interface SearchEventsParams {
   eventTypeId?: string
   venueId?: string
@@ -85,4 +102,16 @@ function buildSearchQuery(params: SearchEventsParams): string {
 
 export function searchEvents(params: SearchEventsParams = {}): Promise<EventDto[]> {
   return apiFetch<EventDto[]>(`/events/search${buildSearchQuery(params)}`)
+}
+
+export function fetchEventById(id: string): Promise<EventDto> {
+  return apiFetch<EventDto>(`/events/${id}`)
+}
+
+export function createEvent(dto: CreateEventDto): Promise<EventDto> {
+  return apiFetch<EventDto>('/events', { method: 'POST', body: JSON.stringify(dto) })
+}
+
+export function updateEvent(id: string, dto: CreateEventDto): Promise<EventDto> {
+  return apiFetch<EventDto>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(dto) })
 }

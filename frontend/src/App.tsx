@@ -3,7 +3,7 @@ import { AppLayout } from './AppLayout'
 import { LoginPage } from './auth/LoginPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { DashboardPage } from './pages/DashboardPage'
-import { EventDetailPage } from './pages/EventDetailPage'
+import { EventFormPage } from './pages/EventFormPage'
 import { EventsPage } from './pages/EventsPage'
 
 export default function App() {
@@ -14,7 +14,8 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/eventos" element={<EventsPage />} />
-          <Route path="/eventos/:id" element={<EventDetailPage />} />
+          <Route path="/eventos/novo" element={<EventFormPage />} />
+          <Route path="/eventos/:id" element={<EventFormPage />} />
         </Route>
       </Route>
     </Routes>
