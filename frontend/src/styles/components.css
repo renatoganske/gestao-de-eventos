@@ -129,6 +129,11 @@
   background: var(--surface-2);
 }
 
+.table-actions {
+  display: flex;
+  gap: 6px;
+}
+
 /* ---------- FormField ---------- */
 .form-field {
   display: flex;

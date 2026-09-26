@@ -22,3 +22,11 @@ export function fetchCustomers(): Promise<CustomerDto[]> {
 export function createCustomer(dto: CreateCustomerDto): Promise<CustomerDto> {
   return apiFetch<CustomerDto>('/customers', { method: 'POST', body: JSON.stringify(dto) })
 }
+
+export function updateCustomer(id: string, dto: CreateCustomerDto): Promise<CustomerDto> {
+  return apiFetch<CustomerDto>(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(dto) })
+}
+
+export function deleteCustomer(id: string): Promise<void> {
+  return apiFetch<void>(`/customers/${id}`, { method: 'DELETE' })
+}

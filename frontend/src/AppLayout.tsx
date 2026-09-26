@@ -13,6 +13,8 @@ export function AppLayout() {
           </NavLink>
           <NavLink to="/eventos">Eventos</NavLink>
           <NavLink to="/hds">HDs</NavLink>
+          <NavLink to="/clientes">Clientes</NavLink>
+          <NavLink to="/locais">Locais</NavLink>
         </nav>
         <button type="button" onClick={logout}>
           Sair

@@ -24,3 +24,11 @@ export function fetchEventVenues(): Promise<EventVenueDto[]> {
 export function createEventVenue(dto: CreateEventVenueDto): Promise<EventVenueDto> {
   return apiFetch<EventVenueDto>('/event-venues', { method: 'POST', body: JSON.stringify(dto) })
 }
+
+export function updateEventVenue(id: string, dto: CreateEventVenueDto): Promise<EventVenueDto> {
+  return apiFetch<EventVenueDto>(`/event-venues/${id}`, { method: 'PUT', body: JSON.stringify(dto) })
+}
+
+export function deleteEventVenue(id: string): Promise<void> {
+  return apiFetch<void>(`/event-venues/${id}`, { method: 'DELETE' })
+}
