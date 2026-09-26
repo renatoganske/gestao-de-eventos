@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ApiError } from '../api/client'
 import * as hdsApi from '../api/hds'
+import type { HdDto } from '../api/hds'
 import { HdQuickCreateForm } from './HdQuickCreateForm'
 
 vi.mock('../api/hds')
@@ -22,7 +23,7 @@ describe('HdQuickCreateForm', () => {
   })
 
   it('converte a capacidade para número, zera o espaço usado e assume status ACTIVE por padrão', async () => {
-    const created = {
+    const created: HdDto = {
       id: 'hd-new',
       name: 'HD Externo 2TB',
       capacityGb: 2000,

@@ -1,5 +1,14 @@
 import { apiFetch } from './client'
 
+export type HdStatus = 'ACTIVE' | 'FULL' | 'DEFECTIVE' | 'ARCHIVED'
+
+export const HD_STATUS_LABEL: Record<HdStatus, string> = {
+  ACTIVE: 'Ativo',
+  FULL: 'Cheio',
+  DEFECTIVE: 'Defeituoso',
+  ARCHIVED: 'Arquivado',
+}
+
 export interface HdDto {
   id: string
   name: string
@@ -8,7 +17,7 @@ export interface HdDto {
   physicalLocation: string | null
   serialNumber: string | null
   acquisitionDate: string | null
-  status: string
+  status: HdStatus
 }
 
 export interface CreateHdDto {
@@ -18,7 +27,7 @@ export interface CreateHdDto {
   physicalLocation: string | null
   serialNumber: string | null
   acquisitionDate: string | null
-  status: string | null
+  status: HdStatus | null
 }
 
 export function fetchHdsNearCapacity(): Promise<HdDto[]> {
@@ -31,4 +40,12 @@ export function fetchHds(): Promise<HdDto[]> {
 
 export function createHd(dto: CreateHdDto): Promise<HdDto> {
   return apiFetch<HdDto>('/hds', { method: 'POST', body: JSON.stringify(dto) })
+}
+
+export function updateHd(id: string, dto: CreateHdDto): Promise<HdDto> {
+  return apiFetch<HdDto>(`/hds/${id}`, { method: 'PUT', body: JSON.stringify(dto) })
+}
+
+export function deleteHd(id: string): Promise<void> {
+  return apiFetch<void>(`/hds/${id}`, { method: 'DELETE' })
 }

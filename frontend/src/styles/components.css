@@ -294,6 +294,28 @@
   color: var(--text-muted);
 }
 
+/* ---------- Meter (barra de uso, ex.: capacidade de HD) ---------- */
+.meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--good);
+}
+
+.meter-fill.warn {
+  background: var(--warning);
+}
+
+.meter-fill.crit {
+  background: var(--critical);
+}
+
 /* ---------- Sidebar ---------- */
 .sidebar {
   background: var(--surface-2);
