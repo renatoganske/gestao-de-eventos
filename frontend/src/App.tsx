@@ -2,8 +2,10 @@ import { Route, Routes } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 import { LoginPage } from './auth/LoginPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
+import { CustomersPage } from './pages/CustomersPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { EventFormPage } from './pages/EventFormPage'
+import { EventVenuesPage } from './pages/EventVenuesPage'
 import { EventsPage } from './pages/EventsPage'
 import { HdsPage } from './pages/HdsPage'
 
@@ -18,6 +20,8 @@ export default function App() {
           <Route path="/eventos/novo" element={<EventFormPage />} />
           <Route path="/eventos/:id" element={<EventFormPage />} />
           <Route path="/hds" element={<HdsPage />} />
+          <Route path="/clientes" element={<CustomersPage />} />
+          <Route path="/locais" element={<EventVenuesPage />} />
         </Route>
       </Route>
     </Routes>
