@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import {
   DELIVERY_STATUS_LABEL,
@@ -171,7 +171,14 @@ export function EventsPage() {
 
   return (
     <section>
-      <TopBar title="Eventos" />
+      <TopBar
+        title="Eventos"
+        action={
+          <Link to="/eventos/novo" className="btn btn-primary">
+            + Novo evento
+          </Link>
+        }
+      />
       <div className="events-content">
         <form onSubmit={handleSubmit}>
           <div className="search-bar">
