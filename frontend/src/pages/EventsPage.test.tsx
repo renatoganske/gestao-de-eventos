@@ -45,7 +45,7 @@ function mockReferenceData() {
     { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null },
   ])
   vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
-    { id: 'prof-1', name: 'Renato', type: null, contact: null, specialty: null, otherInfo: null },
+    { id: 'prof-1', name: 'Renato', type: null, contact: null, specialtyTags: [], otherInfo: null },
   ])
   vi.mocked(hdsApi.fetchHds).mockResolvedValue([
     { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE' },

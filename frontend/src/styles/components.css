@@ -299,6 +299,47 @@
   color: var(--text-muted);
 }
 
+/* ---------- TagMultiSelect ---------- */
+.tag-multi-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tag-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tag-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12.5px;
+}
+
+.tag-chip button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.tag-chip button:hover {
+  color: var(--critical);
+}
+
 /* ---------- Meter (barra de uso, ex.: capacidade de HD) ---------- */
 .meter {
   height: 8px;

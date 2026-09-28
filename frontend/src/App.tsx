@@ -8,6 +8,7 @@ import { EventFormPage } from './pages/EventFormPage'
 import { EventVenuesPage } from './pages/EventVenuesPage'
 import { EventsPage } from './pages/EventsPage'
 import { HdsPage } from './pages/HdsPage'
+import { ProfessionalsPage } from './pages/ProfessionalsPage'
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/hds" element={<HdsPage />} />
           <Route path="/clientes" element={<CustomersPage />} />
           <Route path="/locais" element={<EventVenuesPage />} />
+          <Route path="/profissionais" element={<ProfessionalsPage />} />
         </Route>
       </Route>
     </Routes>
