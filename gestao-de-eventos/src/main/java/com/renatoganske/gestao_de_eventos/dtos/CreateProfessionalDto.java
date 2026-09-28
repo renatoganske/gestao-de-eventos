@@ -4,23 +4,23 @@ import com.renatoganske.gestao_de_eventos.entities.Professional;
 import jakarta.validation.constraints.NotBlank;
 
 import java.io.Serializable;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * DTO for {@link Professional}
  */
 public record CreateProfessionalDto(
         @NotBlank String name,
-        String type,
+        UUID typeId,
         String contact,
-        String specialty,
+        List<UUID> specialtyTagIds,
         String otherInfo
 ) implements Serializable {
     public Professional toEntity() {
         return Professional.builder()
                 .name(this.name())
-                .type(this.type())
                 .contact(this.contact())
-                .specialty(this.specialty())
                 .otherInfo(this.otherInfo())
                 .build();
     }

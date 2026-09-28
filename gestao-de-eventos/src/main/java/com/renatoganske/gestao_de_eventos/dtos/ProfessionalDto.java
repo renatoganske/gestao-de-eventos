@@ -12,9 +12,9 @@ import java.util.UUID;
 public record ProfessionalDto(
         UUID id,
         String name,
-        String type,
+        ProfessionalTypeDto type,
         String contact,
-        String specialty,
+        List<SpecialtyTagDto> specialtyTags,
         String otherInfo,
         List<EventProfessionalSummaryDto> eventProfessionals
 ) implements Serializable {

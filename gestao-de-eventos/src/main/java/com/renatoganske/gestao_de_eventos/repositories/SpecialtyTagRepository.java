@@ -1,13 +1,11 @@
 package com.renatoganske.gestao_de_eventos.repositories;
 
-import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.entities.SpecialtyTag;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 @Repository
-public interface EventRepository extends JpaRepository<Event, UUID> {
-
-    long countByType_Id(UUID eventTypeId);
+public interface SpecialtyTagRepository extends JpaRepository<SpecialtyTag, UUID> {
 }

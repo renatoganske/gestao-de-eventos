@@ -8,4 +8,8 @@ import java.util.UUID;
 
 @Repository
 public interface ProfessionalRepository extends JpaRepository<Professional, UUID> {
+
+    long countByType_Id(UUID professionalTypeId);
+
+    long countBySpecialtyTags_Id(UUID specialtyTagId);
 }

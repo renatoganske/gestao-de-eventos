@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,12 +23,19 @@ public class Professional {
 
     @Column(name = "name", nullable = false)
     private String name;
-    @Column(name = "type")
-    private String type;
+    @ManyToOne
+    @JoinColumn(name = "professional_type_id")
+    private ProfessionalType type;
     @Column(name = "contact")
     private String contact;
-    @Column(name = "specialty")
-    private String specialty;
+    @ManyToMany
+    @JoinTable(
+            name = "tb_professional_specialty",
+            joinColumns = @JoinColumn(name = "professional_id"),
+            inverseJoinColumns = @JoinColumn(name = "specialty_tag_id")
+    )
+    @Builder.Default
+    private Set<SpecialtyTag> specialtyTags = new java.util.HashSet<>();
     @Column(name = "other_info")
     private String otherInfo;
 
@@ -38,9 +46,11 @@ public class Professional {
         return new ProfessionalDto(
                 this.id,
                 this.name,
-                this.type,
+                this.type != null ? this.type.toResponseDto() : null,
                 this.contact,
-                this.specialty,
+                this.specialtyTags == null ? List.of() : this.specialtyTags.stream()
+                        .map(SpecialtyTag::toResponseDto)
+                        .collect(Collectors.toList()),
                 this.otherInfo,
                 this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
                         .map(EventProfessional::toDTO)
