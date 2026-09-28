@@ -13,6 +13,12 @@
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--text-muted);
 }
 
 .btn:disabled {
@@ -26,9 +32,19 @@
   color: var(--accent-contrast);
 }
 
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
 .btn-ghost {
   border-color: transparent;
   background: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: transparent;
 }
 
 /* ---------- Card / Panel ---------- */
