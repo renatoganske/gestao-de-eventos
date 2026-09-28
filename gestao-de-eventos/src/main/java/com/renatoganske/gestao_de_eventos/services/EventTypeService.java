@@ -4,6 +4,8 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventTypeDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventTypeDto;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.ResourceInUseException;
+import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 public class EventTypeService {
 
     private final EventTypeRepository eventTypeRepository;
+    private final EventRepository eventRepository;
 
     @Transactional
     public EventTypeDto createEventType(CreateEventTypeDto createEventTypeDto) {
@@ -53,6 +56,13 @@ public class EventTypeService {
     public void deleteEventType(UUID id) {
         EventType eventType = eventTypeRepository.findById(id)
                 .orElseThrow(() -> new EventTypeNotFoundException(id));
+
+        long usageCount = eventRepository.countByType_Id(id);
+        if (usageCount > 0) {
+            throw new ResourceInUseException(
+                    "Event type is in use by %d event(s) and cannot be deleted.".formatted(usageCount));
+        }
+
         eventTypeRepository.delete(eventType);
     }
 }

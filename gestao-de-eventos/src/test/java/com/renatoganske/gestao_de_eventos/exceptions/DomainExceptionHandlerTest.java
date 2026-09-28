@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.exceptions;
 import com.renatoganske.gestao_de_eventos.dtos.ApiErrorDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -43,6 +44,26 @@ class DomainExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         assertThat(response.getBody().status()).isEqualTo(429);
         assertThat(response.getBody().message()).contains("Too many failed login attempts");
+    }
+
+    @Test
+    void mapsResourceInUseExceptionTo409WithMessage() {
+        ResponseEntity<ApiErrorDto> response = handler.handleResourceInUse(
+                new ResourceInUseException("Specialty tag is in use by 4 professional(s) and cannot be deleted."));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().status()).isEqualTo(409);
+        assertThat(response.getBody().message()).contains("in use by 4 professional(s)");
+    }
+
+    @Test
+    void mapsDataIntegrityViolationTo409WithMessage() {
+        ResponseEntity<ApiErrorDto> response = handler.handleDataIntegrityViolation(
+                new DataIntegrityViolationException("duplicate key value violates unique constraint"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().status()).isEqualTo(409);
+        assertThat(response.getBody().message()).contains("conflicts with existing data");
     }
 
     @Test

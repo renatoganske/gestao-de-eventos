@@ -2,10 +2,12 @@ package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -25,7 +27,8 @@ public record CreateEventDto(
         DeliveryStatus deliveryStatus,
         UUID hdId,
         UUID eventVenueId,
-        UUID customerId
+        UUID customerId,
+        @Valid List<EventProfessionalAssignmentDto> professionals
 ) implements Serializable {
     public Event toEntity() {
         return Event.builder()

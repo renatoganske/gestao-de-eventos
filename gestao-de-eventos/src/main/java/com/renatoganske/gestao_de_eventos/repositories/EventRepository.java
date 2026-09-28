@@ -8,4 +8,6 @@ import java.util.UUID;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, UUID> {
+
+    long countByType_Id(UUID eventTypeId);
 }

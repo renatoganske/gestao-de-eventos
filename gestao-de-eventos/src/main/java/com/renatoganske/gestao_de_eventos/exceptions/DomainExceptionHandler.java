@@ -1,6 +1,7 @@
 package com.renatoganske.gestao_de_eventos.exceptions;
 
 import com.renatoganske.gestao_de_eventos.dtos.ApiErrorDto;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -35,6 +36,19 @@ public class DomainExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ApiErrorDto> handleTooManyLoginAttempts(TooManyLoginAttemptsException ex) {
         ApiErrorDto body = new ApiErrorDto(HttpStatus.TOO_MANY_REQUESTS.value(), ex.getMessage());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
+    }
+
+    @ExceptionHandler(ResourceInUseException.class)
+    public ResponseEntity<ApiErrorDto> handleResourceInUse(ResourceInUseException ex) {
+        ApiErrorDto body = new ApiErrorDto(HttpStatus.CONFLICT.value(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorDto> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        ApiErrorDto body = new ApiErrorDto(HttpStatus.CONFLICT.value(),
+                "Operation conflicts with existing data (duplicate value or record referenced by other data).");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @Override

@@ -43,11 +43,15 @@ public interface IEventController {
             @RequestParam(required = false) String customerName,
             @RequestParam(required = false) String eventCode);
 
-    @Operation(summary = "Create event", description = "Creates a new event.")
+    @Operation(summary = "Create event", description = "Creates a new event, optionally with the professionals who worked on it. "
+            + "The 'professionals' list is saved in the same transaction as the event; omitting it (null) creates the event with no team. "
+            + "A professional repeated in the list keeps only its last role, since one professional holds at most one role per event.")
     @PostMapping
     ResponseEntity<EventDto> create(@RequestBody @Valid CreateEventDto requestDto);
 
-    @Operation(summary = "Update event", description = "Updates an existing event.")
+    @Operation(summary = "Update event", description = "Updates an existing event. "
+            + "The 'professionals' list replaces the event's whole team: omitting it (null) leaves the current team untouched, "
+            + "while an empty list clears it.")
     @PutMapping("/{id}")
     ResponseEntity<EventDto> update(@PathVariable UUID id, @RequestBody @Valid CreateEventDto requestDto);
 

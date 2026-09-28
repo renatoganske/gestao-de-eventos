@@ -27,6 +27,12 @@ public interface IProfessionalController {
     @GetMapping("/{id}")
     ResponseEntity<ProfessionalDto> findById(@PathVariable UUID id);
 
+    @Operation(summary = "Search professionals", description = "Searches professionals combining optional filters (type, specialty tag).")
+    @GetMapping("/search")
+    ResponseEntity<List<ProfessionalDto>> search(
+            @RequestParam(required = false) UUID typeId,
+            @RequestParam(required = false) UUID specialtyTagId);
+
     @Operation(summary = "Create professional", description = "Creates a new professional.")
     @PostMapping
     ResponseEntity<ProfessionalDto> create(@RequestBody @Valid CreateProfessionalDto requestDto);
