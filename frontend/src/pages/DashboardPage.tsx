@@ -109,7 +109,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <Card title="Próximos eventos" action={<Link to="/eventos">Ver todos →</Link>}>
+            <Card title="Próximos eventos" action={<Link className="card-action" to="/eventos">Ver todos →</Link>}>
               {data.upcomingEvents.length === 0 ? (
                 <p className="dashboard-empty">Nenhum evento agendado.</p>
               ) : (

@@ -1,14 +1,18 @@
 :root {
   color-scheme: light;
-  --bg: #f7f5f1;
+  --bg: #f2efe9;
   --surface: #ffffff;
-  --surface-2: #efece4;
-  --border: #e2ddd2;
-  --text: #211f1b;
-  --text-muted: #726b5f;
-  --accent: #33538f;
-  --accent-soft: #e7ecf6;
-  --accent-contrast: #ffffff;
+  --surface-2: #eae5db;
+  --border: #e2dcd0;
+  --text: #2f3238;
+  --text-muted: #6b6558;
+  --text-subtle: #8a8f98;
+  --accent: #ff7a18;
+  --accent-hover: #e0690f;
+  --accent-soft: #ffe9d6;
+  --accent-strong: #b34e0a;
+  --accent-contrast: #2f3238;
+  --focus-ring: rgba(255, 122, 24, 0.35);
   --good: #2f7d5a;
   --good-soft: #e4f3ec;
   --warning: #a9701a;
@@ -16,8 +20,8 @@
   --critical: #bd3f2e;
   --critical-soft: #faeae6;
   --shadow:
-    0 1px 2px rgba(33, 31, 27, 0.06),
-    0 8px 24px -12px rgba(33, 31, 27, 0.12);
+    0 1px 2px rgba(47, 50, 56, 0.05),
+    0 14px 32px -16px rgba(47, 50, 56, 0.14);
   --radius-sm: 7px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -26,20 +30,43 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
-/* ADR do protótipo de UX (2026-09-23): paleta neutra quente + azul de destaque,
-   com semânticas separadas (verde=entregue, âmbar=pendente, vermelho=alerta). */
+/* Paleta "Brasa Concreto" (2026-09-27, a pedido do Renato; ajustada com o
+   /ux-interface-designer em 2026-09-27 após feedback de que a 1a aplicação
+   ficou pouco sofisticada). Papel de cada tom:
+   - #f2efe9 (concreto claro): fundo no claro, texto no escuro.
+   - #2f3238 (concreto escuro): texto no claro, superfície no escuro.
+   - #8a8f98 (concreto médio): virou --text-subtle -- decorativo (ícones,
+     placeholder, divisores), NUNCA texto de corpo: contra #f2efe9 dá ~3.16:1,
+     abaixo do 4.5:1 do WCAG AA. --text-muted usa um cinza-concreto mais
+     escuro (#6b6558) para o texto secundário de verdade (labels, hints,
+     colunas de tabela), que já passa em ~5.6:1.
+   - #ff7a18 (brasa): só em elementos de destaque (botão primário, indicador
+     de aba ativa, foco) -- nunca vira fundo/texto de corpo, mantendo <15%.
+   - #ffb26b (brasa clara): não usada sólida em nada "soft" (ficava forte
+     demais pra um tom de apoio) -- guardada como --accent-strong do escuro.
+   --accent-soft/--accent-strong são o par "tinta clara de fundo" + "tom
+   escuro de texto/ícone sobre essa tinta" (ex.: badges), --accent-hover e
+   --focus-ring dão feedback de interação que não existia antes (Nielsen:
+   visibilidade do status do sistema). --accent-contrast segue usando o
+   grafite: texto escuro tem mais contraste sobre o laranja vivo que branco.
+   Semânticas de status (verde=entregue, âmbar=pendente, vermelho=alerta)
+   ficam como estavam -- não fazem parte da paleta de marca. */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #161513;
-    --surface: #201e1a;
-    --surface-2: #292722;
-    --border: #3a3730;
-    --text: #f1eee6;
-    --text-muted: #a79f8f;
-    --accent: #8aa5e3;
-    --accent-soft: #26304a;
-    --accent-contrast: #14171f;
+    --bg: #1e2023;
+    --surface: #2f3238;
+    --surface-2: #383b41;
+    --border: #45484f;
+    --text: #f2efe9;
+    --text-muted: #a39d90;
+    --text-subtle: #8a8f98;
+    --accent: #ff7a18;
+    --accent-hover: #ff9142;
+    --accent-soft: rgba(255, 122, 24, 0.16);
+    --accent-strong: #ffb26b;
+    --accent-contrast: #2f3238;
+    --focus-ring: rgba(255, 145, 66, 0.4);
     --good: #5ec091;
     --good-soft: #1c3329;
     --warning: #e3ab55;
@@ -48,12 +75,18 @@
     --critical-soft: #3a231f;
     --shadow:
       0 1px 2px rgba(0, 0, 0, 0.4),
-      0 8px 24px -12px rgba(0, 0, 0, 0.5);
+      0 14px 32px -16px rgba(0, 0, 0, 0.5);
   }
 }
 
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 body {
@@ -79,6 +112,37 @@ h3 {
 
 a {
   color: var(--accent);
+}
+
+.app-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.card-action {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.app-nav a:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.card-action:hover {
+  color: var(--text);
+}
+
+.app-nav a.active {
+  color: var(--text);
+  background: var(--surface-2);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 .app-shell {
