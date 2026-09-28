@@ -93,7 +93,7 @@ Mantido como já estabelecido no `Cliente`:
 |---|---|---|
 | id | UUID | PK |
 | eventCode | String | chave de correlação com nome de pasta/arquivo no HD — renomeado de `codigoDoEvento` pela GDE-15 |
-| type | `EventType` (enum) | `PHOTO_SHOOT`, `BIRTHDAY`, `WEDDING`, `OTHER` — valores em inglês (ver ADR-0009); renomeado de `tipo` pela GDE-15 |
+| type | `EventType` (`@ManyToOne`) | tabela de lookup desde a ADR-0016 — deixou de ser enum fixo para poder cadastrar tipos novos via API sem deploy; renomeado de `tipo` pela GDE-15 |
 | name | String | not null — renomeado de `nome` pela GDE-15 |
 | eventDate | LocalDate | renomeado de `dataDoEvento` pela GDE-15 |
 | daytimeWedding | Boolean | **nullable, só relevante se `type = WEDDING`** — ver 3.2; renomeado de `casamentoDeDia` pela GDE-15 |
@@ -109,6 +109,18 @@ Mantido como já estabelecido no `Cliente`:
 | professionals | List\<EventProfessional\> | ver 3.3; renomeado de `profissionais` pela GDE-15 |
 
 **`Customer` e `EventVenue`**: mantidos como estão — já atendem às métricas descritas (cidade/estado para "casamentos por local").
+
+**`Professional` (`TB_PROFESSIONAL`)** — `type` e `specialty` eram texto livre; viraram lookup pela ADR-0022, porque texto livre não permite filtro confiável (ex.: "cerimonialista" grafado de formas diferentes não bate numa busca):
+
+| Atributo | Tipo | Observação |
+|---|---|---|
+| id | UUID | PK |
+| name | String | not null |
+| type | `ProfessionalType` (`@ManyToOne`) | um por profissional (cardinalidade 1) — tabela de lookup própria (`TB_PROFESSIONAL_TYPE`), CRUD em `/api/professional-types`; texto livre até a ADR-0022 |
+| contact | String | texto livre |
+| specialtyTags | Set\<SpecialtyTag\> | vários por profissional (cardinalidade N) — `@ManyToMany` via `TB_PROFESSIONAL_SPECIALTY`, CRUD em `/api/specialty-tags`; texto livre único até a ADR-0022 |
+| otherInfo | String | observações livres |
+| eventProfessionals | List\<EventProfessional\> | ver 3.3 |
 
 ### 3.2 Decisão explícita: campos específicos de casamento no `Event` genérico
 
@@ -136,6 +148,8 @@ public class EventProfessional {
     private String roleInEvent; // "segundo fotógrafo", "videomaker", "drone"
 }
 ```
+
+Esta seção descreve só a entidade. Até a ADR-0021 (2026-09-28), só existia o lado de leitura — nunca houve caminho de escrita (`TB_EVENT_PROFESSIONAL` sempre esteve vazia). A ADR-0021 fechou a escrita via `CreateEventDto.professionals` (embutido, replace-all); `roleInEvent` continua texto livre por decisão consciente do Renato (débito registrado na própria ADR).
 
 ---
 
@@ -309,6 +323,13 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0013](adr/0013-ci-github-actions.md) | CI via GitHub Actions rodando `./mvnw clean test` em push/PR para `develop`/`main`, com serviço Postgres no job |
 | [0014](adr/0014-spring-profiles-dev-prod.md) | Configuração separada por Spring profiles: `dev` (padrão local) e `prod` (variáveis de ambiente) |
 | [0015](adr/0015-dockerfile-backend.md) | Backend containerizado via Dockerfile multi-stage (build com `mvnw`, runtime só com JRE) |
+| [0016](adr/0016-event-type-tabela-lookup.md) | `Event.type` migra de enum fixo para tabela de lookup (`EventType`), cadastrável via API sem deploy |
+| [0017](adr/0017-autenticacao-spring-security-jwt.md) | Autenticação via Spring Security + JWT, usuário único, sem self-service de "esqueci minha senha" |
+| [0018](adr/0018-versionamento-releases-tag-automatica.md) | Versionamento de release: tag git automática no merge para `main` |
+| [0019](adr/0019-stack-teste-frontend-vitest.md) | Stack de teste do frontend: Vitest + React Testing Library + jsdom |
+| [0020](adr/0020-jwt-em-sessionstorage.md) | Token JWT do frontend fica em `sessionStorage`, não em cookie `httpOnly` |
+| [0021](adr/0021-escrita-associacao-event-professional.md) | Escrita da associação `Event`↔`Professional`: embutida no `CreateEventDto`, replace-all, sem cascade JPA |
+| [0022](adr/0022-professional-type-e-specialty-tags.md) | `Professional.type` vira lookup (`ProfessionalType`, 1-pra-N) e `Professional.specialty` vira tags (`SpecialtyTag`, N-pra-N) |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
