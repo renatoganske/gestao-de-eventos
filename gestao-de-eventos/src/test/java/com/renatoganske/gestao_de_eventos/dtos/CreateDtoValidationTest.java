@@ -5,7 +5,9 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -55,12 +57,25 @@ class CreateDtoValidationTest {
     @Test
     void createEventDto_withNullOrBlankName_producesViolation() {
         CreateEventDto withoutName = new CreateEventDto(
-                "EVT-001", null, null, null, null, null, null, null, null, null, null, null, null, null);
+                "EVT-001", null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         CreateEventDto withName = new CreateEventDto(
                 "EVT-001", null, "Casamento Maria e Joao", null, null, null, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
 
         assertThat(validator.validate(withoutName)).isNotEmpty();
         assertThat(validator.validate(withName)).isEmpty();
+    }
+
+    @Test
+    void createEventDto_rejectsProfessionalAssignmentWithoutProfessionalId() {
+        CreateEventDto withoutProfessionalId = new CreateEventDto(
+                "EVT-001", null, "Casamento Maria e Joao", null, null, null, null, null, null, null, null,
+                null, null, null, List.of(new EventProfessionalAssignmentDto(null, "Fotografo principal")));
+        CreateEventDto withProfessionalId = new CreateEventDto(
+                "EVT-001", null, "Casamento Maria e Joao", null, null, null, null, null, null, null, null,
+                null, null, null, List.of(new EventProfessionalAssignmentDto(UUID.randomUUID(), null)));
+
+        assertThat(validator.validate(withoutProfessionalId)).isNotEmpty();
+        assertThat(validator.validate(withProfessionalId)).isEmpty();
     }
 }
