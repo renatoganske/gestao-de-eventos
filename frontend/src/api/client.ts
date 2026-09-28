@@ -2,6 +2,8 @@ import { clearStoredToken, getStoredToken } from '../auth/tokenStorage'
 
 const API_BASE_URL = '/api'
 const LOGIN_PATH = '/auth/login'
+const DUPLICATE_MESSAGE = 'Já existe um registro com esse nome.'
+const IN_USE_MESSAGE = 'Este registro está vinculado a outros dados e não pode ser excluído.'
 
 export class ApiError extends Error {
   readonly status: number
@@ -42,6 +44,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     if (response.status === 401 && path !== LOGIN_PATH) {
       clearStoredToken()
       unauthorizedHandler?.()
+    }
+
+    if (response.status === 409) {
+      throw new ApiError(409, init?.method === 'DELETE' ? IN_USE_MESSAGE : DUPLICATE_MESSAGE)
     }
 
     const message = await response
