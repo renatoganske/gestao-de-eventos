@@ -33,6 +33,11 @@ public class ProfessionalController implements IProfessionalController {
     }
 
     @Override
+    public ResponseEntity<List<ProfessionalDto>> search(UUID typeId, UUID specialtyTagId) {
+        return ResponseEntity.ok(professionalService.searchProfessionals(typeId, specialtyTagId));
+    }
+
+    @Override
     public ResponseEntity<ProfessionalDto> create(@RequestBody @Valid CreateProfessionalDto requestDto) {
         ProfessionalDto responseDto = professionalService.createProfessional(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);

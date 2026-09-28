@@ -46,6 +46,16 @@ class DomainExceptionHandlerTest {
     }
 
     @Test
+    void mapsResourceInUseExceptionTo409WithMessage() {
+        ResponseEntity<ApiErrorDto> response = handler.handleResourceInUse(
+                new ResourceInUseException("Specialty tag is in use by 4 professional(s) and cannot be deleted."));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().status()).isEqualTo(409);
+        assertThat(response.getBody().message()).contains("in use by 4 professional(s)");
+    }
+
+    @Test
     void mapsFieldValidationErrorsTo400WithMessage() throws NoSuchMethodException {
         MethodArgumentNotValidException ex = notValidException(
                 List.of(new FieldError("target", "name", "must not be blank")),

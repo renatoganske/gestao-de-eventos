@@ -4,6 +4,8 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventTypeDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventTypeDto;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.ResourceInUseException;
+import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,9 @@ class EventTypeServiceTest {
 
     @Mock
     private EventTypeRepository eventTypeRepository;
+
+    @Mock
+    private EventRepository eventRepository;
 
     @InjectMocks
     private EventTypeService eventTypeService;
@@ -126,9 +131,10 @@ class EventTypeServiceTest {
     }
 
     @Test
-    void deleteEventType_deletesWhenFound() {
+    void deleteEventType_deletesWhenFoundAndUnused() {
         UUID id = eventType.getId();
         when(eventTypeRepository.findById(id)).thenReturn(Optional.of(eventType));
+        when(eventRepository.countByType_Id(id)).thenReturn(0L);
 
         eventTypeService.deleteEventType(id);
 
@@ -143,6 +149,19 @@ class EventTypeServiceTest {
         assertThatThrownBy(() -> eventTypeService.deleteEventType(id))
                 .isInstanceOf(EventTypeNotFoundException.class)
                 .hasMessageContaining(id.toString());
+
+        verify(eventTypeRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteEventType_throwsResourceInUseExceptionWhenUsedByEvents() {
+        UUID id = eventType.getId();
+        when(eventTypeRepository.findById(id)).thenReturn(Optional.of(eventType));
+        when(eventRepository.countByType_Id(id)).thenReturn(3L);
+
+        assertThatThrownBy(() -> eventTypeService.deleteEventType(id))
+                .isInstanceOf(ResourceInUseException.class)
+                .hasMessageContaining("3");
 
         verify(eventTypeRepository, never()).delete(any());
     }
