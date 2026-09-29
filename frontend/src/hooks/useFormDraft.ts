@@ -11,6 +11,15 @@ function readDraft<T>(key: string, initialValue: T): T {
   }
 }
 
+/** Descarta o rascunho de `key` sem montar o formulário (ex.: ao clicar em "Novo ..." numa listagem). */
+export function discardFormDraft(key: string): void {
+  try {
+    sessionStorage.removeItem(DRAFT_PREFIX + key)
+  } catch {
+    // sessionStorage indisponível -- não há rascunho a descartar
+  }
+}
+
 /**
  * Persiste o estado de um formulário em sessionStorage a cada mudança, sobrevivendo
  * a um redirect por sessão expirada (GDE-32) sem depender de nenhum wiring extra:

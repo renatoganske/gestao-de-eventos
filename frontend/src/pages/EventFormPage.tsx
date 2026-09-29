@@ -267,7 +267,7 @@ export function EventFormPage() {
       <TopBar
         title={isEditMode ? 'Editar evento' : 'Novo evento'}
         action={
-          <Link to="/eventos" className="btn">
+          <Link to="/eventos" className="btn" onClick={clearDraft}>
             Voltar para eventos
           </Link>
         }
