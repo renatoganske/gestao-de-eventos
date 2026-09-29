@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "8e8e7fe308b8ca77a43623647d89e5a628f43606",
+  "include-component-in-tag": false,
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "gestao-de-eventos",
+      "extra-files": [
+        {
+          "type": "xml",
+          "path": "gestao-de-eventos/pom.xml",
+          "xpath": "//project/version"
+        }
+      ]
+    }
+  }
+}

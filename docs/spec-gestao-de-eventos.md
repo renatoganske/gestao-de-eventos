@@ -325,11 +325,12 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0015](adr/0015-dockerfile-backend.md) | Backend containerizado via Dockerfile multi-stage (build com `mvnw`, runtime só com JRE) |
 | [0016](adr/0016-event-type-tabela-lookup.md) | `Event.type` migra de enum fixo para tabela de lookup (`EventType`), cadastrável via API sem deploy |
 | [0017](adr/0017-autenticacao-spring-security-jwt.md) | Autenticação via Spring Security + JWT, usuário único, sem self-service de "esqueci minha senha" |
-| [0018](adr/0018-versionamento-releases-tag-automatica.md) | Versionamento de release: tag git automática no merge para `main` |
+| [0018](adr/0018-versionamento-releases-tag-automatica.md) | Versionamento de release: tag git automática no merge para `main` — substituída pela ADR-0023 |
 | [0019](adr/0019-stack-teste-frontend-vitest.md) | Stack de teste do frontend: Vitest + React Testing Library + jsdom |
 | [0020](adr/0020-jwt-em-sessionstorage.md) | Token JWT do frontend fica em `sessionStorage`, não em cookie `httpOnly` |
 | [0021](adr/0021-escrita-associacao-event-professional.md) | Escrita da associação `Event`↔`Professional`: embutida no `CreateEventDto`, replace-all, sem cascade JPA |
 | [0022](adr/0022-professional-type-e-specialty-tags.md) | `Professional.type` vira lookup (`ProfessionalType`, 1-pra-N) e `Professional.specialty` vira tags (`SpecialtyTag`, N-pra-N) |
+| [0023](adr/0023-release-automatico-release-please.md) | Release automático com release-please (substitui a ADR-0018) |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
