@@ -1,0 +1,21 @@
+name: Release Please
+
+# ADR-0023: o release-please le os commits convencionais que chegam na main,
+# abre/atualiza um PR de release (bump do pom.xml + CHANGELOG.md) e, quando esse
+# PR e mergeado, cria a tag vX.Y.Z e a GitHub Release.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
