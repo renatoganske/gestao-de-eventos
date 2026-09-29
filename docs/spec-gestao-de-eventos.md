@@ -79,7 +79,8 @@ Mantido como já estabelecido no `Cliente`:
 |---|---|---|
 | id | UUID | PK |
 | name | String | not null — renomeado de `nome` pela GDE-15 |
-| capacityGb | Integer | renomear de `capacidade` — já nasce em inglês (GDE-4) |
+| capacityGb | Integer | capacidade **nominal** (ex.: 1000) — renomear de `capacidade` — já nasce em inglês (GDE-4) |
+| realCapacityGb | Integer | capacidade **real/utilizável** reportada pelo SO (ex.: 931); opcional, positiva e não maior que a nominal quando ambas informadas (GDE-38, migration V5). É a "capacidade efetiva" usada em `HdCapacityPolicy` e nas barras de uso do frontend (real, senão nominal) |
 | usedSpaceGb | Integer | atualizado ao vincular/desvincular `Event` |
 | physicalLocation | String | gaveta, estante, "com fulano" |
 | serialNumber | String | rastreabilidade em caso de falha |
@@ -214,7 +215,11 @@ public final class HdCapacityPolicy {
     private HdCapacityPolicy() {}
 
     public static boolean isNearCapacity(Hd hd) {
-        return hd.getUsedSpaceGb() >= hd.getCapacityGb() * 0.9;
+        Integer capacity = hd.getRealCapacityGb() != null ? hd.getRealCapacityGb() : hd.getCapacityGb();
+        if (hd.getUsedSpaceGb() == null || capacity == null) {
+            return false;
+        }
+        return hd.getUsedSpaceGb() >= capacity * 0.9;
     }
 }
 ```
@@ -346,9 +351,18 @@ Backlog completo com critérios de aceite, dependências e prioridade vive no Ji
 - [x] GDE-14 Introduzir Flyway (`ddl-auto` → `validate`)
 - [x] GDE-3 Criar enums `EventType`, `DeliveryStatus`, `HdStatus`
 - [x] GDE-4 Adicionar `physicalLocation`, `usedSpaceGb`, `serialNumber`, `capacityGb` em `Hd`
-- [ ] GDE-5 Adicionar `sizeGb`, `deliveryStatus` em `Event`
+- [x] GDE-5 Adicionar `sizeGb`, `deliveryStatus` em `Event`
 - [x] GDE-6 Criar entidade `EventProfessional` substituindo o `@ManyToMany` puro
 - [x] GDE-7 Exceções específicas + `@RestControllerAdvice` (seção 7) — implementado
-- [ ] GDE-8..11 Controller (interface+impl) + Service para `Event`, `Hd`, `Professional`, `EventVenue`, usando `Customer` como template — `Professional` (GDE-10) e `EventVenue` (GDE-11) já têm controller+service completos; `Event` (GDE-8) e `Hd` (GDE-9) ainda faltam
-- [ ] GDE-12 `EventFilter` (5.1-f) e endpoint de busca genérico (`GET /events/search`) — em vez de endpoints fixos por métrica
-- [ ] GDE-13 `HdCapacityPolicy` (função pura) e endpoint de alerta "HD perto da capacidade"
+- [x] GDE-8..11 Controller (interface+impl) + Service para `Event`, `Hd`, `Professional`, `EventVenue`, usando `Customer` como template — todos os quatro têm controller+service completos
+- [x] GDE-12 `EventFilter` (5.1-f) e endpoint de busca genérico (`GET /events/search`) — em vez de endpoints fixos por métrica
+- [x] GDE-13 `HdCapacityPolicy` (função pura) e endpoint de alerta "HD perto da capacidade" (`GET /hds/near-capacity`)
+- [x] GDE-38 Campo `realCapacityGb` nos HDs (migration V5); `HdCapacityPolicy` usa a capacidade real quando preenchida
+- [x] GDE-39 Criar tipo de evento inline no formulário de evento
+- [x] GDE-40 Lista do Autocomplete (Cliente/Local) não é mais cortada pelo `overflow` do painel
+- [x] GDE-41 "Novo evento" não reaproveita o rascunho do evento anterior
+- [x] GDE-42 Select de Estado (UF) no cadastro de Local do evento
+- [x] GDE-43 Flags "Casamento diurno"/"ao ar livre" com componente `Checkbox` estilizado
+- [x] GDE-44 Barras de uso de HD (dashboard e tela de HDs) usam a capacidade efetiva (real, senão nominal)
+- [x] GDE-45 Rascunho de edição (`event-edit:<id>`) descartado ao abrir a edição pela lista
+- [x] GDE-46 `EventFormPage.test.tsx` estabilizado (`userEvent.setup({ delay: null })`)
