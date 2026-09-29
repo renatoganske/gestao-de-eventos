@@ -1,7 +1,7 @@
 # ADR-0018: Versionamento de release via tag git automática (nível "leve")
 
 **Data:** 2026-09-25
-**Status:** Aceito
+**Status:** Substituído pela [ADR-0023](0023-release-automatico-release-please.md)
 
 ## Contexto
 
