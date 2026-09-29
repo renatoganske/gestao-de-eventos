@@ -41,6 +41,19 @@ describe('EventVenueQuickCreateForm', () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created))
   })
 
+  it('envia a UF escolhida no select de Estado', async () => {
+    const created = { id: 'venue-new', name: 'Salão Central', address: null, city: null, state: 'MG', type: null }
+    vi.mocked(eventVenuesApi.createEventVenue).mockResolvedValue(created)
+    const user = userEvent.setup()
+    render(<EventVenueQuickCreateForm onCreated={vi.fn()} onCancel={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Nome'), 'Salão Central')
+    await user.selectOptions(screen.getByLabelText('Estado'), 'MG')
+    await user.click(screen.getByRole('button', { name: 'Salvar local' }))
+
+    expect(eventVenuesApi.createEventVenue).toHaveBeenCalledWith(expect.objectContaining({ state: 'MG' }))
+  })
+
   it('mostra a mensagem de erro da API quando a criação falha', async () => {
     vi.mocked(eventVenuesApi.createEventVenue).mockRejectedValue(new ApiError(500, 'Falha ao criar local'))
     const user = userEvent.setup()

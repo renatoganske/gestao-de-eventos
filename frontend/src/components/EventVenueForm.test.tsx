@@ -74,6 +74,31 @@ describe('EventVenueForm', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(updated))
   })
 
+  it('permite escolher a UF e limpar o estado (opção vazia vira null)', async () => {
+    vi.mocked(eventVenuesApi.updateEventVenue).mockResolvedValue(makeVenue({ state: null }))
+    const user = userEvent.setup()
+    render(<EventVenueForm venue={makeVenue()} onSaved={vi.fn()} onCancel={vi.fn()} />)
+
+    expect(screen.getByLabelText('Estado')).toHaveValue('SP')
+    await user.selectOptions(screen.getByLabelText('Estado'), 'RJ')
+    expect(screen.getByLabelText('Estado')).toHaveValue('RJ')
+    await user.selectOptions(screen.getByLabelText('Estado'), '')
+    await user.click(screen.getByRole('button', { name: 'Salvar local' }))
+
+    expect(eventVenuesApi.updateEventVenue).toHaveBeenCalledWith('venue-1', expect.objectContaining({ state: null }))
+  })
+
+  it('preserva um estado legado fora da lista ao editar e salvar', async () => {
+    vi.mocked(eventVenuesApi.updateEventVenue).mockResolvedValue(makeVenue({ state: 'Sao Paulo' }))
+    const user = userEvent.setup()
+    render(<EventVenueForm venue={makeVenue({ state: 'Sao Paulo' })} onSaved={vi.fn()} onCancel={vi.fn()} />)
+
+    expect(screen.getByLabelText('Estado')).toHaveValue('Sao Paulo')
+    await user.click(screen.getByRole('button', { name: 'Salvar local' }))
+
+    expect(eventVenuesApi.updateEventVenue).toHaveBeenCalledWith('venue-1', expect.objectContaining({ state: 'Sao Paulo' }))
+  })
+
   it('mostra a mensagem de erro da API quando o salvamento falha', async () => {
     vi.mocked(eventVenuesApi.createEventVenue).mockRejectedValue(new ApiError(500, 'Falha ao salvar local'))
     const user = userEvent.setup()
