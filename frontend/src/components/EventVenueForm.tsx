@@ -3,6 +3,7 @@ import { ApiError } from '../api/client'
 import { createEventVenue, updateEventVenue, type EventVenueDto } from '../api/eventVenues'
 import { Button } from './Button'
 import { FormField } from './FormField'
+import { StateSelect } from './StateSelect'
 
 export interface EventVenueFormProps {
   venue?: EventVenueDto
@@ -78,7 +79,7 @@ export function EventVenueForm({ venue, onSaved, onCancel }: EventVenueFormProps
         <input id="venue-city" value={form.city} onChange={(event) => updateField('city', event.target.value)} disabled={isSubmitting} />
       </FormField>
       <FormField label="Estado" htmlFor="venue-state">
-        <input id="venue-state" value={form.state} onChange={(event) => updateField('state', event.target.value)} disabled={isSubmitting} />
+        <StateSelect id="venue-state" value={form.state} onChange={(value) => updateField('state', value)} disabled={isSubmitting} />
       </FormField>
       <FormField label="Tipo" htmlFor="venue-type">
         <input id="venue-type" value={form.type} onChange={(event) => updateField('type', event.target.value)} disabled={isSubmitting} />

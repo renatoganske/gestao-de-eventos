@@ -3,6 +3,7 @@ import { createEventVenue, type EventVenueDto } from '../api/eventVenues'
 import { ApiError } from '../api/client'
 import { Button } from './Button'
 import { FormField } from './FormField'
+import { StateSelect } from './StateSelect'
 
 export interface EventVenueQuickCreateFormProps {
   onCreated: (venue: EventVenueDto) => void
@@ -56,7 +57,7 @@ export function EventVenueQuickCreateForm({ onCreated, onCancel }: EventVenueQui
         <input id="qc-venue-city" value={city} onChange={(event) => setCity(event.target.value)} disabled={isSubmitting} />
       </FormField>
       <FormField label="Estado" htmlFor="qc-venue-state">
-        <input id="qc-venue-state" value={state} onChange={(event) => setState(event.target.value)} disabled={isSubmitting} />
+        <StateSelect id="qc-venue-state" value={state} onChange={setState} disabled={isSubmitting} />
       </FormField>
       <FormField label="Tipo" htmlFor="qc-venue-type">
         <input id="qc-venue-type" value={type} onChange={(event) => setType(event.target.value)} disabled={isSubmitting} />
