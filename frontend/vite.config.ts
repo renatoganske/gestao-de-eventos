@@ -19,5 +19,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    // Por padrao o Vitest esvazia CSS; este arquivo precisa ser lido de verdade
+    // por src/styles/panelOverflow.test.ts (regressao GDE-40).
+    css: { include: [/components\.css/] },
   },
 })

@@ -10,19 +10,13 @@ import { Pill } from '../components/Pill'
 import { Toast } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { useToast } from '../hooks/useToast'
+import { effectiveCapacityGb, usagePercent } from '../utils/hdCapacity'
 import './HdsPage.css'
 
 type ModalState = { type: 'create' } | { type: 'edit'; hd: HdDto } | { type: 'delete'; hd: HdDto } | null
 
 const GENERIC_LOAD_ERROR = 'Não foi possível carregar os HDs. Tente novamente em instantes.'
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o HD. Tente novamente.'
-
-function usagePercent(hd: HdDto): number {
-  if (!hd.capacityGb) {
-    return 0
-  }
-  return Math.min(100, Math.round((hd.usedSpaceGb / hd.capacityGb) * 100))
-}
 
 export function HdsPage() {
   const [hds, setHds] = useState<HdDto[] | null>(null)
@@ -150,7 +144,7 @@ export function HdsPage() {
                   <div className="hd-usage">
                     <div className="hd-usage-head">
                       <span className="mono">
-                        {hd.usedSpaceGb} / {hd.capacityGb} GB
+                        {hd.usedSpaceGb} / {effectiveCapacityGb(hd) ?? '—'} GB
                       </span>
                       <span className="mono">{percent}%</span>
                     </div>

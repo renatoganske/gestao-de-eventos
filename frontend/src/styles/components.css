@@ -68,6 +68,13 @@
   font-size: 14.5px;
 }
 
+/* O overflow:hidden do .panel arredonda o conteudo, mas cortava a lista
+   absoluta do Autocomplete (GDE-40). Paineis com Autocomplete deixam o
+   overflow visivel; os demais continuam recortando. */
+.panel:has(.autocomplete) {
+  overflow: visible;
+}
+
 /* ---------- Pill ---------- */
 .pill {
   display: inline-flex;
@@ -173,6 +180,78 @@
   color: var(--text);
   font-family: inherit;
   width: 100%;
+}
+
+/* ---------- Checkbox ---------- */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox:hover:not(.checkbox-disabled) {
+  border-color: var(--accent);
+}
+
+.checkbox:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.checkbox:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.checkbox input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--text-muted);
+  border-radius: 5px;
+  background: var(--surface);
+  display: grid;
+  place-content: center;
+  cursor: inherit;
+}
+
+.checkbox input::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  transform: scale(0);
+  background: var(--accent-contrast);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0, 43% 62%);
+}
+
+.checkbox input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox input:checked::after {
+  transform: scale(1);
+}
+
+.checkbox input:focus-visible {
+  outline: none;
+}
+
+.checkbox-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .hint {

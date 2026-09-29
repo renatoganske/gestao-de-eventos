@@ -26,6 +26,8 @@ public class Hd {
     private String name;
     @Column(name = "capacity_gb")
     private Integer capacityGb;
+    @Column(name = "real_capacity_gb")
+    private Integer realCapacityGb;
     @Column(name = "used_space_gb")
     private Integer usedSpaceGb;
     @Column(name = "physical_location")
@@ -46,6 +48,7 @@ public class Hd {
                 this.id,
                 this.name,
                 this.capacityGb,
+                this.realCapacityGb,
                 this.usedSpaceGb,
                 this.physicalLocation,
                 this.serialNumber,

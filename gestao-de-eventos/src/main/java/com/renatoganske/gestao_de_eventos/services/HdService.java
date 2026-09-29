@@ -47,6 +47,7 @@ public class HdService {
 
         hd.setName(createHdDto.name());
         hd.setCapacityGb(createHdDto.capacityGb());
+        hd.setRealCapacityGb(createHdDto.realCapacityGb());
         hd.setUsedSpaceGb(createHdDto.usedSpaceGb());
         hd.setPhysicalLocation(createHdDto.physicalLocation());
         hd.setSerialNumber(createHdDto.serialNumber());
