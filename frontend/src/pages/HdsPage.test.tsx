@@ -37,6 +37,16 @@ describe('HdsPage', () => {
     expect(screen.getByText('50%')).toBeInTheDocument()
   })
 
+  it('calcula a barra de uso pela capacidade real quando preenchida', async () => {
+    vi.mocked(hdsApi.fetchHds).mockResolvedValue([makeHd({ capacityGb: 2000, realCapacityGb: 1000, usedSpaceGb: 500 })])
+    vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([])
+
+    render(<HdsPage />)
+
+    await waitFor(() => expect(screen.getByText('500 / 1000 GB')).toBeInTheDocument())
+    expect(screen.getByText('50%')).toBeInTheDocument()
+  })
+
   it('destaca com borda e pill apenas os HDs retornados por near-capacity', async () => {
     const critical = makeHd({ id: 'hd-critical', name: 'HD Quase Cheio', usedSpaceGb: 1900 })
     const normal = makeHd({ id: 'hd-normal', name: 'HD Tranquilo', usedSpaceGb: 200 })

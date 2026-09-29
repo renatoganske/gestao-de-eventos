@@ -99,6 +99,20 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: 'Ver todos →' })).toHaveAttribute('href', '/eventos')
   })
 
+  it('calcula a barra de armazenamento pela capacidade real quando preenchida', async () => {
+    mockSearchEvents({ period: [], pending: [], upcoming: [] })
+    vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([
+      makeHd({ capacityGb: 2000, realCapacityGb: 1000, usedSpaceGb: 960 }),
+    ])
+
+    const { container } = renderDashboard()
+
+    await waitFor(() => expect(screen.getByText('960 / 1000 GB')).toBeInTheDocument())
+    const fill = container.querySelector('.meter-fill') as HTMLElement
+    expect(fill.style.width).toBe('96%')
+    expect(fill).toHaveClass('crit')
+  })
+
   it('ordena os próximos eventos por data', async () => {
     const upcoming = [
       makeEvent({ id: 'evt-later', eventCode: 'EVT-020', eventDate: '2026-10-20' }),
