@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { createHd, type HdDto } from '../api/hds'
 import { ApiError } from '../api/client'
+import { validateRealCapacity } from './hdCapacityValidation'
 import { Button } from './Button'
 import { FormField } from './FormField'
 
@@ -14,6 +15,7 @@ const GENERIC_ERROR_MESSAGE = 'Não foi possível criar o HD. Tente novamente.'
 export function HdQuickCreateForm({ onCreated, onCancel }: HdQuickCreateFormProps) {
   const [name, setName] = useState('')
   const [capacityGb, setCapacityGb] = useState('')
+  const [realCapacityGb, setRealCapacityGb] = useState('')
   const [physicalLocation, setPhysicalLocation] = useState('')
   const [serialNumber, setSerialNumber] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -25,12 +27,18 @@ export function HdQuickCreateForm({ onCreated, onCancel }: HdQuickCreateFormProp
       setError('Informe o nome do HD.')
       return
     }
+    const realCapacityMessage = validateRealCapacity(capacityGb, realCapacityGb)
+    if (realCapacityMessage) {
+      setError(realCapacityMessage)
+      return
+    }
     setError(null)
     setIsSubmitting(true)
     try {
       const hd = await createHd({
         name: name.trim(),
         capacityGb: capacityGb ? Number(capacityGb) : null,
+        realCapacityGb: realCapacityGb ? Number(realCapacityGb) : null,
         usedSpaceGb: null,
         physicalLocation: physicalLocation.trim() || null,
         serialNumber: serialNumber.trim() || null,
@@ -50,13 +58,23 @@ export function HdQuickCreateForm({ onCreated, onCancel }: HdQuickCreateFormProp
       <FormField label="Nome" htmlFor="qc-hd-name">
         <input id="qc-hd-name" value={name} onChange={(event) => setName(event.target.value)} disabled={isSubmitting} />
       </FormField>
-      <FormField label="Capacidade (GB)" htmlFor="qc-hd-capacity">
+      <FormField label="Capacidade nominal (GB)" htmlFor="qc-hd-capacity">
         <input
           id="qc-hd-capacity"
           type="number"
           min="0"
           value={capacityGb}
           onChange={(event) => setCapacityGb(event.target.value)}
+          disabled={isSubmitting}
+        />
+      </FormField>
+      <FormField label="Capacidade real (GB)" htmlFor="qc-hd-real-capacity">
+        <input
+          id="qc-hd-real-capacity"
+          type="number"
+          min="1"
+          value={realCapacityGb}
+          onChange={(event) => setRealCapacityGb(event.target.value)}
           disabled={isSubmitting}
         />
       </FormField>

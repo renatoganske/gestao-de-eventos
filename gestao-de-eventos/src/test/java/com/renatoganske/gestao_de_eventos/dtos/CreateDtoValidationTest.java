@@ -33,11 +33,21 @@ class CreateDtoValidationTest {
     @Test
     void createHdDto_withNullOrBlankName_producesViolation() {
         Set<ConstraintViolation<CreateHdDto>> violations =
-                validator.validate(new CreateHdDto(null, null, null, null, null, null, null));
+                validator.validate(new CreateHdDto(null, null, null, null, null, null, null, null));
 
         assertThat(violations).isNotEmpty();
-        assertThat(validator.validate(new CreateHdDto("HD Externo 1", null, null, null, null, null, null)))
+        assertThat(validator.validate(new CreateHdDto("HD Externo 1", null, null, null, null, null, null, null)))
                 .isEmpty();
+    }
+
+    @Test
+    void createHdDto_realCapacityMustBePositiveAndNotExceedNominal() {
+        assertThat(validator.validate(new CreateHdDto("HD", 1000, 931, null, null, null, null, null))).isEmpty();
+        assertThat(validator.validate(new CreateHdDto("HD", 1000, 1000, null, null, null, null, null))).isEmpty();
+        assertThat(validator.validate(new CreateHdDto("HD", null, 931, null, null, null, null, null))).isEmpty();
+        assertThat(validator.validate(new CreateHdDto("HD", 1000, 0, null, null, null, null, null))).isNotEmpty();
+        assertThat(validator.validate(new CreateHdDto("HD", 1000, -5, null, null, null, null, null))).isNotEmpty();
+        assertThat(validator.validate(new CreateHdDto("HD", 1000, 1001, null, null, null, null, null))).isNotEmpty();
     }
 
     @Test
