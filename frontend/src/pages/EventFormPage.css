@@ -27,6 +27,12 @@
   flex: 1;
 }
 
+.event-form-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
 .event-form-actions {
   display: flex;
   justify-content: flex-end;
