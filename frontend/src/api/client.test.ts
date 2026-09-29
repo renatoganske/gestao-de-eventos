@@ -14,7 +14,7 @@ describe('apiFetch — tratamento de 409', () => {
   it('traduz conflito em criação/edição como registro duplicado', async () => {
     mockConflict()
 
-    const error = await apiFetch('/professional-types', { method: 'POST', body: '{}' }).catch((err) => err)
+    const error = await apiFetch<never>('/professional-types', { method: 'POST', body: '{}' }).catch((err: unknown) => err as ApiError)
 
     expect(error).toBeInstanceOf(ApiError)
     expect(error.status).toBe(409)
@@ -24,7 +24,7 @@ describe('apiFetch — tratamento de 409', () => {
   it('traduz conflito em exclusão como registro em uso', async () => {
     mockConflict()
 
-    const error = await apiFetch('/customers/1', { method: 'DELETE' }).catch((err) => err)
+    const error = await apiFetch<never>('/customers/1', { method: 'DELETE' }).catch((err: unknown) => err as ApiError)
 
     expect(error.status).toBe(409)
     expect(error.message).toBe('Este registro está vinculado a outros dados e não pode ser excluído.')
