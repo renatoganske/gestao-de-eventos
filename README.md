@@ -18,6 +18,10 @@ Sistema web fullstack para gestão de trabalhos de fotografia de eventos: rastre
 
 Capturas do app rodando localmente com dados fictícios.
 
+**Visão geral em movimento:** login, dashboard, alerta de HD perto da capacidade, busca de eventos com filtros e criação rápida dentro do formulário de evento.
+
+![Demonstração do app](docs/img/demo.gif)
+
 **Dashboard:** eventos do mês, entregas pendentes e HDs perto da capacidade (calculada pela capacidade real do disco). Os próximos eventos e o uso de armazenamento aparecem logo abaixo.
 
 ![Dashboard](docs/img/dashboard.jpg)
