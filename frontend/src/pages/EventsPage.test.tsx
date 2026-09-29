@@ -88,6 +88,21 @@ describe('EventsPage', () => {
     sessionStorage.clear()
   })
 
+  it('descarta o rascunho de edicao do evento ao abrir a edicao pela lista, sem tocar nos de outros eventos (GDE-45)', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    sessionStorage.setItem('gde_draft:event-edit:evt-1', JSON.stringify({ name: 'abandonado' }))
+    sessionStorage.setItem('gde_draft:event-edit:evt-2', JSON.stringify({ name: 'outro' }))
+    const user = userEvent.setup()
+    renderEventsPage()
+
+    await user.click(await screen.findByText('EVT-018'))
+
+    expect(await screen.findByText('Detalhe do evento')).toBeInTheDocument()
+    expect(sessionStorage.getItem('gde_draft:event-edit:evt-1')).toBeNull()
+    expect(sessionStorage.getItem('gde_draft:event-edit:evt-2')).not.toBeNull()
+    sessionStorage.clear()
+  })
+
   it('busca todos os eventos ao carregar, sem filtro ativo', async () => {
     vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
 

@@ -338,7 +338,10 @@ export function EventsPage() {
               ]}
               rows={events}
               rowKey={(row) => row.id}
-              onRowClick={(row) => navigate(`/eventos/${row.id}`)}
+              onRowClick={(row) => {
+                discardFormDraft(`event-edit:${row.id}`)
+                navigate(`/eventos/${row.id}`)
+              }}
             />
           )}
         </Card>
