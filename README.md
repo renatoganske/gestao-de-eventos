@@ -14,6 +14,39 @@ Sistema web fullstack para gestão de trabalhos de fotografia de eventos: rastre
 - **Inteligência de negócio:** busca por filtros combináveis (tipo, local, profissional, período, HD, status), sem métricas fixas.
 - **Acesso protegido:** login com JWT.
 
+## Telas
+
+Capturas do app rodando localmente com dados fictícios.
+
+**Dashboard:** eventos do mês, entregas pendentes e HDs perto da capacidade (calculada pela capacidade real do disco). Os próximos eventos e o uso de armazenamento aparecem logo abaixo.
+
+![Dashboard](docs/img/dashboard.jpg)
+
+**HDs:** cada disco com espaço usado, percentual e alerta de "perto da capacidade".
+
+![Tela de HDs](docs/img/hds.jpg)
+
+**Eventos:** listagem com busca e filtros combináveis por tipo, local, profissional, HD, status e período.
+
+![Listagem de eventos](docs/img/eventos-lista.jpg)
+
+**Cadastro de evento:** as flags de casamento só aparecem para o tipo Casamento, o tipo tem criação rápida ("+ Novo") e a lista de clientes abre sem ser cortada pelo painel.
+
+![Formulário de evento](docs/img/evento-formulario.jpg)
+
+<details>
+<summary>Mais telas</summary>
+
+**Locais**, com select de Estado (UF) no cadastro:
+
+![Cadastro de local](docs/img/local-select-uf.jpg)
+
+**Profissionais**, com tipo e várias especialidades:
+
+![Profissionais](docs/img/profissionais.jpg)
+
+</details>
+
 ## Decisões de engenharia
 
 Cada decisão relevante tem um ADR em [`docs/adr/`](docs/adr/) com contexto, alternativas avaliadas e o custo aceito. As que mais dizem sobre como eu trabalho:
@@ -47,6 +80,36 @@ Cada decisão relevante tem um ADR em [`docs/adr/`](docs/adr/) com contexto, alt
 
 ```
 Controller (interface + impl) → Service → Repository (Spring Data JPA) → Entity
+```
+
+Modelo de dados (`Event` é a entidade central; a associação com profissionais carrega o papel de cada um):
+
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ EVENT : contrata
+    EVENT_VENUE ||--o{ EVENT : sedia
+    HD ||--o{ EVENT : armazena
+    EVENT_TYPE ||--o{ EVENT : classifica
+    EVENT ||--o{ EVENT_PROFESSIONAL : tem
+    PROFESSIONAL ||--o{ EVENT_PROFESSIONAL : atua
+    PROFESSIONAL_TYPE ||--o{ PROFESSIONAL : define
+    PROFESSIONAL }o--o{ SPECIALTY_TAG : possui
+
+    HD {
+        int capacityGb "nominal"
+        int realCapacityGb "utilizavel"
+        int usedSpaceGb
+        string status
+    }
+    EVENT {
+        string eventCode "liga a pasta no HD"
+        date eventDate
+        int sizeGb
+        string deliveryStatus
+    }
+    EVENT_PROFESSIONAL {
+        string roleInEvent
+    }
 ```
 
 - A interface do controller carrega rota e documentação OpenAPI; a implementação só delega ao service.
