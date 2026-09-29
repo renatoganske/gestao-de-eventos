@@ -20,6 +20,7 @@ import { FormField } from '../components/FormField'
 import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
 import { TopBar } from '../components/TopBar'
+import { discardFormDraft } from '../hooks/useFormDraft'
 import './EventsPage.css'
 
 interface FilterState {
@@ -174,7 +175,7 @@ export function EventsPage() {
       <TopBar
         title="Eventos"
         action={
-          <Link to="/eventos/novo" className="btn btn-primary">
+          <Link to="/eventos/novo" className="btn btn-primary" onClick={() => discardFormDraft('event-create')}>
             + Novo evento
           </Link>
         }
