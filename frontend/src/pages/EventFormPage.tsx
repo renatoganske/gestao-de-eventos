@@ -11,7 +11,7 @@ import {
   type DeliveryStatus,
   type EventDto,
 } from '../api/events'
-import { fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
+import { createEventType, fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
 import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
 import { fetchHds, type HdDto } from '../api/hds'
 import { Autocomplete } from '../components/Autocomplete'
@@ -22,6 +22,7 @@ import { EventVenueQuickCreateForm } from '../components/EventVenueQuickCreateFo
 import { FormField } from '../components/FormField'
 import { HdQuickCreateForm } from '../components/HdQuickCreateForm'
 import { Modal } from '../components/Modal'
+import { SimpleNameQuickCreateForm } from '../components/SimpleNameQuickCreateForm'
 import { Toast } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { useFormDraft } from '../hooks/useFormDraft'
@@ -75,7 +76,7 @@ interface ReferenceData {
   customers: CustomerDto[]
 }
 
-type QuickCreateTarget = 'customer' | 'venue' | 'hd' | null
+type QuickCreateTarget = 'customer' | 'venue' | 'hd' | 'eventType' | null
 
 function eventToFormState(event: EventDto): EventFormState {
   return {
@@ -233,6 +234,13 @@ export function EventFormPage() {
     setQuickCreateTarget(null)
   }
 
+  function handleEventTypeCreated(eventType: EventTypeDto) {
+    setReferenceData((current) => (current ? { ...current, eventTypes: [...current.eventTypes, eventType] } : current))
+    updateField('eventTypeId', eventType.id)
+    setQuickCreateTarget(null)
+    setToast({ kind: 'success', text: 'Tipo criado e selecionado.' })
+  }
+
   function handleCustomerCreated(customer: CustomerDto) {
     setReferenceData((current) => (current ? { ...current, customers: [...current.customers, customer] } : current))
     updateField('customerId', customer.id)
@@ -287,19 +295,24 @@ export function EventFormPage() {
                 </FormField>
 
                 <FormField label="Tipo" htmlFor="event-type" error={errors.eventTypeId}>
-                  <select
-                    id="event-type"
-                    value={form.eventTypeId}
-                    onChange={(event) => updateField('eventTypeId', event.target.value)}
-                    disabled={isSubmitting}
-                  >
-                    <option value="">Selecione...</option>
-                    {referenceData?.eventTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="autocomplete-row event-type-row">
+                    <select
+                      id="event-type"
+                      value={form.eventTypeId}
+                      onChange={(event) => updateField('eventTypeId', event.target.value)}
+                      disabled={isSubmitting}
+                    >
+                      <option value="">Selecione...</option>
+                      {referenceData?.eventTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="button" variant="ghost" onClick={() => setQuickCreateTarget('eventType')} disabled={isSubmitting}>
+                      + Novo
+                    </Button>
+                  </div>
                 </FormField>
 
                 <FormField label="Nome do evento" htmlFor="event-name" error={errors.name} className="span-2">
@@ -458,6 +471,19 @@ export function EventFormPage() {
         )}
       </div>
 
+      {quickCreateTarget === 'eventType' && (
+        <Modal title="Novo tipo de evento" onClose={closeQuickCreate}>
+          <SimpleNameQuickCreateForm
+            fieldId="qc-event-type-name"
+            emptyError="Informe o nome do tipo."
+            genericError="Não foi possível criar o tipo. Tente novamente."
+            submitLabel="Salvar tipo"
+            onCreate={(name) => createEventType({ name })}
+            onCreated={handleEventTypeCreated}
+            onCancel={closeQuickCreate}
+          />
+        </Modal>
+      )}
       {quickCreateTarget === 'customer' && (
         <Modal title="Novo cliente" onClose={closeQuickCreate}>
           <CustomerQuickCreateForm onCreated={handleCustomerCreated} onCancel={closeQuickCreate} />

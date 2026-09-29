@@ -179,6 +179,47 @@ describe('EventFormPage', () => {
     expect(await screen.findByText('Cliente criado e selecionado.')).toBeInTheDocument()
   })
 
+  it('permite cadastrar um tipo de evento inline pelo botão "+ Novo" e seleciona o tipo criado', async () => {
+    vi.mocked(eventTypesApi.createEventType).mockResolvedValue({ id: 'type-new', name: 'FORMATURA' })
+    const user = userEvent.setup()
+    renderForm('/eventos/novo')
+
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+    const typeField = screen.getByLabelText('Tipo').closest('.form-field') as HTMLElement
+    await user.click(within(typeField).getByRole('button', { name: '+ Novo' }))
+
+    const modal = await screen.findByRole('dialog', { name: 'Novo tipo de evento' })
+    await user.type(within(modal).getByLabelText('Nome'), 'FORMATURA')
+    await user.click(within(modal).getByRole('button', { name: 'Salvar tipo' }))
+
+    await waitFor(() => expect(eventTypesApi.createEventType).toHaveBeenCalledWith({ name: 'FORMATURA' }))
+    expect(screen.queryByRole('dialog', { name: 'Novo tipo de evento' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Tipo')).toHaveValue('type-new')
+    expect(screen.getByRole('option', { name: 'FORMATURA' })).toBeInTheDocument()
+    expect(await screen.findByText('Tipo criado e selecionado.')).toBeInTheDocument()
+  })
+
+  it('exibe no modal o erro de nome vazio e o erro 409 ao criar tipo duplicado', async () => {
+    vi.mocked(eventTypesApi.createEventType).mockRejectedValue(new ApiError(409, 'Tipo de evento já existe.'))
+    const user = userEvent.setup()
+    renderForm('/eventos/novo')
+
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+    const typeField = screen.getByLabelText('Tipo').closest('.form-field') as HTMLElement
+    await user.click(within(typeField).getByRole('button', { name: '+ Novo' }))
+
+    const modal = await screen.findByRole('dialog', { name: 'Novo tipo de evento' })
+    await user.click(within(modal).getByRole('button', { name: 'Salvar tipo' }))
+    expect(within(modal).getByText('Informe o nome do tipo.')).toBeInTheDocument()
+    expect(eventTypesApi.createEventType).not.toHaveBeenCalled()
+
+    await user.type(within(modal).getByLabelText('Nome'), 'WEDDING')
+    await user.click(within(modal).getByRole('button', { name: 'Salvar tipo' }))
+    expect(await within(modal).findByText('Tipo de evento já existe.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tipo')).toHaveValue('')
+  })
+
   it('carrega o evento existente e reaproveita o mesmo formulário para edição', async () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ name: 'Casamento Atualizado' }))
