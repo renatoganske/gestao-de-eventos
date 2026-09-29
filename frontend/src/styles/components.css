@@ -68,6 +68,13 @@
   font-size: 14.5px;
 }
 
+/* O overflow:hidden do .panel arredonda o conteudo, mas cortava a lista
+   absoluta do Autocomplete (GDE-40). Paineis com Autocomplete deixam o
+   overflow visivel; os demais continuam recortando. */
+.panel:has(.autocomplete) {
+  overflow: visible;
+}
+
 /* ---------- Pill ---------- */
 .pill {
   display: inline-flex;
