@@ -65,6 +65,8 @@ function renderForm(initialPath: string) {
   )
 }
 
+// delay: null tira o setTimeout(0) que o userEvent insere entre cada tecla/ação. Com o padrão, o teste de
+// criação (~50 teclas + 5 interações) levava ~3s isolado e estourava o timeout de 5s sob carga da suíte completa.
 describe('EventFormPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -73,7 +75,7 @@ describe('EventFormPage', () => {
   })
 
   it('mostra erros inline e não submete quando campos obrigatórios estão vazios', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm('/eventos/novo')
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar evento' })).toBeInTheDocument())
@@ -87,7 +89,7 @@ describe('EventFormPage', () => {
   })
 
   it('só mostra os campos de casamento quando o tipo selecionado é Casamento', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm('/eventos/novo')
 
     await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
@@ -102,7 +104,7 @@ describe('EventFormPage', () => {
 
   it('cria um evento novo com os dados preenchidos e mostra toast de sucesso', async () => {
     vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm('/eventos/novo')
 
     await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
@@ -131,7 +133,7 @@ describe('EventFormPage', () => {
 
   it('mostra toast de erro quando a submissão falha, sem limpar os campos', async () => {
     vi.mocked(eventsApi.createEvent).mockRejectedValue(new ApiError(500, 'Falha ao salvar evento'))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm('/eventos/novo')
 
     await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
@@ -154,7 +156,7 @@ describe('EventFormPage', () => {
       address: null,
       notes: null,
     })
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm('/eventos/novo')
 
     await waitFor(() => expect(screen.getByLabelText('Cliente')).toBeInTheDocument())
@@ -223,7 +225,7 @@ describe('EventFormPage', () => {
   it('carrega o evento existente e reaproveita o mesmo formulário para edição', async () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ name: 'Casamento Atualizado' }))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     renderForm('/eventos/evt-1')
 
     await waitFor(() => expect(screen.getByLabelText('Nome do evento')).toHaveValue('Casamento Maria & João'))
