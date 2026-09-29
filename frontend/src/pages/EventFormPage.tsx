@@ -17,6 +17,7 @@ import { fetchHds, type HdDto } from '../api/hds'
 import { Autocomplete } from '../components/Autocomplete'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
+import { Checkbox } from '../components/Checkbox'
 import { CustomerQuickCreateForm } from '../components/CustomerQuickCreateForm'
 import { EventVenueQuickCreateForm } from '../components/EventVenueQuickCreateForm'
 import { FormField } from '../components/FormField'
@@ -359,25 +360,22 @@ export function EventFormPage() {
 
                 {isWedding && (
                   <>
-                    <FormField label="Casamento diurno?" htmlFor="event-daytime-wedding">
-                      <input
+                    <div className="span-2 event-form-flags">
+                      <Checkbox
                         id="event-daytime-wedding"
-                        type="checkbox"
+                        label="Casamento diurno?"
                         checked={form.daytimeWedding}
-                        onChange={(event) => updateField('daytimeWedding', event.target.checked)}
+                        onChange={(checked) => updateField('daytimeWedding', checked)}
                         disabled={isSubmitting}
                       />
-                    </FormField>
-
-                    <FormField label="Casamento ao ar livre?" htmlFor="event-outdoor-wedding">
-                      <input
+                      <Checkbox
                         id="event-outdoor-wedding"
-                        type="checkbox"
+                        label="Casamento ao ar livre?"
                         checked={form.outdoorWedding}
-                        onChange={(event) => updateField('outdoorWedding', event.target.checked)}
+                        onChange={(checked) => updateField('outdoorWedding', checked)}
                         disabled={isSubmitting}
                       />
-                    </FormField>
+                    </div>
                   </>
                 )}
 
