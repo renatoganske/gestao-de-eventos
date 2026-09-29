@@ -23,6 +23,10 @@
   grid-column: span 2;
 }
 
+.event-type-row select {
+  flex: 1;
+}
+
 .event-form-actions {
   display: flex;
   justify-content: flex-end;
