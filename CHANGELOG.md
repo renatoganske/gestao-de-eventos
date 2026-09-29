@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/renatoganske/gestao-de-eventos/compare/v1.1.0...v1.1.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* corrige xpath do release-please e alinha pom.xml em 1.1.0 ([101e108](https://github.com/renatoganske/gestao-de-eventos/commit/101e10814f5544547e010190434570b04db3c5c6))
+
 ## [1.1.0](https://github.com/renatoganske/gestao-de-eventos/compare/v1.0.0...v1.1.0) (2026-09-29)
 
 
