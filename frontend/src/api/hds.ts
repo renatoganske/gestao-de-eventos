@@ -13,6 +13,7 @@ export interface HdDto {
   id: string
   name: string
   capacityGb: number
+  realCapacityGb?: number | null
   usedSpaceGb: number
   physicalLocation: string | null
   serialNumber: string | null
@@ -23,6 +24,7 @@ export interface HdDto {
 export interface CreateHdDto {
   name: string
   capacityGb: number | null
+  realCapacityGb?: number | null
   usedSpaceGb: number | null
   physicalLocation: string | null
   serialNumber: string | null

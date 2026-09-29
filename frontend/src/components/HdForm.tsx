@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../api/client'
 import { createHd, updateHd, HD_STATUS_LABEL, type HdDto, type HdStatus } from '../api/hds'
+import { validateRealCapacity } from './hdCapacityValidation'
 import { Button } from './Button'
 import { FormField } from './FormField'
 
@@ -13,6 +14,7 @@ export interface HdFormProps {
 interface FormState {
   name: string
   capacityGb: string
+  realCapacityGb: string
   usedSpaceGb: string
   physicalLocation: string
   serialNumber: string
@@ -24,6 +26,7 @@ function toFormState(hd?: HdDto): FormState {
   return {
     name: hd?.name ?? '',
     capacityGb: hd?.capacityGb != null ? String(hd.capacityGb) : '',
+    realCapacityGb: hd?.realCapacityGb != null ? String(hd.realCapacityGb) : '',
     usedSpaceGb: hd?.usedSpaceGb != null ? String(hd.usedSpaceGb) : '',
     physicalLocation: hd?.physicalLocation ?? '',
     serialNumber: hd?.serialNumber ?? '',
@@ -37,6 +40,7 @@ const GENERIC_ERROR_MESSAGE = 'Não foi possível salvar o HD. Tente novamente.'
 export function HdForm({ hd, onSaved, onCancel }: HdFormProps) {
   const [form, setForm] = useState<FormState>(() => toFormState(hd))
   const [nameError, setNameError] = useState<string | null>(null)
+  const [realCapacityError, setRealCapacityError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -51,12 +55,18 @@ export function HdForm({ hd, onSaved, onCancel }: HdFormProps) {
       return
     }
     setNameError(null)
+    const realCapacityMessage = validateRealCapacity(form.capacityGb, form.realCapacityGb)
+    setRealCapacityError(realCapacityMessage)
+    if (realCapacityMessage) {
+      return
+    }
     setSubmitError(null)
     setIsSubmitting(true)
     try {
       const dto = {
         name: form.name.trim(),
         capacityGb: form.capacityGb ? Number(form.capacityGb) : null,
+        realCapacityGb: form.realCapacityGb ? Number(form.realCapacityGb) : null,
         usedSpaceGb: form.usedSpaceGb ? Number(form.usedSpaceGb) : null,
         physicalLocation: form.physicalLocation.trim() || null,
         serialNumber: form.serialNumber.trim() || null,
@@ -77,13 +87,23 @@ export function HdForm({ hd, onSaved, onCancel }: HdFormProps) {
       <FormField label="Nome" htmlFor="hd-name" error={nameError ?? undefined}>
         <input id="hd-name" value={form.name} onChange={(event) => updateField('name', event.target.value)} disabled={isSubmitting} />
       </FormField>
-      <FormField label="Capacidade (GB)" htmlFor="hd-capacity">
+      <FormField label="Capacidade nominal (GB)" htmlFor="hd-capacity">
         <input
           id="hd-capacity"
           type="number"
           min="0"
           value={form.capacityGb}
           onChange={(event) => updateField('capacityGb', event.target.value)}
+          disabled={isSubmitting}
+        />
+      </FormField>
+      <FormField label="Capacidade real (GB)" htmlFor="hd-real-capacity" error={realCapacityError ?? undefined}>
+        <input
+          id="hd-real-capacity"
+          type="number"
+          min="1"
+          value={form.realCapacityGb}
+          onChange={(event) => updateField('realCapacityGb', event.target.value)}
           disabled={isSubmitting}
         />
       </FormField>

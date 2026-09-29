@@ -22,6 +22,7 @@ class HdTest {
                 .id(id)
                 .name("HD Externo 1TB")
                 .capacityGb(1000)
+                .realCapacityGb(931)
                 .usedSpaceGb(350)
                 .physicalLocation("Gaveta do escritório")
                 .serialNumber("SN-123456")
@@ -35,6 +36,7 @@ class HdTest {
         assertThat(dto.id()).isEqualTo(id);
         assertThat(dto.name()).isEqualTo("HD Externo 1TB");
         assertThat(dto.capacityGb()).isEqualTo(1000);
+        assertThat(dto.realCapacityGb()).isEqualTo(931);
         assertThat(dto.usedSpaceGb()).isEqualTo(350);
         assertThat(dto.physicalLocation()).isEqualTo("Gaveta do escritório");
         assertThat(dto.serialNumber()).isEqualTo("SN-123456");

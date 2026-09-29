@@ -14,6 +14,7 @@ import java.util.UUID;
 public record HdDto(
         UUID id, String name,
         Integer capacityGb,
+        Integer realCapacityGb,
         Integer usedSpaceGb,
         String physicalLocation,
         String serialNumber,

@@ -39,12 +39,14 @@ describe('HdQuickCreateForm', () => {
     render(<HdQuickCreateForm onCreated={onCreated} onCancel={vi.fn()} />)
 
     await user.type(screen.getByLabelText('Nome'), 'HD Externo 2TB')
-    await user.type(screen.getByLabelText('Capacidade (GB)'), '2000')
+    await user.type(screen.getByLabelText('Capacidade nominal (GB)'), '2000')
+    await user.type(screen.getByLabelText('Capacidade real (GB)'), '1863')
     await user.click(screen.getByRole('button', { name: 'Salvar HD' }))
 
     expect(hdsApi.createHd).toHaveBeenCalledWith({
       name: 'HD Externo 2TB',
       capacityGb: 2000,
+      realCapacityGb: 1863,
       usedSpaceGb: null,
       physicalLocation: null,
       serialNumber: null,
@@ -52,6 +54,30 @@ describe('HdQuickCreateForm', () => {
       status: 'ACTIVE',
     })
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith(created))
+  })
+
+  it('bloqueia capacidade real maior que a nominal', async () => {
+    const user = userEvent.setup()
+    render(<HdQuickCreateForm onCreated={vi.fn()} onCancel={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Nome'), 'HD')
+    await user.type(screen.getByLabelText('Capacidade nominal (GB)'), '1000')
+    await user.type(screen.getByLabelText('Capacidade real (GB)'), '1200')
+    await user.click(screen.getByRole('button', { name: 'Salvar HD' }))
+
+    expect(screen.getByText('A capacidade real não pode ser maior que a nominal.')).toBeInTheDocument()
+    expect(hdsApi.createHd).not.toHaveBeenCalled()
+  })
+
+  it('envia realCapacityGb nulo quando não informado', async () => {
+    vi.mocked(hdsApi.createHd).mockResolvedValue({} as HdDto)
+    const user = userEvent.setup()
+    render(<HdQuickCreateForm onCreated={vi.fn()} onCancel={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Nome'), 'HD')
+    await user.click(screen.getByRole('button', { name: 'Salvar HD' }))
+
+    expect(hdsApi.createHd).toHaveBeenCalledWith(expect.objectContaining({ realCapacityGb: null }))
   })
 
   it('mostra a mensagem de erro da API quando a criação falha', async () => {

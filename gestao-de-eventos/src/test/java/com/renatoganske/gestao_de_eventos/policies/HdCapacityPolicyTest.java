@@ -41,4 +41,26 @@ class HdCapacityPolicyTest {
 
         assertThat(HdCapacityPolicy.isNearCapacity(hd)).isFalse();
     }
+
+    @Test
+    void isNearCapacity_usesRealCapacityWhenPresent() {
+        // 1000 GB nominal, 931 GB real: 850 GB used is >= 90% of 931 but < 90% of 1000
+        Hd hd = Hd.builder().capacityGb(1000).realCapacityGb(931).usedSpaceGb(850).build();
+
+        assertThat(HdCapacityPolicy.isNearCapacity(hd)).isTrue();
+    }
+
+    @Test
+    void isNearCapacity_fallsBackToNominalWhenRealCapacityIsNull() {
+        Hd hd = Hd.builder().capacityGb(1000).realCapacityGb(null).usedSpaceGb(850).build();
+
+        assertThat(HdCapacityPolicy.isNearCapacity(hd)).isFalse();
+    }
+
+    @Test
+    void isNearCapacity_usesRealCapacityEvenWhenNominalIsNull() {
+        Hd hd = Hd.builder().capacityGb(null).realCapacityGb(931).usedSpaceGb(850).build();
+
+        assertThat(HdCapacityPolicy.isNearCapacity(hd)).isTrue();
+    }
 }

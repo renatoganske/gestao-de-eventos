@@ -45,6 +45,7 @@ class HdServiceTest {
                 .id(UUID.randomUUID())
                 .name("HD Externo 1")
                 .capacityGb(2000)
+                .realCapacityGb(1863)
                 .usedSpaceGb(500)
                 .physicalLocation("Estante A")
                 .serialNumber("SN-12345")
@@ -55,6 +56,7 @@ class HdServiceTest {
         createHdDto = new CreateHdDto(
                 hd.getName(),
                 hd.getCapacityGb(),
+                hd.getRealCapacityGb(),
                 hd.getUsedSpaceGb(),
                 hd.getPhysicalLocation(),
                 hd.getSerialNumber(),
@@ -71,6 +73,7 @@ class HdServiceTest {
 
         assertThat(captor.getValue().getName()).isEqualTo(createHdDto.name());
         assertThat(captor.getValue().getCapacityGb()).isEqualTo(createHdDto.capacityGb());
+        assertThat(captor.getValue().getRealCapacityGb()).isEqualTo(1863);
         assertThat(captor.getValue().getUsedSpaceGb()).isEqualTo(createHdDto.usedSpaceGb());
         assertThat(captor.getValue().getPhysicalLocation()).isEqualTo(createHdDto.physicalLocation());
         assertThat(captor.getValue().getSerialNumber()).isEqualTo(createHdDto.serialNumber());
@@ -135,7 +138,7 @@ class HdServiceTest {
     void updateHd_updatesAndReturnsHdWhenFound() {
         UUID id = hd.getId();
         CreateHdDto updateDto = new CreateHdDto(
-                "HD Externo Atualizado", 4000, 1000, "Estante B", "SN-99999",
+                "HD Externo Atualizado", 4000, 3725, 1000, "Estante B", "SN-99999",
                 LocalDate.of(2025, 3, 20), HdStatus.FULL);
         when(hdRepository.findById(id)).thenReturn(Optional.of(hd));
         when(hdRepository.save(any(Hd.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -144,6 +147,7 @@ class HdServiceTest {
 
         assertThat(result.name()).isEqualTo("HD Externo Atualizado");
         assertThat(result.capacityGb()).isEqualTo(4000);
+        assertThat(result.realCapacityGb()).isEqualTo(3725);
         assertThat(result.usedSpaceGb()).isEqualTo(1000);
         assertThat(result.physicalLocation()).isEqualTo("Estante B");
         assertThat(result.serialNumber()).isEqualTo("SN-99999");

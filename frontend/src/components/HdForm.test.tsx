@@ -12,6 +12,7 @@ function makeHd(overrides: Partial<HdDto> = {}): HdDto {
     id: 'hd-1',
     name: 'HD Externo 4',
     capacityGb: 2000,
+    realCapacityGb: 1863,
     usedSpaceGb: 1000,
     physicalLocation: 'Estante A',
     serialNumber: 'SN-1',
@@ -44,11 +45,12 @@ describe('HdForm', () => {
     render(<HdForm onSaved={onSaved} onCancel={vi.fn()} />)
 
     await user.type(screen.getByLabelText('Nome'), 'HD Externo 4')
-    await user.type(screen.getByLabelText('Capacidade (GB)'), '2000')
+    await user.type(screen.getByLabelText('Capacidade nominal (GB)'), '2000')
+    await user.type(screen.getByLabelText('Capacidade real (GB)'), '1863')
     await user.click(screen.getByRole('button', { name: 'Salvar HD' }))
 
     expect(hdsApi.createHd).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'HD Externo 4', capacityGb: 2000, status: 'ACTIVE' }),
+      expect.objectContaining({ name: 'HD Externo 4', capacityGb: 2000, realCapacityGb: 1863, status: 'ACTIVE' }),
     )
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(created))
   })
@@ -62,7 +64,8 @@ describe('HdForm', () => {
     render(<HdForm hd={hd} onSaved={onSaved} onCancel={vi.fn()} />)
 
     expect(screen.getByLabelText('Nome')).toHaveValue('HD Externo 4')
-    expect(screen.getByLabelText('Capacidade (GB)')).toHaveValue(2000)
+    expect(screen.getByLabelText('Capacidade nominal (GB)')).toHaveValue(2000)
+    expect(screen.getByLabelText('Capacidade real (GB)')).toHaveValue(1863)
     expect(screen.getByLabelText('Status')).toHaveValue('ACTIVE')
 
     await user.clear(screen.getByLabelText('Nome'))
@@ -72,6 +75,30 @@ describe('HdForm', () => {
     expect(hdsApi.updateHd).toHaveBeenCalledWith('hd-1', expect.objectContaining({ name: 'HD Externo 4 Renomeado' }))
     expect(hdsApi.createHd).not.toHaveBeenCalled()
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith(updated))
+  })
+
+  it('bloqueia capacidade real maior que a nominal', async () => {
+    const user = userEvent.setup()
+    render(<HdForm onSaved={vi.fn()} onCancel={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Nome'), 'HD')
+    await user.type(screen.getByLabelText('Capacidade nominal (GB)'), '1000')
+    await user.type(screen.getByLabelText('Capacidade real (GB)'), '1200')
+    await user.click(screen.getByRole('button', { name: 'Salvar HD' }))
+    expect(screen.getByText('A capacidade real não pode ser maior que a nominal.')).toBeInTheDocument()
+
+    expect(hdsApi.createHd).not.toHaveBeenCalled()
+  })
+
+  it('envia realCapacityGb nulo quando o campo fica vazio', async () => {
+    vi.mocked(hdsApi.createHd).mockResolvedValue(makeHd())
+    const user = userEvent.setup()
+    render(<HdForm onSaved={vi.fn()} onCancel={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('Nome'), 'HD')
+    await user.click(screen.getByRole('button', { name: 'Salvar HD' }))
+
+    expect(hdsApi.createHd).toHaveBeenCalledWith(expect.objectContaining({ realCapacityGb: null }))
   })
 
   it('mostra a mensagem de erro da API quando o salvamento falha', async () => {

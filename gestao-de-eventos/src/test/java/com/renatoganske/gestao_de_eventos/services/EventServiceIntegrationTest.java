@@ -67,7 +67,7 @@ class EventServiceIntegrationTest {
         CustomerResponseDto customer = customerService.createCustomer(
                 new CreateCustomerDto("Integration Test Customer", null, null, null));
         HdDto hd = hdService.createHd(
-                new CreateHdDto("Integration Test HD", 1000, 0, null, null, null, null));
+                new CreateHdDto("Integration Test HD", 1000, null, 0, null, null, null, null));
         EventVenueDto eventVenue = eventVenueService.createEventVenue(
                 new CreateEventVenueDto("Integration Test Venue", null, null, null, null));
 

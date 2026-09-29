@@ -10,9 +10,10 @@ public final class HdCapacityPolicy {
     }
 
     public static boolean isNearCapacity(Hd hd) {
-        if (hd.getUsedSpaceGb() == null || hd.getCapacityGb() == null) {
+        Integer effectiveCapacityGb = hd.getRealCapacityGb() != null ? hd.getRealCapacityGb() : hd.getCapacityGb();
+        if (hd.getUsedSpaceGb() == null || effectiveCapacityGb == null) {
             return false;
         }
-        return hd.getUsedSpaceGb() >= hd.getCapacityGb() * NEAR_CAPACITY_THRESHOLD;
+        return hd.getUsedSpaceGb() >= effectiveCapacityGb * NEAR_CAPACITY_THRESHOLD;
     }
 }
