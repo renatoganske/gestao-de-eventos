@@ -10,7 +10,7 @@
         {
           "type": "xml",
           "path": "gestao-de-eventos/pom.xml",
-          "xpath": "//project/version"
+          "xpath": "//*[local-name()='project']/*[local-name()='version']"
         }
       ]
     }
