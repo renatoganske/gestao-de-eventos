@@ -32,7 +32,9 @@ src/
   api/          cliente HTTP para a API REST (fetch tipado)
   auth/         login, sessão (JWT em sessionStorage), rota protegida — GDE-32
   components/   componentes de UI reutilizáveis (design system — GDE-21)
-  hooks/        hooks compartilhados (ex.: useFormDraft — persistência de rascunho de formulário)
+  constants/    constantes compartilhadas (ex.: brazilianStates — as 27 UFs do select de Estado)
+  hooks/        hooks compartilhados (ex.: useFormDraft — persistência de rascunho de formulário em sessionStorage; discardFormDraft descarta um rascunho)
+  utils/        funções puras (ex.: hdCapacity — capacidade efetiva e % de uso de um HD)
   pages/        uma tela por rota
   styles/       estilos globais / tokens
   test/         setup global dos testes (Vitest)
