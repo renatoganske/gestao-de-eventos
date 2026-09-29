@@ -20,8 +20,12 @@ import { FormField } from '../components/FormField'
 import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
 import { TopBar } from '../components/TopBar'
+import { WEDDING_TYPE_NAME } from '../constants/eventTypes'
 import { discardFormDraft } from '../hooks/useFormDraft'
 import './EventsPage.css'
+
+// '' = do not filter; 'true' / 'false' = only events where the flag is explicitly that value.
+type WeddingFlagFilter = '' | 'true' | 'false'
 
 interface FilterState {
   eventTypeId: string
@@ -31,6 +35,8 @@ interface FilterState {
   to: string
   hdId: string
   deliveryStatus: '' | DeliveryStatus
+  daytimeWedding: WeddingFlagFilter
+  outdoorWedding: WeddingFlagFilter
 }
 
 const EMPTY_FILTERS: FilterState = {
@@ -41,6 +47,12 @@ const EMPTY_FILTERS: FilterState = {
   to: '',
   hdId: '',
   deliveryStatus: '',
+  daytimeWedding: '',
+  outdoorWedding: '',
+}
+
+function toBooleanParam(value: WeddingFlagFilter): boolean | undefined {
+  return value === '' ? undefined : value === 'true'
 }
 
 interface ReferenceData {
@@ -62,6 +74,8 @@ function toSearchParams(filters: FilterState): SearchEventsParams {
     to: filters.to || undefined,
     hdId: filters.hdId || undefined,
     deliveryStatus: filters.deliveryStatus || undefined,
+    daytimeWedding: toBooleanParam(filters.daytimeWedding),
+    outdoorWedding: toBooleanParam(filters.outdoorWedding),
   }
 }
 
@@ -163,6 +177,22 @@ export function EventsPage() {
     setFilters((current) => ({ ...current, [key]: value }))
   }
 
+  const selectedEventType = referenceData?.eventTypes.find((type) => type.id === filters.eventTypeId)
+  const isWeddingSelected = selectedEventType?.name === WEDDING_TYPE_NAME
+
+  // The wedding flags only make sense for weddings. Changing to another type clears them, so no
+  // hidden filter stays active and silently empties the results.
+  function handleEventTypeChange(eventTypeId: string) {
+    const nextType = referenceData?.eventTypes.find((type) => type.id === eventTypeId)
+    const keepsWeddingFlags = nextType?.name === WEDDING_TYPE_NAME
+    setFilters((current) => ({
+      ...current,
+      eventTypeId,
+      daytimeWedding: keepsWeddingFlags ? current.daytimeWedding : '',
+      outdoorWedding: keepsWeddingFlags ? current.outdoorWedding : '',
+    }))
+  }
+
   function customerName(customerId: string | null): string {
     if (!customerId) {
       return '—'
@@ -213,7 +243,7 @@ export function EventsPage() {
                   <select
                     id="filter-event-type"
                     value={filters.eventTypeId}
-                    onChange={(event) => updateFilter('eventTypeId', event.target.value)}
+                    onChange={(event) => handleEventTypeChange(event.target.value)}
                   >
                     <option value="">Todos</option>
                     {referenceData?.eventTypes.map((type) => (
@@ -279,6 +309,34 @@ export function EventsPage() {
                     ))}
                   </select>
                 </FormField>
+
+                {isWeddingSelected && (
+                  <>
+                    <FormField label="Casamento diurno" htmlFor="filter-daytime-wedding">
+                      <select
+                        id="filter-daytime-wedding"
+                        value={filters.daytimeWedding}
+                        onChange={(event) => updateFilter('daytimeWedding', event.target.value as WeddingFlagFilter)}
+                      >
+                        <option value="">Todos</option>
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                      </select>
+                    </FormField>
+
+                    <FormField label="Casamento ao ar livre" htmlFor="filter-outdoor-wedding">
+                      <select
+                        id="filter-outdoor-wedding"
+                        value={filters.outdoorWedding}
+                        onChange={(event) => updateFilter('outdoorWedding', event.target.value as WeddingFlagFilter)}
+                      >
+                        <option value="">Todos</option>
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                      </select>
+                    </FormField>
+                  </>
+                )}
 
                 <FormField label="Data inicial" htmlFor="filter-from">
                   <input

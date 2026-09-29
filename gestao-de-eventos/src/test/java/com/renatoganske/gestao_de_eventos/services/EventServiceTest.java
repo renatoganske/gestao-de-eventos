@@ -12,6 +12,7 @@ import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.renatoganske.gestao_de_eventos.filters.EventSearchCriteria;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
@@ -585,8 +586,8 @@ class EventServiceTest {
                 .build();
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
-        List<EventDto> result = eventService.searchEvents(
-                weddingType.getId(), null, null, null, null, null, null, null, null);
+        List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
+                weddingType.getId(), null, null, null, null, null, null, null, null, null, null));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(event.getId());
@@ -597,7 +598,7 @@ class EventServiceTest {
         Event other = Event.builder().id(UUID.randomUUID()).name("Aniversario 15 anos").build();
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
-        List<EventDto> result = eventService.searchEvents(null, null, null, null, null, null, null, null, null);
+        List<EventDto> result = eventService.searchEvents(EventSearchCriteria.none());
 
         assertThat(result).hasSize(2);
     }
@@ -611,8 +612,8 @@ class EventServiceTest {
                 .build();
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
-        List<EventDto> result = eventService.searchEvents(
-                null, null, null, null, null, null, null, "maria", null);
+        List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
+                null, null, null, null, null, null, null, "maria", null, null, null));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(event.getId());
@@ -627,10 +628,56 @@ class EventServiceTest {
                 .build();
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
-        List<EventDto> result = eventService.searchEvents(
-                null, null, null, null, null, null, null, null, "evt-001");
+        List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
+                null, null, null, null, null, null, null, null, "evt-001", null, null));
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(event.getId());
+    }
+
+    @Test
+    void searchEvents_byOutdoorWeddingReturnsOnlyExplicitMatches() {
+        Event outdoor = Event.builder().id(UUID.randomUUID()).name("Casamento ao ar livre").outdoorWedding(true).build();
+        Event indoor = Event.builder().id(UUID.randomUUID()).name("Casamento no salao").outdoorWedding(false).build();
+        Event notAWedding = Event.builder().id(UUID.randomUUID()).name("Aniversario 15 anos").build();
+        when(eventRepository.findAll()).thenReturn(List.of(outdoor, indoor, notAWedding));
+
+        List<EventDto> onlyOutdoor = eventService.searchEvents(new EventSearchCriteria(
+                null, null, null, null, null, null, null, null, null, null, true));
+        List<EventDto> onlyIndoor = eventService.searchEvents(new EventSearchCriteria(
+                null, null, null, null, null, null, null, null, null, null, false));
+
+        assertThat(onlyOutdoor).extracting(EventDto::id).containsExactly(outdoor.getId());
+        assertThat(onlyIndoor).extracting(EventDto::id).containsExactly(indoor.getId());
+    }
+
+    @Test
+    void searchEvents_byDaytimeWeddingReturnsOnlyExplicitMatches() {
+        Event daytime = Event.builder().id(UUID.randomUUID()).name("Casamento de dia").daytimeWedding(true).build();
+        Event night = Event.builder().id(UUID.randomUUID()).name("Casamento a noite").daytimeWedding(false).build();
+        Event notAWedding = Event.builder().id(UUID.randomUUID()).name("Aniversario 15 anos").build();
+        when(eventRepository.findAll()).thenReturn(List.of(daytime, night, notAWedding));
+
+        List<EventDto> onlyDaytime = eventService.searchEvents(new EventSearchCriteria(
+                null, null, null, null, null, null, null, null, null, true, null));
+        List<EventDto> onlyNight = eventService.searchEvents(new EventSearchCriteria(
+                null, null, null, null, null, null, null, null, null, false, null));
+
+        assertThat(onlyDaytime).extracting(EventDto::id).containsExactly(daytime.getId());
+        assertThat(onlyNight).extracting(EventDto::id).containsExactly(night.getId());
+    }
+
+    @Test
+    void searchEvents_weddingFlagsCombineWithOtherFilters() {
+        Event outdoorDaytime = Event.builder().id(UUID.randomUUID()).type(weddingType)
+                .daytimeWedding(true).outdoorWedding(true).build();
+        Event outdoorNight = Event.builder().id(UUID.randomUUID()).type(weddingType)
+                .daytimeWedding(false).outdoorWedding(true).build();
+        when(eventRepository.findAll()).thenReturn(List.of(outdoorDaytime, outdoorNight));
+
+        List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
+                weddingType.getId(), null, null, null, null, null, null, null, null, true, true));
+
+        assertThat(result).extracting(EventDto::id).containsExactly(outdoorDaytime.getId());
     }
 }

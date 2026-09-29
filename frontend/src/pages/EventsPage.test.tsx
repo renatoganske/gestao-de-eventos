@@ -207,6 +207,120 @@ describe('EventsPage', () => {
     )
   })
 
+  describe('filtros de casamento diurno e ao ar livre (GDE-47)', () => {
+    beforeEach(() => {
+      vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
+        { id: 'type-wedding', name: 'WEDDING' },
+        { id: 'type-birthday', name: 'BIRTHDAY' },
+      ])
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    })
+
+    it('esconde os dois filtros enquanto o tipo não for casamento', async () => {
+      renderEventsPage()
+
+      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+      expect(screen.queryByLabelText('Casamento diurno')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Casamento ao ar livre')).not.toBeInTheDocument()
+
+      await userEvent.setup().selectOptions(screen.getByLabelText('Tipo'), 'type-birthday')
+
+      expect(screen.queryByLabelText('Casamento diurno')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Casamento ao ar livre')).not.toBeInTheDocument()
+    })
+
+    it('mostra os dois filtros, com Todos/Sim/Não, quando o tipo é casamento', async () => {
+      const user = userEvent.setup()
+      renderEventsPage()
+      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
+
+      for (const label of ['Casamento diurno', 'Casamento ao ar livre']) {
+        const select = screen.getByLabelText(label)
+        expect(select).toHaveValue('')
+        expect(Array.from(select.querySelectorAll('option')).map((option) => option.textContent)).toEqual([
+          'Todos',
+          'Sim',
+          'Não',
+        ])
+      }
+    })
+
+    it('envia true e false à busca, sem descartar o Não', async () => {
+      const user = userEvent.setup()
+      renderEventsPage()
+      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
+      await user.selectOptions(screen.getByLabelText('Casamento diurno'), 'true')
+      await user.selectOptions(screen.getByLabelText('Casamento ao ar livre'), 'false')
+      await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+      await waitFor(() =>
+        expect(eventsApi.searchEvents).toHaveBeenLastCalledWith(
+          expect.objectContaining({ eventTypeId: 'type-wedding', daytimeWedding: true, outdoorWedding: false }),
+        ),
+      )
+    })
+
+    it('não envia os parâmetros de casamento enquanto ficarem em Todos', async () => {
+      const user = userEvent.setup()
+      renderEventsPage()
+      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
+      await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+      await waitFor(() =>
+        expect(eventsApi.searchEvents).toHaveBeenLastCalledWith(
+          expect.objectContaining({ eventTypeId: 'type-wedding', daytimeWedding: undefined, outdoorWedding: undefined }),
+        ),
+      )
+    })
+
+    it('limpa os dois filtros e os esconde ao trocar o tipo para um que não é casamento', async () => {
+      const user = userEvent.setup()
+      renderEventsPage()
+      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
+      await user.selectOptions(screen.getByLabelText('Casamento ao ar livre'), 'true')
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-birthday')
+
+      expect(screen.queryByLabelText('Casamento ao ar livre')).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+      await waitFor(() =>
+        expect(eventsApi.searchEvents).toHaveBeenLastCalledWith(
+          expect.objectContaining({ eventTypeId: 'type-birthday', outdoorWedding: undefined }),
+        ),
+      )
+
+      // voltando para casamento, o filtro reaparece zerado (não "lembra" o Sim anterior)
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
+      expect(screen.getByLabelText('Casamento ao ar livre')).toHaveValue('')
+    })
+
+    it('"Limpar filtros" zera e esconde os filtros de casamento', async () => {
+      const user = userEvent.setup()
+      renderEventsPage()
+      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
+      await user.selectOptions(screen.getByLabelText('Casamento diurno'), 'true')
+      await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+      expect(screen.queryByLabelText('Casamento diurno')).not.toBeInTheDocument()
+      await waitFor(() =>
+        expect(eventsApi.searchEvents).toHaveBeenLastCalledWith(
+          expect.objectContaining({ eventTypeId: undefined, daytimeWedding: undefined, outdoorWedding: undefined }),
+        ),
+      )
+    })
+  })
+
   it('mostra o nome do cliente na coluna Cliente, e "—" quando o evento não tem cliente vinculado', async () => {
     vi.mocked(eventsApi.searchEvents).mockResolvedValue([
       makeEvent({ id: 'evt-with-customer', eventCode: 'EVT-018', customerId: 'customer-1' }),

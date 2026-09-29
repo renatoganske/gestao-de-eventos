@@ -65,6 +65,8 @@ export interface SearchEventsParams {
   deliveryStatus?: DeliveryStatus
   customerName?: string
   eventCode?: string
+  daytimeWedding?: boolean
+  outdoorWedding?: boolean
 }
 
 function buildSearchQuery(params: SearchEventsParams): string {
@@ -95,6 +97,13 @@ function buildSearchQuery(params: SearchEventsParams): string {
   }
   if (params.eventCode) {
     query.set('eventCode', params.eventCode)
+  }
+  // false is a real filter value ("only explicitly not daytime/outdoor"), so test for undefined, not falsiness.
+  if (params.daytimeWedding !== undefined) {
+    query.set('daytimeWedding', String(params.daytimeWedding))
+  }
+  if (params.outdoorWedding !== undefined) {
+    query.set('outdoorWedding', String(params.outdoorWedding))
   }
   const queryString = query.toString()
   return queryString ? `?${queryString}` : ''
