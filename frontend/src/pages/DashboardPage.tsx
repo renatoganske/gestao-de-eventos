@@ -7,6 +7,7 @@ import { Card } from '../components/Card'
 import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
 import { TopBar } from '../components/TopBar'
+import { effectiveCapacityGb, usagePercent } from '../utils/hdCapacity'
 import './DashboardPage.css'
 
 function toIsoDate(date: Date): string {
@@ -19,10 +20,6 @@ function startOfMonth(date: Date): string {
 
 function endOfMonth(date: Date): string {
   return toIsoDate(new Date(date.getFullYear(), date.getMonth() + 1, 0))
-}
-
-function usagePercent(hd: HdDto): number {
-  return Math.min(100, Math.round((hd.usedSpaceGb / hd.capacityGb) * 100))
 }
 
 interface DashboardData {
@@ -148,7 +145,7 @@ export function DashboardPage() {
                             {hd.name} <span className="mono storage-serial">{hd.serialNumber}</span>
                           </span>
                           <span className="mono">
-                            {hd.usedSpaceGb} / {hd.capacityGb} GB
+                            {hd.usedSpaceGb} / {effectiveCapacityGb(hd) ?? '—'} GB
                           </span>
                         </div>
                         <div className="meter">
