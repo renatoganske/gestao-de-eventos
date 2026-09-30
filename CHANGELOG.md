@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0](https://github.com/renatoganske/gestao-de-eventos/compare/v1.1.1...v1.2.0) (2026-09-30)
+
+
+### Features
+
+* adiciona filtros de casamento diurno e ao ar livre na busca de eventos (GDE-47) ([#75](https://github.com/renatoganske/gestao-de-eventos/issues/75)) ([14008bf](https://github.com/renatoganske/gestao-de-eventos/commit/14008bf1479007af3dc8f7cf9c6c15f7c81efb96))
+* associa profissionais ao evento no formulario de evento (GDE-37) ([#77](https://github.com/renatoganske/gestao-de-eventos/issues/77)) ([2bf8326](https://github.com/renatoganske/gestao-de-eventos/commit/2bf83260b5a4a2107fed3fbeac7fb2150fd7ee3a))
+* tipo de evento define se usa os campos de casamento (GDE-48) ([#76](https://github.com/renatoganske/gestao-de-eventos/issues/76)) ([d1ec157](https://github.com/renatoganske/gestao-de-eventos/commit/d1ec1578d2e6388768ff397146ceefb363716a62))
+
 ## [1.1.1](https://github.com/renatoganske/gestao-de-eventos/compare/v1.1.0...v1.1.1) (2026-09-29)
 
 
