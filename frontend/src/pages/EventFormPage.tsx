@@ -26,7 +26,6 @@ import { Modal } from '../components/Modal'
 import { SimpleNameQuickCreateForm } from '../components/SimpleNameQuickCreateForm'
 import { Toast } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
-import { WEDDING_TYPE_NAME } from '../constants/eventTypes'
 import { useFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
 import './EventFormPage.css'
@@ -192,7 +191,7 @@ export function EventFormPage() {
   }, [id])
 
   const selectedType = referenceData?.eventTypes.find((type) => type.id === form.eventTypeId)
-  const isWedding = selectedType?.name === WEDDING_TYPE_NAME
+  const isWedding = selectedType?.hasWeddingFields === true
 
   function updateField<K extends keyof EventFormState>(key: K, value: EventFormState[K]) {
     setForm({ ...form, [key]: value })
@@ -476,7 +475,8 @@ export function EventFormPage() {
             emptyError="Informe o nome do tipo."
             genericError="Não foi possível criar o tipo. Tente novamente."
             submitLabel="Salvar tipo"
-            onCreate={(name) => createEventType({ name })}
+            checkboxLabel="Usa campos de casamento (diurno e ao ar livre)"
+            onCreate={(name, hasWeddingFields) => createEventType({ name, hasWeddingFields })}
             onCreated={handleEventTypeCreated}
             onCancel={closeQuickCreate}
           />

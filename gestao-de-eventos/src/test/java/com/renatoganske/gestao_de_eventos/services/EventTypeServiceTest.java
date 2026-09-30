@@ -49,7 +49,7 @@ class EventTypeServiceTest {
                 .name("WEDDING")
                 .build();
 
-        createEventTypeDto = new CreateEventTypeDto(eventType.getName());
+        createEventTypeDto = new CreateEventTypeDto(eventType.getName(), null);
     }
 
     @Test
@@ -109,13 +109,61 @@ class EventTypeServiceTest {
     @Test
     void updateEventType_updatesAndReturnsEventTypeWhenFound() {
         UUID id = eventType.getId();
-        CreateEventTypeDto updateDto = new CreateEventTypeDto("BATIZADO");
+        CreateEventTypeDto updateDto = new CreateEventTypeDto("BATIZADO", null);
         when(eventTypeRepository.findById(id)).thenReturn(Optional.of(eventType));
         when(eventTypeRepository.save(any(EventType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         EventTypeDto result = eventTypeService.updateEventType(id, updateDto);
 
         assertThat(result.name()).isEqualTo("BATIZADO");
+    }
+
+    @Test
+    void createEventType_defaultsHasWeddingFieldsToFalseWhenOmitted() {
+        ArgumentCaptor<EventType> captor = ArgumentCaptor.forClass(EventType.class);
+        when(eventTypeRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventTypeDto result = eventTypeService.createEventType(new CreateEventTypeDto("Ensaio", null));
+
+        assertThat(captor.getValue().isHasWeddingFields()).isFalse();
+        assertThat(result.hasWeddingFields()).isFalse();
+    }
+
+    @Test
+    void createEventType_savesHasWeddingFieldsWhenTrue() {
+        ArgumentCaptor<EventType> captor = ArgumentCaptor.forClass(EventType.class);
+        when(eventTypeRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventTypeDto result = eventTypeService.createEventType(new CreateEventTypeDto("Mini Wedding", true));
+
+        assertThat(captor.getValue().isHasWeddingFields()).isTrue();
+        assertThat(result.hasWeddingFields()).isTrue();
+    }
+
+    @Test
+    void updateEventType_setsHasWeddingFieldsWhenProvided() {
+        UUID id = eventType.getId();
+        when(eventTypeRepository.findById(id)).thenReturn(Optional.of(eventType));
+        when(eventTypeRepository.save(any(EventType.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventTypeDto marked = eventTypeService.updateEventType(id, new CreateEventTypeDto("WEDDING", true));
+        assertThat(marked.hasWeddingFields()).isTrue();
+
+        EventTypeDto unmarked = eventTypeService.updateEventType(id, new CreateEventTypeDto("WEDDING", false));
+        assertThat(unmarked.hasWeddingFields()).isFalse();
+    }
+
+    @Test
+    void updateEventType_keepsCurrentHasWeddingFieldsWhenOmitted() {
+        UUID id = eventType.getId();
+        eventType.setHasWeddingFields(true);
+        when(eventTypeRepository.findById(id)).thenReturn(Optional.of(eventType));
+        when(eventTypeRepository.save(any(EventType.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventTypeDto renamed = eventTypeService.updateEventType(id, new CreateEventTypeDto("Casamento", null));
+
+        assertThat(renamed.name()).isEqualTo("Casamento");
+        assertThat(renamed.hasWeddingFields()).isTrue();
     }
 
     @Test

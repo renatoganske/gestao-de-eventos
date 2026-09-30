@@ -18,8 +18,8 @@ vi.mock('../api/customers')
 
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
-    { id: 'type-wedding', name: 'WEDDING' },
-    { id: 'type-other', name: 'PHOTO_SHOOT' },
+    { id: 'type-wedding', name: 'WEDDING', hasWeddingFields: true },
+    { id: 'type-other', name: 'PHOTO_SHOOT', hasWeddingFields: false },
   ])
   vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
     { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null },
@@ -182,7 +182,7 @@ describe('EventFormPage', () => {
   })
 
   it('permite cadastrar um tipo de evento inline pelo botão "+ Novo" e seleciona o tipo criado', async () => {
-    vi.mocked(eventTypesApi.createEventType).mockResolvedValue({ id: 'type-new', name: 'FORMATURA' })
+    vi.mocked(eventTypesApi.createEventType).mockResolvedValue({ id: 'type-new', name: 'FORMATURA', hasWeddingFields: false })
     const user = userEvent.setup()
     renderForm('/eventos/novo')
 
@@ -195,11 +195,51 @@ describe('EventFormPage', () => {
     await user.type(within(modal).getByLabelText('Nome'), 'FORMATURA')
     await user.click(within(modal).getByRole('button', { name: 'Salvar tipo' }))
 
-    await waitFor(() => expect(eventTypesApi.createEventType).toHaveBeenCalledWith({ name: 'FORMATURA' }))
+    await waitFor(() => expect(eventTypesApi.createEventType).toHaveBeenCalledWith({ name: 'FORMATURA', hasWeddingFields: false }))
     expect(screen.queryByRole('dialog', { name: 'Novo tipo de evento' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Tipo')).toHaveValue('type-new')
     expect(screen.getByRole('option', { name: 'FORMATURA' })).toBeInTheDocument()
     expect(await screen.findByText('Tipo criado e selecionado.')).toBeInTheDocument()
+  })
+
+  it('cria um tipo já marcado como "usa campos de casamento" e passa a mostrar as flags de casamento (GDE-48)', async () => {
+    vi.mocked(eventTypesApi.createEventType).mockResolvedValue({ id: 'type-mini', name: 'Mini Wedding', hasWeddingFields: true })
+    const user = userEvent.setup()
+    renderForm('/eventos/novo')
+
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+    expect(screen.queryByLabelText('Casamento diurno?')).not.toBeInTheDocument()
+
+    const typeField = screen.getByLabelText('Tipo').closest('.form-field') as HTMLElement
+    await user.click(within(typeField).getByRole('button', { name: '+ Novo' }))
+
+    const modal = await screen.findByRole('dialog', { name: 'Novo tipo de evento' })
+    await user.type(within(modal).getByLabelText('Nome'), 'Mini Wedding')
+    await user.click(within(modal).getByLabelText('Usa campos de casamento (diurno e ao ar livre)'))
+    await user.click(within(modal).getByRole('button', { name: 'Salvar tipo' }))
+
+    await waitFor(() =>
+      expect(eventTypesApi.createEventType).toHaveBeenCalledWith({ name: 'Mini Wedding', hasWeddingFields: true }),
+    )
+    expect(await screen.findByLabelText('Casamento diurno?')).toBeInTheDocument()
+    expect(screen.getByLabelText('Casamento ao ar livre?')).toBeInTheDocument()
+  })
+
+  it('decide se mostra as flags de casamento pela marcação do tipo, e não pelo nome (GDE-48)', async () => {
+    vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
+      { id: 'type-mini', name: 'Mini Wedding', hasWeddingFields: true },
+      { id: 'type-legacy', name: 'WEDDING', hasWeddingFields: false },
+    ])
+    const user = userEvent.setup()
+    renderForm('/eventos/novo')
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+    await user.selectOptions(screen.getByLabelText('Tipo'), 'type-mini')
+    expect(screen.getByLabelText('Casamento diurno?')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Tipo'), 'type-legacy')
+    expect(screen.queryByLabelText('Casamento diurno?')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Casamento ao ar livre?')).not.toBeInTheDocument()
   })
 
   it('exibe no modal o erro de nome vazio e o erro 409 ao criar tipo duplicado', async () => {

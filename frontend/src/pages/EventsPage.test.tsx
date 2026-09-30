@@ -40,7 +40,7 @@ function makeEvent(overrides: Partial<EventDto>): EventDto {
 }
 
 function mockReferenceData() {
-  vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-1', name: 'Casamento' }])
+  vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-1', name: 'Casamento', hasWeddingFields: false }])
   vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
     { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null },
   ])
@@ -210,10 +210,28 @@ describe('EventsPage', () => {
   describe('filtros de casamento diurno e ao ar livre (GDE-47)', () => {
     beforeEach(() => {
       vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
-        { id: 'type-wedding', name: 'WEDDING' },
-        { id: 'type-birthday', name: 'BIRTHDAY' },
+        { id: 'type-wedding', name: 'WEDDING', hasWeddingFields: true },
+        { id: 'type-birthday', name: 'BIRTHDAY', hasWeddingFields: false },
       ])
       vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    })
+
+    it('mostra os filtros para qualquer tipo marcado com campos de casamento, mesmo com outro nome, e não pelo nome (GDE-48)', async () => {
+      vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
+        { id: 'type-mini', name: 'Mini Wedding', hasWeddingFields: true },
+        { id: 'type-legacy', name: 'WEDDING', hasWeddingFields: false },
+      ])
+      const user = userEvent.setup()
+      renderEventsPage()
+      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-mini')
+      expect(screen.getByLabelText('Casamento diurno')).toBeInTheDocument()
+      expect(screen.getByLabelText('Casamento ao ar livre')).toBeInTheDocument()
+
+      await user.selectOptions(screen.getByLabelText('Tipo'), 'type-legacy')
+      expect(screen.queryByLabelText('Casamento diurno')).not.toBeInTheDocument()
+      expect(screen.queryByLabelText('Casamento ao ar livre')).not.toBeInTheDocument()
     })
 
     it('esconde os dois filtros enquanto o tipo não for casamento', async () => {
