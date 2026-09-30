@@ -20,6 +20,21 @@ export interface EventTypeDto {
   name: string
 }
 
+export interface EventProfessionalSummaryDto {
+  eventId: string
+  eventCode: string
+  eventName: string
+  professionalId: string
+  professionalName: string
+  roleInEvent: string | null
+}
+
+/** Write-side of the event team: who worked on the event and in which role (ADR-0021). */
+export interface EventProfessionalAssignmentDto {
+  professionalId: string
+  roleInEvent: string | null
+}
+
 export interface EventDto {
   id: string
   eventCode: string
@@ -36,6 +51,7 @@ export interface EventDto {
   hdId: string | null
   eventVenueId: string | null
   customerId: string | null
+  eventProfessionals: EventProfessionalSummaryDto[]
 }
 
 export interface CreateEventDto {
@@ -53,6 +69,11 @@ export interface CreateEventDto {
   hdId: string | null
   eventVenueId: string | null
   customerId: string | null
+  /**
+   * Always sent as an array, even when empty. On update, omitting the field keeps the current team,
+   * while [] clears it (ADR-0021); the form owns the whole team, so it must never omit it.
+   */
+  professionals: EventProfessionalAssignmentDto[]
 }
 
 export interface SearchEventsParams {

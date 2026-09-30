@@ -27,6 +27,7 @@ function makeEvent(overrides: Partial<EventDto>): EventDto {
     hdId: null,
     eventVenueId: null,
     customerId: null,
+    eventProfessionals: [],
     ...overrides,
   }
 }

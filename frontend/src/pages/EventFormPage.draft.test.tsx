@@ -7,13 +7,16 @@ import type { EventDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
 import * as eventVenuesApi from '../api/eventVenues'
 import * as hdsApi from '../api/hds'
+import * as professionalsApi from '../api/professionals'
 import { EventFormPage } from './EventFormPage'
 
 vi.mock('../api/events')
 vi.mock('../api/eventTypes')
 vi.mock('../api/eventVenues')
 vi.mock('../api/hds')
+vi.mock('../api/professionals')
 vi.mock('../api/customers')
+vi.mock('../api/professionalTypes')
 
 const CREATED_EVENT: EventDto = {
   id: 'evt-1',
@@ -31,6 +34,7 @@ const CREATED_EVENT: EventDto = {
   hdId: null,
   eventVenueId: null,
   customerId: 'customer-1',
+  eventProfessionals: [],
 }
 
 function renderForm() {
@@ -68,6 +72,7 @@ describe('EventFormPage - rascunho de novo evento (GDE-41)', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
       { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null },
     ])
+    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([])
   })
 
   it('abre vazio (inclusive Cliente) depois de salvar e reabrir', async () => {
