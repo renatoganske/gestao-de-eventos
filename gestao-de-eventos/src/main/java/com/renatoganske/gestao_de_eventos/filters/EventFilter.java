@@ -61,4 +61,14 @@ public interface EventFilter extends Predicate<Event> {
                 || (e.getEventCode() != null
                         && e.getEventCode().toLowerCase().contains(eventCode.toLowerCase()));
     }
+
+    // The wedding flags are null for events that are not weddings ("not applicable"), so an active
+    // filter only matches an explicit true/false and never a null flag.
+    static EventFilter byDaytimeWedding(Boolean daytimeWedding) {
+        return e -> daytimeWedding == null || daytimeWedding.equals(e.getDaytimeWedding());
+    }
+
+    static EventFilter byOutdoorWedding(Boolean outdoorWedding) {
+        return e -> outdoorWedding == null || outdoorWedding.equals(e.getOutdoorWedding());
+    }
 }

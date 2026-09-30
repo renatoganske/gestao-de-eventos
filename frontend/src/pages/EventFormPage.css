@@ -33,6 +33,29 @@
   gap: 14px;
 }
 
+.event-team {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.event-team-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.event-team-empty {
+  color: var(--text-muted, inherit);
+  font-size: 14px;
+}
+
+.event-team-actions {
+  display: flex;
+}
+
 .event-form-actions {
   display: flex;
   justify-content: flex-end;
@@ -50,5 +73,9 @@
 
   .event-form-grid .span-2 {
     grid-column: span 1;
+  }
+
+  .event-team-row {
+    grid-template-columns: 1fr;
   }
 }

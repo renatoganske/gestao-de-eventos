@@ -10,6 +10,7 @@ import java.util.UUID;
  */
 public record EventTypeDto(
         UUID id,
-        String name
+        String name,
+        boolean hasWeddingFields
 ) implements Serializable {
 }

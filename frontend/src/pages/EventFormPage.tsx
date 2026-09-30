@@ -14,23 +14,26 @@ import {
 import { createEventType, fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
 import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
 import { fetchHds, type HdDto } from '../api/hds'
+import { fetchProfessionals, type ProfessionalDto } from '../api/professionals'
 import { Autocomplete } from '../components/Autocomplete'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Checkbox } from '../components/Checkbox'
 import { CustomerQuickCreateForm } from '../components/CustomerQuickCreateForm'
+import { EventTeamSection } from '../components/EventTeamSection'
 import { EventVenueQuickCreateForm } from '../components/EventVenueQuickCreateForm'
 import { FormField } from '../components/FormField'
 import { HdQuickCreateForm } from '../components/HdQuickCreateForm'
 import { Modal } from '../components/Modal'
+import { ProfessionalQuickCreateForm } from '../components/ProfessionalQuickCreateForm'
 import { SimpleNameQuickCreateForm } from '../components/SimpleNameQuickCreateForm'
 import { Toast } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { useFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
+import { hasRoleWithoutProfessional, teamRowsFromEvent, teamRowsToAssignments, type TeamRow } from '../utils/eventTeam'
 import './EventFormPage.css'
 
-const WEDDING_TYPE_NAME = 'WEDDING'
 const GENERIC_LOAD_ERROR = 'Não foi possível carregar os dados do formulário. Tente novamente em instantes.'
 const GENERIC_SUBMIT_ERROR = 'Não foi possível salvar o evento. Tente novamente.'
 
@@ -49,6 +52,7 @@ interface EventFormState {
   hdId: string
   eventVenueId: string
   customerId: string
+  professionals: TeamRow[]
 }
 
 const EMPTY_FORM_STATE: EventFormState = {
@@ -66,18 +70,20 @@ const EMPTY_FORM_STATE: EventFormState = {
   hdId: '',
   eventVenueId: '',
   customerId: '',
+  professionals: [],
 }
 
-type FormErrors = Partial<Record<'eventCode' | 'eventTypeId' | 'name' | 'eventDate', string>>
+type FormErrors = Partial<Record<'eventCode' | 'eventTypeId' | 'name' | 'eventDate' | 'professionals', string>>
 
 interface ReferenceData {
   eventTypes: EventTypeDto[]
   venues: EventVenueDto[]
   hds: HdDto[]
   customers: CustomerDto[]
+  professionals: ProfessionalDto[]
 }
 
-type QuickCreateTarget = 'customer' | 'venue' | 'hd' | 'eventType' | null
+type QuickCreateTarget = 'customer' | 'venue' | 'hd' | 'eventType' | 'professional' | null
 
 function eventToFormState(event: EventDto): EventFormState {
   return {
@@ -95,6 +101,7 @@ function eventToFormState(event: EventDto): EventFormState {
     hdId: event.hdId ?? '',
     eventVenueId: event.eventVenueId ?? '',
     customerId: event.customerId ?? '',
+    professionals: teamRowsFromEvent(event.eventProfessionals),
   }
 }
 
@@ -114,6 +121,9 @@ function formStateToDto(form: EventFormState, isWedding: boolean): CreateEventDt
     hdId: form.hdId || null,
     eventVenueId: form.eventVenueId || null,
     customerId: form.customerId || null,
+    // Always an array (never omitted): omitting it on update would keep the old team instead of replacing it.
+    // "?? []" covers a draft saved before the team existed.
+    professionals: teamRowsToAssignments(form.professionals ?? []),
   }
 }
 
@@ -130,6 +140,9 @@ function validate(form: EventFormState): FormErrors {
   }
   if (!form.eventDate) {
     errors.eventDate = 'Informe a data do evento.'
+  }
+  if (hasRoleWithoutProfessional(form.professionals ?? [])) {
+    errors.professionals = 'Selecione o profissional em cada linha que tem um papel, ou remova a linha.'
   }
   return errors
 }
@@ -150,6 +163,7 @@ export function EventFormPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [quickCreateTarget, setQuickCreateTarget] = useState<QuickCreateTarget>(null)
+  const [quickCreateTeamRowKey, setQuickCreateTeamRowKey] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -158,17 +172,18 @@ export function EventFormPage() {
       setIsLoading(true)
       setLoadError(null)
       try {
-        const [eventTypes, venues, hds, customers] = await Promise.all([
+        const [eventTypes, venues, hds, customers, professionals] = await Promise.all([
           fetchEventTypes(),
           fetchEventVenues(),
           fetchHds(),
           fetchCustomers(),
+          fetchProfessionals(),
         ])
         const loadedEvent = isEditMode && id ? await fetchEventById(id) : null
         if (cancelled) {
           return
         }
-        setReferenceData({ eventTypes, venues, hds, customers })
+        setReferenceData({ eventTypes, venues, hds, customers, professionals })
         if (loadedEvent && !hasRecoveredDraft) {
           setForm(eventToFormState(loadedEvent))
         }
@@ -192,7 +207,7 @@ export function EventFormPage() {
   }, [id])
 
   const selectedType = referenceData?.eventTypes.find((type) => type.id === form.eventTypeId)
-  const isWedding = selectedType?.name === WEDDING_TYPE_NAME
+  const isWedding = selectedType?.hasWeddingFields === true
 
   function updateField<K extends keyof EventFormState>(key: K, value: EventFormState[K]) {
     setForm({ ...form, [key]: value })
@@ -233,6 +248,26 @@ export function EventFormPage() {
 
   function closeQuickCreate() {
     setQuickCreateTarget(null)
+    setQuickCreateTeamRowKey(null)
+  }
+
+  function openProfessionalQuickCreate(rowKey: string) {
+    setQuickCreateTeamRowKey(rowKey)
+    setQuickCreateTarget('professional')
+  }
+
+  function handleProfessionalCreated(professional: ProfessionalDto) {
+    setReferenceData((current) =>
+      current ? { ...current, professionals: [...current.professionals, professional] } : current,
+    )
+    const rows = form.professionals ?? []
+    updateField(
+      'professionals',
+      rows.map((row) => (row.key === quickCreateTeamRowKey ? { ...row, professionalId: professional.id } : row)),
+    )
+    setQuickCreateTarget(null)
+    setQuickCreateTeamRowKey(null)
+    setToast({ kind: 'success', text: 'Profissional criado e selecionado.' })
   }
 
   function handleEventTypeCreated(eventType: EventTypeDto) {
@@ -416,6 +451,17 @@ export function EventFormPage() {
               </div>
             </Card>
 
+            <Card title="Profissionais">
+              <EventTeamSection
+                rows={form.professionals ?? []}
+                professionals={referenceData?.professionals ?? []}
+                onChange={(rows) => updateField('professionals', rows)}
+                onCreateNew={openProfessionalQuickCreate}
+                disabled={isSubmitting}
+                error={errors.professionals}
+              />
+            </Card>
+
             <Card title="Entrega e armazenamento">
               <div className="event-form-grid">
                 <FormField label="HD" htmlFor="event-hd">
@@ -476,7 +522,8 @@ export function EventFormPage() {
             emptyError="Informe o nome do tipo."
             genericError="Não foi possível criar o tipo. Tente novamente."
             submitLabel="Salvar tipo"
-            onCreate={(name) => createEventType({ name })}
+            checkboxLabel="Usa campos de casamento (diurno e ao ar livre)"
+            onCreate={(name, hasWeddingFields) => createEventType({ name, hasWeddingFields })}
             onCreated={handleEventTypeCreated}
             onCancel={closeQuickCreate}
           />
@@ -490,6 +537,11 @@ export function EventFormPage() {
       {quickCreateTarget === 'venue' && (
         <Modal title="Novo local" onClose={closeQuickCreate}>
           <EventVenueQuickCreateForm onCreated={handleVenueCreated} onCancel={closeQuickCreate} />
+        </Modal>
+      )}
+      {quickCreateTarget === 'professional' && (
+        <Modal title="Novo profissional" onClose={closeQuickCreate}>
+          <ProfessionalQuickCreateForm onCreated={handleProfessionalCreated} onCancel={closeQuickCreate} />
         </Modal>
       )}
       {quickCreateTarget === 'hd' && (

@@ -3,10 +3,13 @@ import { apiFetch } from './client'
 export interface EventTypeDto {
   id: string
   name: string
+  /** Events of this type carry the wedding flags (daytime / outdoor). ADR-0024. */
+  hasWeddingFields: boolean
 }
 
 export interface CreateEventTypeDto {
   name: string
+  hasWeddingFields?: boolean
 }
 
 export function fetchEventTypes(): Promise<EventTypeDto[]> {
