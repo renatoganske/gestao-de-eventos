@@ -21,7 +21,11 @@ public class EventType {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
+    // ADR-0024: whether events of this type carry the wedding-specific flags (daytime / outdoor).
+    @Column(name = "has_wedding_fields", nullable = false)
+    private boolean hasWeddingFields;
+
     public EventTypeDto toResponseDto() {
-        return new EventTypeDto(this.id, this.name);
+        return new EventTypeDto(this.id, this.name, this.hasWeddingFields);
     }
 }

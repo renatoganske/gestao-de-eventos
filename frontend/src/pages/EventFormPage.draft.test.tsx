@@ -62,7 +62,7 @@ describe('EventFormPage - rascunho de novo evento (GDE-41)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     sessionStorage.clear()
-    vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-other', name: 'PHOTO_SHOOT' }])
+    vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-other', name: 'PHOTO_SHOOT', hasWeddingFields: false }])
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([])
     vi.mocked(hdsApi.fetchHds).mockResolvedValue([])
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([

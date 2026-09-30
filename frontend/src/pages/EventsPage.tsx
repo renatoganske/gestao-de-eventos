@@ -20,7 +20,6 @@ import { FormField } from '../components/FormField'
 import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
 import { TopBar } from '../components/TopBar'
-import { WEDDING_TYPE_NAME } from '../constants/eventTypes'
 import { discardFormDraft } from '../hooks/useFormDraft'
 import './EventsPage.css'
 
@@ -178,13 +177,13 @@ export function EventsPage() {
   }
 
   const selectedEventType = referenceData?.eventTypes.find((type) => type.id === filters.eventTypeId)
-  const isWeddingSelected = selectedEventType?.name === WEDDING_TYPE_NAME
+  const isWeddingSelected = selectedEventType?.hasWeddingFields === true
 
   // The wedding flags only make sense for weddings. Changing to another type clears them, so no
   // hidden filter stays active and silently empties the results.
   function handleEventTypeChange(eventTypeId: string) {
     const nextType = referenceData?.eventTypes.find((type) => type.id === eventTypeId)
-    const keepsWeddingFlags = nextType?.name === WEDDING_TYPE_NAME
+    const keepsWeddingFlags = nextType?.hasWeddingFields === true
     setFilters((current) => ({
       ...current,
       eventTypeId,

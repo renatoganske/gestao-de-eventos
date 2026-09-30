@@ -47,6 +47,9 @@ public class EventTypeService {
                 .orElseThrow(() -> new EventTypeNotFoundException(id));
 
         eventType.setName(createEventTypeDto.name());
+        if (createEventTypeDto.hasWeddingFields() != null) {
+            eventType.setHasWeddingFields(createEventTypeDto.hasWeddingFields());
+        }
 
         EventType updatedEventType = eventTypeRepository.save(eventType);
         return updatedEventType.toResponseDto();
