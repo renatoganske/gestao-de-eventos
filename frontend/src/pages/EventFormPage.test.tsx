@@ -8,13 +8,17 @@ import type { EventDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
 import * as eventVenuesApi from '../api/eventVenues'
 import * as hdsApi from '../api/hds'
+import * as professionalsApi from '../api/professionals'
+import * as professionalTypesApi from '../api/professionalTypes'
 import { EventFormPage } from './EventFormPage'
 
 vi.mock('../api/events')
 vi.mock('../api/eventTypes')
 vi.mock('../api/eventVenues')
 vi.mock('../api/hds')
+vi.mock('../api/professionals')
 vi.mock('../api/customers')
+vi.mock('../api/professionalTypes')
 
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
@@ -30,6 +34,11 @@ function mockReferenceData() {
   vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
     { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null },
   ])
+  vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
+    { id: 'prof-1', name: 'Renato Fotógrafo', type: null, contact: null, specialtyTags: [], otherInfo: null },
+    { id: 'prof-2', name: 'Ana Videomaker', type: null, contact: null, specialtyTags: [], otherInfo: null },
+  ])
+  vi.mocked(professionalTypesApi.fetchProfessionalTypes).mockResolvedValue([{ id: 'ptype-1', name: 'Fotógrafo' }])
 }
 
 function makeEvent(overrides: Partial<EventDto> = {}): EventDto {
@@ -49,6 +58,7 @@ function makeEvent(overrides: Partial<EventDto> = {}): EventDto {
     hdId: 'hd-1',
     eventVenueId: 'venue-1',
     customerId: 'customer-1',
+    eventProfessionals: [],
     ...overrides,
   }
 }
@@ -284,5 +294,250 @@ describe('EventFormPage', () => {
       ),
     )
     expect(await screen.findByText('Evento atualizado com sucesso.')).toBeInTheDocument()
+  })
+})
+
+describe('EventFormPage - equipe do evento (GDE-37)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    sessionStorage.clear()
+    mockReferenceData()
+  })
+
+  const EXISTING_TEAM = [
+    {
+      eventId: 'evt-1',
+      eventCode: 'EVT-018',
+      eventName: 'Casamento Maria & João',
+      professionalId: 'prof-1',
+      professionalName: 'Renato Fotógrafo',
+      roleInEvent: 'Fotógrafo principal',
+    },
+  ]
+
+  async function fillBasicFields(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+    await user.type(screen.getByLabelText('Código do evento'), 'EVT-099')
+    await user.selectOptions(screen.getByLabelText('Tipo'), 'type-other')
+    await user.type(screen.getByLabelText('Nome do evento'), 'Ensaio Externo')
+    await user.type(screen.getByLabelText('Data do evento'), '2026-11-20')
+  }
+
+  async function pickProfessional(user: ReturnType<typeof userEvent.setup>, rowLabel: string, name: string) {
+    await user.click(screen.getByLabelText(rowLabel))
+    await user.click(await screen.findByRole('option', { name }))
+  }
+
+  it('começa sem ninguém na equipe e permite adicionar e remover linhas', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await waitFor(() => expect(screen.getByText('Nenhum profissional adicionado.')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    expect(screen.getByLabelText('Profissional 1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Profissional 2')).toBeInTheDocument()
+    expect(screen.queryByText('Nenhum profissional adicionado.')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remover profissional 1' }))
+    expect(screen.getByLabelText('Profissional 1')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Profissional 2')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remover profissional 1' }))
+    expect(screen.getByText('Nenhum profissional adicionado.')).toBeInTheDocument()
+  })
+
+  it('ao criar sem equipe, envia professionals como array vazio, nunca omitido', async () => {
+    vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await fillBasicFields(user)
+
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() => expect(eventsApi.createEvent).toHaveBeenCalledWith(expect.objectContaining({ professionals: [] })))
+  })
+
+  it('envia a equipe montada, com papel quando informado e null quando não', async () => {
+    vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await fillBasicFields(user)
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    await pickProfessional(user, 'Profissional 1', 'Renato Fotógrafo')
+    await user.type(screen.getByLabelText('Papel 1'), '  Fotógrafo principal  ')
+    await pickProfessional(user, 'Profissional 2', 'Ana Videomaker')
+
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() =>
+      expect(eventsApi.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          professionals: [
+            { professionalId: 'prof-1', roleInEvent: 'Fotógrafo principal' },
+            { professionalId: 'prof-2', roleInEvent: null },
+          ],
+        }),
+      ),
+    )
+  })
+
+  it('descarta uma linha totalmente vazia em vez de enviar um profissional em branco', async () => {
+    vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await fillBasicFields(user)
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() => expect(eventsApi.createEvent).toHaveBeenCalledWith(expect.objectContaining({ professionals: [] })))
+  })
+
+  it('não oferece em outra linha um profissional que já foi escolhido, evitando a duplicidade', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Adicionar profissional' })).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    await pickProfessional(user, 'Profissional 1', 'Renato Fotógrafo')
+
+    await user.click(screen.getByLabelText('Profissional 2'))
+    expect(await screen.findByRole('option', { name: 'Ana Videomaker' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Renato Fotógrafo' })).not.toBeInTheDocument()
+
+    // a própria linha continua vendo a sua escolha
+    await user.click(screen.getByLabelText('Profissional 1'))
+    expect(await screen.findByRole('option', { name: 'Renato Fotógrafo' })).toBeInTheDocument()
+  })
+
+  it('mostra um erro e não submete quando uma linha tem papel mas nenhum profissional', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await fillBasicFields(user)
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    await user.type(screen.getByLabelText('Papel 1'), 'Assistente')
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    expect(
+      screen.getByText('Selecione o profissional em cada linha que tem um papel, ou remova a linha.'),
+    ).toBeInTheDocument()
+    expect(eventsApi.createEvent).not.toHaveBeenCalled()
+  })
+
+  it('no modo edição, pré-preenche a equipe a partir do evento', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
+    renderForm('/eventos/evt-1')
+
+    await waitFor(() => expect(screen.getByLabelText('Profissional 1')).toHaveValue('Renato Fotógrafo'))
+    expect(screen.getByLabelText('Papel 1')).toHaveValue('Fotógrafo principal')
+  })
+
+  it('no modo edição, salvar sem mexer na equipe reenvia a equipe atual, sem omiti-la', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
+    vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+    await waitFor(() => expect(screen.getByLabelText('Profissional 1')).toHaveValue('Renato Fotógrafo'))
+
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() =>
+      expect(eventsApi.updateEvent).toHaveBeenCalledWith(
+        'evt-1',
+        expect.objectContaining({ professionals: [{ professionalId: 'prof-1', roleInEvent: 'Fotógrafo principal' }] }),
+      ),
+    )
+  })
+
+  it('no modo edição, remover todas as linhas esvazia a equipe enviando [] (e não omitindo)', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
+    vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ eventProfessionals: [] }))
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+    await waitFor(() => expect(screen.getByLabelText('Profissional 1')).toHaveValue('Renato Fotógrafo'))
+
+    await user.click(screen.getByRole('button', { name: 'Remover profissional 1' }))
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() =>
+      expect(eventsApi.updateEvent).toHaveBeenCalledWith('evt-1', expect.objectContaining({ professionals: [] })),
+    )
+  })
+
+  it('abre normalmente um rascunho salvo antes de a equipe existir, sem quebrar nem perder o restante', async () => {
+    sessionStorage.setItem(
+      'gde_draft:event-create',
+      JSON.stringify({
+        eventCode: 'EVT-777',
+        eventTypeId: 'type-other',
+        name: 'Rascunho antigo',
+        eventDate: '2026-12-01',
+        daytimeWedding: false,
+        outdoorWedding: false,
+        guestCount: '',
+        description: '',
+        amount: '',
+        sizeGb: '',
+        deliveryStatus: 'PENDING',
+        hdId: '',
+        eventVenueId: '',
+        customerId: '',
+      }),
+    )
+    vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+
+    await waitFor(() => expect(screen.getByLabelText('Nome do evento')).toHaveValue('Rascunho antigo'))
+    expect(screen.getByText('Nenhum profissional adicionado.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() =>
+      expect(eventsApi.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ eventCode: 'EVT-777', professionals: [] }),
+      ),
+    )
+  })
+
+  it('cadastra um profissional inline pelo "+ Novo" da linha e o seleciona nela', async () => {
+    vi.mocked(professionalsApi.createProfessional).mockResolvedValue({
+      id: 'prof-3',
+      name: 'Bia Assistente',
+      type: { id: 'ptype-1', name: 'Fotógrafo' },
+      contact: null,
+      specialtyTags: [],
+      otherInfo: null,
+    })
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Adicionar profissional' })).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar profissional' }))
+    const row = screen.getByLabelText('Profissional 1').closest('.event-team-row') as HTMLElement
+    await user.click(within(row).getByRole('button', { name: '+ Novo' }))
+
+    const modal = await screen.findByRole('dialog', { name: 'Novo profissional' })
+    await user.type(within(modal).getByLabelText('Nome'), 'Bia Assistente')
+    await user.selectOptions(await within(modal).findByLabelText('Tipo'), 'ptype-1')
+    await user.click(within(modal).getByRole('button', { name: 'Salvar profissional' }))
+
+    await waitFor(() =>
+      expect(professionalsApi.createProfessional).toHaveBeenCalledWith({
+        name: 'Bia Assistente',
+        typeId: 'ptype-1',
+        contact: null,
+        specialtyTagIds: [],
+        otherInfo: null,
+      }),
+    )
+    expect(screen.queryByRole('dialog', { name: 'Novo profissional' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Profissional 1')).toHaveValue('Bia Assistente')
+    expect(await screen.findByText('Profissional criado e selecionado.')).toBeInTheDocument()
   })
 })
