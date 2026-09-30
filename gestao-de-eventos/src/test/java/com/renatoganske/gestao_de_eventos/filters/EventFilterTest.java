@@ -177,6 +177,83 @@ class EventFilterTest {
         assertThat(EventFilter.byEventCode("  ").test(otherEvent())).isTrue();
     }
 
+    private Event weddingWithFlags(Boolean daytime, Boolean outdoor) {
+        return Event.builder()
+                .id(UUID.randomUUID())
+                .type(weddingType)
+                .daytimeWedding(daytime)
+                .outdoorWedding(outdoor)
+                .build();
+    }
+
+    @Test
+    void byOutdoorWedding_trueMatchesOnlyExplicitTrue() {
+        EventFilter filter = EventFilter.byOutdoorWedding(true);
+
+        assertThat(filter.test(weddingWithFlags(null, true))).isTrue();
+        assertThat(filter.test(weddingWithFlags(null, false))).isFalse();
+    }
+
+    @Test
+    void byOutdoorWedding_falseMatchesOnlyExplicitFalse() {
+        EventFilter filter = EventFilter.byOutdoorWedding(false);
+
+        assertThat(filter.test(weddingWithFlags(null, false))).isTrue();
+        assertThat(filter.test(weddingWithFlags(null, true))).isFalse();
+    }
+
+    @Test
+    void byOutdoorWedding_activeFilterExcludesEventsWithNullFlag() {
+        assertThat(EventFilter.byOutdoorWedding(true).test(otherEvent())).isFalse();
+        assertThat(EventFilter.byOutdoorWedding(false).test(otherEvent())).isFalse();
+    }
+
+    @Test
+    void byOutdoorWedding_nullMatchesEverything() {
+        assertThat(EventFilter.byOutdoorWedding(null).test(weddingWithFlags(null, true))).isTrue();
+        assertThat(EventFilter.byOutdoorWedding(null).test(weddingWithFlags(null, false))).isTrue();
+        assertThat(EventFilter.byOutdoorWedding(null).test(otherEvent())).isTrue();
+    }
+
+    @Test
+    void byDaytimeWedding_trueMatchesOnlyExplicitTrue() {
+        EventFilter filter = EventFilter.byDaytimeWedding(true);
+
+        assertThat(filter.test(weddingWithFlags(true, null))).isTrue();
+        assertThat(filter.test(weddingWithFlags(false, null))).isFalse();
+    }
+
+    @Test
+    void byDaytimeWedding_falseMatchesOnlyExplicitFalse() {
+        EventFilter filter = EventFilter.byDaytimeWedding(false);
+
+        assertThat(filter.test(weddingWithFlags(false, null))).isTrue();
+        assertThat(filter.test(weddingWithFlags(true, null))).isFalse();
+    }
+
+    @Test
+    void byDaytimeWedding_activeFilterExcludesEventsWithNullFlag() {
+        assertThat(EventFilter.byDaytimeWedding(true).test(otherEvent())).isFalse();
+        assertThat(EventFilter.byDaytimeWedding(false).test(otherEvent())).isFalse();
+    }
+
+    @Test
+    void byDaytimeWedding_nullMatchesEverything() {
+        assertThat(EventFilter.byDaytimeWedding(null).test(weddingWithFlags(true, null))).isTrue();
+        assertThat(EventFilter.byDaytimeWedding(null).test(weddingWithFlags(false, null))).isTrue();
+        assertThat(EventFilter.byDaytimeWedding(null).test(otherEvent())).isTrue();
+    }
+
+    @Test
+    void weddingFlagFilters_combineIndependently() {
+        Predicate<Event> outdoorAndDaytime = EventFilter.byOutdoorWedding(true)
+                .and(EventFilter.byDaytimeWedding(true));
+
+        assertThat(outdoorAndDaytime.test(weddingWithFlags(true, true))).isTrue();
+        assertThat(outdoorAndDaytime.test(weddingWithFlags(true, false))).isFalse();
+        assertThat(outdoorAndDaytime.test(weddingWithFlags(false, true))).isFalse();
+    }
+
     @Test
     void combinedFilters_matchOnlyWhenAllCriteriaMatch() {
         Predicate<Event> filter = EventFilter.byType(weddingType.getId())
@@ -196,7 +273,9 @@ class EventFilterTest {
                 .and(EventFilter.byHd(null))
                 .and(EventFilter.byDeliveryStatus(null))
                 .and(EventFilter.byCustomerName(null))
-                .and(EventFilter.byEventCode(null));
+                .and(EventFilter.byEventCode(null))
+                .and(EventFilter.byDaytimeWedding(null))
+                .and(EventFilter.byOutdoorWedding(null));
 
         assertThat(filter.test(weddingEvent())).isTrue();
         assertThat(filter.test(otherEvent())).isTrue();

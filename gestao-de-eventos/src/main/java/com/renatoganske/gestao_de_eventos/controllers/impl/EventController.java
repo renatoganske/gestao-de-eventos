@@ -4,6 +4,7 @@ import com.renatoganske.gestao_de_eventos.controllers.IEventController;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.renatoganske.gestao_de_eventos.filters.EventSearchCriteria;
 import com.renatoganske.gestao_de_eventos.services.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,9 +38,12 @@ public class EventController implements IEventController {
     @Override
     public ResponseEntity<List<EventDto>> search(UUID eventTypeId, UUID venueId, UUID professionalId,
                                                   LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus,
-                                                  String customerName, String eventCode) {
-        return ResponseEntity.ok(eventService.searchEvents(
-                eventTypeId, venueId, professionalId, from, to, hdId, deliveryStatus, customerName, eventCode));
+                                                  String customerName, String eventCode,
+                                                  Boolean daytimeWedding, Boolean outdoorWedding) {
+        EventSearchCriteria criteria = new EventSearchCriteria(
+                eventTypeId, venueId, professionalId, from, to, hdId, deliveryStatus,
+                customerName, eventCode, daytimeWedding, outdoorWedding);
+        return ResponseEntity.ok(eventService.searchEvents(criteria));
     }
 
     @Override

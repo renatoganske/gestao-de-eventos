@@ -26,11 +26,11 @@ import { Modal } from '../components/Modal'
 import { SimpleNameQuickCreateForm } from '../components/SimpleNameQuickCreateForm'
 import { Toast } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
+import { WEDDING_TYPE_NAME } from '../constants/eventTypes'
 import { useFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
 import './EventFormPage.css'
 
-const WEDDING_TYPE_NAME = 'WEDDING'
 const GENERIC_LOAD_ERROR = 'Não foi possível carregar os dados do formulário. Tente novamente em instantes.'
 const GENERIC_SUBMIT_ERROR = 'Não foi possível salvar o evento. Tente novamente.'
 

@@ -11,7 +11,6 @@ import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
-import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
@@ -19,6 +18,7 @@ import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalNotFoundException;
 import com.renatoganske.gestao_de_eventos.filters.EventFilter;
+import com.renatoganske.gestao_de_eventos.filters.EventSearchCriteria;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventProfessionalRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
@@ -31,7 +31,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -131,17 +130,17 @@ public class EventService {
         adjustHdUsedSpace(hd, sizeGb == null ? null : -sizeGb);
     }
 
-    public List<EventDto> searchEvents(UUID eventTypeId, UUID venueId, UUID professionalId,
-                                        LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus,
-                                        String customerName, String eventCode) {
-        Predicate<Event> filter = EventFilter.byType(eventTypeId)
-                .and(EventFilter.byVenue(venueId))
-                .and(EventFilter.byProfessional(professionalId))
-                .and(EventFilter.byPeriod(from, to))
-                .and(EventFilter.byHd(hdId))
-                .and(EventFilter.byDeliveryStatus(deliveryStatus))
-                .and(EventFilter.byCustomerName(customerName))
-                .and(EventFilter.byEventCode(eventCode));
+    public List<EventDto> searchEvents(EventSearchCriteria criteria) {
+        Predicate<Event> filter = EventFilter.byType(criteria.eventTypeId())
+                .and(EventFilter.byVenue(criteria.venueId()))
+                .and(EventFilter.byProfessional(criteria.professionalId()))
+                .and(EventFilter.byPeriod(criteria.from(), criteria.to()))
+                .and(EventFilter.byHd(criteria.hdId()))
+                .and(EventFilter.byDeliveryStatus(criteria.deliveryStatus()))
+                .and(EventFilter.byCustomerName(criteria.customerName()))
+                .and(EventFilter.byEventCode(criteria.eventCode()))
+                .and(EventFilter.byDaytimeWedding(criteria.daytimeWedding()))
+                .and(EventFilter.byOutdoorWedding(criteria.outdoorWedding()));
 
         return eventRepository.findAll().stream()
                 .filter(filter)
