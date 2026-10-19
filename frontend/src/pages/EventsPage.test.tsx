@@ -34,7 +34,7 @@ function makeEvent(overrides: Partial<EventDto>): EventDto {
     deliveryStatus: 'PENDING',
     hdId: null,
     eventVenueId: null,
-    customerId: null,
+    customers: [],
     eventProfessionals: [],
     ...overrides,
   }
@@ -340,16 +340,23 @@ describe('EventsPage', () => {
     })
   })
 
-  it('mostra o nome do cliente na coluna Cliente, e "—" quando o evento não tem cliente vinculado', async () => {
+  it('mostra todos os clientes na coluna Clientes (contratante primeiro), e "—" quando o evento não tem cliente', async () => {
     vi.mocked(eventsApi.searchEvents).mockResolvedValue([
-      makeEvent({ id: 'evt-with-customer', eventCode: 'EVT-018', customerId: 'customer-1' }),
-      makeEvent({ id: 'evt-without-customer', eventCode: 'EVT-019', customerId: null }),
+      makeEvent({
+        id: 'evt-with-customer',
+        eventCode: 'EVT-018',
+        customers: [
+          { customerId: 'customer-1', customerName: 'Maria Silva', contracting: true },
+          { customerId: 'customer-2', customerName: 'Joao Silva', contracting: false },
+        ],
+      }),
+      makeEvent({ id: 'evt-without-customer', eventCode: 'EVT-019', customers: [] }),
     ])
 
     renderEventsPage()
 
-    await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
-    expect(screen.getByRole('columnheader', { name: 'Cliente' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Maria Silva, Joao Silva')).toBeInTheDocument())
+    expect(screen.getByRole('columnheader', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: 'Evento' })).not.toBeInTheDocument()
 
     const rows = screen.getAllByRole('row')

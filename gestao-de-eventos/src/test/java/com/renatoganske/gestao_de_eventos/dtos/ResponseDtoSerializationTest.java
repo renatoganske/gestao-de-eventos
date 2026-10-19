@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
+import com.renatoganske.gestao_de_eventos.entities.EventCustomerId;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessionalId;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
@@ -46,7 +48,6 @@ class ResponseDtoSerializationTest {
                 .name("Casamento Maria e Joao")
                 .eventDate(LocalDate.of(2026, 10, 15))
                 .deliveryStatus(DeliveryStatus.PENDING)
-                .customer(customer)
                 .eventVenue(eventVenue)
                 .hd(hd)
                 .build();
@@ -58,9 +59,17 @@ class ResponseDtoSerializationTest {
                 .roleInEvent("Fotografo principal")
                 .build();
 
+        EventCustomer eventCustomer = EventCustomer.builder()
+                .id(new EventCustomerId(event.getId(), customer.getId()))
+                .event(event)
+                .customer(customer)
+                .contracting(true)
+                .build();
+
         // fecha os ciclos bidirecionais que estouravam StackOverflowError antes da ADR-0011
         event.setEventProfessionals(List.of(eventProfessional));
-        customer.setEvents(List.of(event));
+        event.setEventCustomers(List.of(eventCustomer));
+        customer.setEventCustomers(List.of(eventCustomer));
         eventVenue.setEvents(List.of(event));
         hd.setEvents(List.of(event));
         professional.setEventProfessionals(List.of(eventProfessional));
@@ -81,9 +90,15 @@ class ResponseDtoSerializationTest {
                 .id(UUID.randomUUID())
                 .eventCode("EVT-001")
                 .name("Casamento Maria e Joao")
-                .customer(customer)
                 .build();
-        customer.setEvents(List.of(event));
+        EventCustomer eventCustomer = EventCustomer.builder()
+                .id(new EventCustomerId(event.getId(), customer.getId()))
+                .event(event)
+                .customer(customer)
+                .contracting(true)
+                .build();
+        event.setEventCustomers(List.of(eventCustomer));
+        customer.setEventCustomers(List.of(eventCustomer));
 
         String json = objectMapper.writeValueAsString(customer.toResponseDto());
 

@@ -52,6 +52,27 @@
   font-size: 14px;
 }
 
+.event-customers {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.event-customer-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.event-customer-contracting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  font-size: 14px;
+}
+
 .event-team-actions {
   display: flex;
 }
@@ -75,7 +96,8 @@
     grid-column: span 1;
   }
 
-  .event-team-row {
+  .event-team-row,
+  .event-customer-row {
     grid-template-columns: 1fr;
   }
 }

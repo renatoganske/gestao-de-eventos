@@ -9,7 +9,6 @@ import {
   type EventDto,
   type SearchEventsParams,
 } from '../api/events'
-import { fetchCustomers, type CustomerDto } from '../api/customers'
 import { fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
 import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
 import { fetchHds, type HdDto } from '../api/hds'
@@ -21,6 +20,7 @@ import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
 import { TopBar } from '../components/TopBar'
 import { discardFormDraft } from '../hooks/useFormDraft'
+import { customerNames } from '../utils/eventCustomers'
 import './EventsPage.css'
 
 // '' = do not filter; 'true' / 'false' = only events where the flag is explicitly that value.
@@ -59,7 +59,6 @@ interface ReferenceData {
   venues: EventVenueDto[]
   professionals: ProfessionalDto[]
   hds: HdDto[]
-  customers: CustomerDto[]
 }
 
 const GENERIC_ERROR_MESSAGE = 'Não foi possível buscar os eventos. Tente novamente em instantes.'
@@ -117,18 +116,17 @@ export function EventsPage() {
       setIsLoading(true)
       setError(null)
       try {
-        const [eventTypes, venues, professionals, hds, customers] = await Promise.all([
+        const [eventTypes, venues, professionals, hds] = await Promise.all([
           fetchEventTypes(),
           fetchEventVenues(),
           fetchProfessionals(),
           fetchHds(),
-          fetchCustomers(),
         ])
         const initialEvents = await performSearch('', EMPTY_FILTERS)
         if (cancelled) {
           return
         }
-        setReferenceData({ eventTypes, venues, professionals, hds, customers })
+        setReferenceData({ eventTypes, venues, professionals, hds })
         setEvents(initialEvents)
       } catch (err) {
         if (cancelled) {
@@ -192,12 +190,6 @@ export function EventsPage() {
     }))
   }
 
-  function customerName(customerId: string | null): string {
-    if (!customerId) {
-      return '—'
-    }
-    return referenceData?.customers.find((customer) => customer.id === customerId)?.name ?? '—'
-  }
 
   return (
     <section>
@@ -380,7 +372,7 @@ export function EventsPage() {
             <Table
               columns={[
                 { key: 'code', header: 'Código', render: (row) => <span className="mono">{row.eventCode}</span> },
-                { key: 'customer', header: 'Cliente', render: (row) => customerName(row.customerId) },
+                { key: 'customer', header: 'Clientes', render: (row) => customerNames(row.customers) || '—' },
                 { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—' },
                 { key: 'date', header: 'Data', render: (row) => <span className="mono">{row.eventDate}</span> },
                 {

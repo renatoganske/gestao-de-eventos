@@ -35,6 +35,19 @@ export interface EventProfessionalAssignmentDto {
   roleInEvent: string | null
 }
 
+/** A customer linked to the event; at most one of them is the one who hired it (ADR-0025). */
+export interface EventCustomerSummaryDto {
+  customerId: string
+  customerName: string
+  contracting: boolean
+}
+
+/** Write-side of the event's customers. */
+export interface EventCustomerAssignmentDto {
+  customerId: string
+  contracting: boolean
+}
+
 export interface EventDto {
   id: string
   eventCode: string
@@ -50,7 +63,8 @@ export interface EventDto {
   deliveryStatus: DeliveryStatus
   hdId: string | null
   eventVenueId: string | null
-  customerId: string | null
+  /** Contracting customer first. */
+  customers: EventCustomerSummaryDto[]
   eventProfessionals: EventProfessionalSummaryDto[]
 }
 
@@ -68,7 +82,8 @@ export interface CreateEventDto {
   deliveryStatus: DeliveryStatus
   hdId: string | null
   eventVenueId: string | null
-  customerId: string | null
+  /** Same rule as `professionals`: always sent, [] removes every customer (ADR-0025). */
+  customers: EventCustomerAssignmentDto[]
   /**
    * Always sent as an array, even when empty. On update, omitting the field keeps the current team,
    * while [] clears it (ADR-0021); the form owns the whole team, so it must never omit it.
