@@ -57,7 +57,7 @@ function makeEvent(overrides: Partial<EventDto> = {}): EventDto {
     deliveryStatus: 'PENDING',
     hdId: 'hd-1',
     eventVenueId: 'venue-1',
-    customerId: 'customer-1',
+    customers: [{ customerId: 'customer-1', customerName: 'Maria Silva', contracting: true }],
     eventProfessionals: [],
     ...overrides,
   }
@@ -169,9 +169,10 @@ describe('EventFormPage', () => {
     const user = userEvent.setup({ delay: null })
     renderForm('/eventos/novo')
 
-    await waitFor(() => expect(screen.getByLabelText('Cliente')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Adicionar cliente' })).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
 
-    const customerField = screen.getByLabelText('Cliente').closest('.form-field') as HTMLElement
+    const customerField = screen.getByLabelText('Cliente 1').closest('.form-field') as HTMLElement
     await user.click(within(customerField).getByRole('button', { name: '+ Novo' }))
 
     const modal = await screen.findByRole('dialog', { name: 'Novo cliente' })
@@ -187,7 +188,7 @@ describe('EventFormPage', () => {
       }),
     )
     expect(screen.queryByRole('dialog', { name: 'Novo cliente' })).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Cliente')).toHaveValue('Cliente Novo')
+    expect(screen.getByLabelText('Cliente 1')).toHaveValue('Cliente Novo')
     expect(await screen.findByText('Cliente criado e selecionado.')).toBeInTheDocument()
   })
 
@@ -280,7 +281,8 @@ describe('EventFormPage', () => {
 
     await waitFor(() => expect(screen.getByLabelText('Nome do evento')).toHaveValue('Casamento Maria & João'))
     expect(screen.getByLabelText('Código do evento')).toHaveValue('EVT-018')
-    expect(screen.getByLabelText('Cliente')).toHaveValue('Maria Silva')
+    expect(screen.getByLabelText('Cliente 1')).toHaveValue('Maria Silva')
+    expect(screen.getByLabelText('Cliente 1 é o contratante')).toBeChecked()
     expect(screen.getByLabelText('Casamento diurno?')).toBeChecked()
 
     await user.clear(screen.getByLabelText('Nome do evento'))
@@ -294,6 +296,137 @@ describe('EventFormPage', () => {
       ),
     )
     expect(await screen.findByText('Evento atualizado com sucesso.')).toBeInTheDocument()
+  })
+})
+
+describe('EventFormPage - vários clientes por evento (GDE-49)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    sessionStorage.clear()
+    mockReferenceData()
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null },
+      { id: 'customer-2', name: 'Joao Silva', contact: null, address: null, notes: null },
+    ])
+  })
+
+  async function fillBasicFields(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+    await user.type(screen.getByLabelText('Código do evento'), 'EVT-099')
+    await user.selectOptions(screen.getByLabelText('Tipo'), 'type-other')
+    await user.type(screen.getByLabelText('Nome do evento'), 'Casamento Maria e Joao')
+    await user.type(screen.getByLabelText('Data do evento'), '2026-11-20')
+  }
+
+  async function pickCustomer(user: ReturnType<typeof userEvent.setup>, rowLabel: string, name: string) {
+    await user.click(screen.getByLabelText(rowLabel))
+    await user.click(await screen.findByRole('option', { name }))
+  }
+
+  it('ao criar sem clientes, envia customers como array vazio, nunca omitido', async () => {
+    vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await fillBasicFields(user)
+    expect(screen.getByText('Nenhum cliente adicionado.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() => expect(eventsApi.createEvent).toHaveBeenCalledWith(expect.objectContaining({ customers: [] })))
+  })
+
+  it('envia cada pessoa como um cliente, com o primeiro adicionado marcado como contratante', async () => {
+    vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await fillBasicFields(user)
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
+    await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
+    await pickCustomer(user, 'Cliente 1', 'Maria Silva')
+    await pickCustomer(user, 'Cliente 2', 'Joao Silva')
+    expect(screen.getByLabelText('Cliente 1 é o contratante')).toBeChecked()
+    expect(screen.getByLabelText('Cliente 2 é o contratante')).not.toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() =>
+      expect(eventsApi.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customers: [
+            { customerId: 'customer-1', contracting: true },
+            { customerId: 'customer-2', contracting: false },
+          ],
+        }),
+      ),
+    )
+  })
+
+  it('marcar outro cliente como contratante desmarca o anterior (no máximo um)', async () => {
+    vi.mocked(eventsApi.createEvent).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await fillBasicFields(user)
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
+    await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
+    await pickCustomer(user, 'Cliente 1', 'Maria Silva')
+    await pickCustomer(user, 'Cliente 2', 'Joao Silva')
+    await user.click(screen.getByLabelText('Cliente 2 é o contratante'))
+    expect(screen.getByLabelText('Cliente 1 é o contratante')).not.toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() =>
+      expect(eventsApi.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customers: [
+            { customerId: 'customer-1', contracting: false },
+            { customerId: 'customer-2', contracting: true },
+          ],
+        }),
+      ),
+    )
+  })
+
+  it('não oferece em outra linha um cliente que já foi escolhido', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/novo')
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Adicionar cliente' })).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
+    await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
+    await pickCustomer(user, 'Cliente 1', 'Maria Silva')
+
+    await user.click(screen.getByLabelText('Cliente 2'))
+    expect(await screen.findByRole('option', { name: 'Joao Silva' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Maria Silva' })).not.toBeInTheDocument()
+  })
+
+  it('no modo edição, pré-preenche os clientes e remover todos envia [] (e não omite)', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(
+      makeEvent({
+        customers: [
+          { customerId: 'customer-2', customerName: 'Joao Silva', contracting: true },
+          { customerId: 'customer-1', customerName: 'Maria Silva', contracting: false },
+        ],
+      }),
+    )
+    vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ customers: [] }))
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+
+    await waitFor(() => expect(screen.getByLabelText('Cliente 1')).toHaveValue('Joao Silva'))
+    expect(screen.getByLabelText('Cliente 2')).toHaveValue('Maria Silva')
+    expect(screen.getByLabelText('Cliente 1 é o contratante')).toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: 'Remover cliente 2' }))
+    await user.click(screen.getByRole('button', { name: 'Remover cliente 1' }))
+    await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
+
+    await waitFor(() =>
+      expect(eventsApi.updateEvent).toHaveBeenCalledWith('evt-1', expect.objectContaining({ customers: [] })),
+    )
   })
 })
 

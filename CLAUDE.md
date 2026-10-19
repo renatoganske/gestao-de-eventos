@@ -44,7 +44,7 @@ Run from `frontend/` (React + TypeScript + Vite SPA, ADR-0012 — see `frontend/
 
 **Which resources have a full controller/service is a moving target — check `controllers/` (and its `impl/` subpackage) and `services/` for the current, authoritative list rather than trusting an enumeration in this doc.** Use the `Customer` stack (`ICustomerController` / `CustomerController` / `CustomerService`) as the template when building out a new resource's controller/service.
 
-**Entity relationships:** `Event` is the central entity — `@ManyToOne` to `Customer`, `Hd`, and `EventVenue`. The `Event`↔`Professional` relationship is not a plain `@ManyToMany`; GDE-6 replaced it with an `EventProfessional` association entity (composite key `EventProfessionalId`, table `TB_EVENT_PROFESSIONAL`) carrying a `roleInEvent` field, with `Event.eventProfessionals` as the `@OneToMany` side. All entity IDs are `UUID` with `GenerationType.AUTO`.
+**Entity relationships:** `Event` is the central entity — `@ManyToOne` to `Hd` and `EventVenue`. The `Event`↔`Professional` relationship is not a plain `@ManyToMany`; GDE-6 replaced it with an `EventProfessional` association entity (composite key `EventProfessionalId`, table `TB_EVENT_PROFESSIONAL`) carrying a `roleInEvent` field, with `Event.eventProfessionals` as the `@OneToMany` side. `Event`↔`Customer` follows the same pattern since GDE-49 (ADR-0025): `EventCustomer` (composite key `EventCustomerId`, table `TB_EVENT_CUSTOMER`) with a `contracting` flag (at most one per event), `Event.eventCustomers` as the `@OneToMany` side — one customer per person, several per event. All entity IDs are `UUID` with `GenerationType.AUTO`.
 
 ## Development workflow
 

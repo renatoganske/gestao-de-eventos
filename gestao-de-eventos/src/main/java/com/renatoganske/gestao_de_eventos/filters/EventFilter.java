@@ -52,8 +52,9 @@ public interface EventFilter extends Predicate<Event> {
 
     static EventFilter byCustomerName(String customerName) {
         return e -> customerName == null || customerName.isBlank()
-                || (e.getCustomer() != null && e.getCustomer().getName() != null
-                        && e.getCustomer().getName().toLowerCase().contains(customerName.toLowerCase()));
+                || (e.getEventCustomers() != null && e.getEventCustomers().stream()
+                        .anyMatch(ec -> ec.getCustomer() != null && ec.getCustomer().getName() != null
+                                && ec.getCustomer().getName().toLowerCase().contains(customerName.toLowerCase())));
     }
 
     static EventFilter byEventCode(String eventCode) {

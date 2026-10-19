@@ -1,11 +1,15 @@
 package com.renatoganske.gestao_de_eventos.services;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventCustomerAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalSummaryDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
+import com.renatoganske.gestao_de_eventos.entities.EventCustomerId;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
@@ -20,6 +24,7 @@ import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalNotFoundException;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
+import com.renatoganske.gestao_de_eventos.repositories.EventCustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventProfessionalRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
@@ -75,6 +80,9 @@ class EventServiceTest {
     @Mock
     private EventProfessionalRepository eventProfessionalRepository;
 
+    @Mock
+    private EventCustomerRepository eventCustomerRepository;
+
     @InjectMocks
     private EventService eventService;
 
@@ -116,8 +124,8 @@ class EventServiceTest {
                 .deliveryStatus(DeliveryStatus.PENDING)
                 .hd(hd)
                 .eventVenue(eventVenue)
-                .customer(customer)
                 .build();
+        event.setEventCustomers(List.of(link(event, customer, true)));
 
         createEventDto = new CreateEventDto(
                 event.getEventCode(),
@@ -133,7 +141,7 @@ class EventServiceTest {
                 event.getDeliveryStatus(),
                 hd.getId(),
                 eventVenue.getId(),
-                customer.getId(), null);
+                List.of(new EventCustomerAssignmentDto(customer.getId(), true)), null);
     }
 
     @Test
@@ -143,6 +151,8 @@ class EventServiceTest {
         when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
         ArgumentCaptor<Event> captor = ArgumentCaptor.forClass(Event.class);
         when(eventRepository.save(captor.capture())).thenReturn(event);
+        ArgumentCaptor<List<EventCustomer>> customersCaptor = ArgumentCaptor.forClass(List.class);
+        when(eventCustomerRepository.saveAll(customersCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
         EventDto result = eventService.createEvent(createEventDto);
 
@@ -153,7 +163,9 @@ class EventServiceTest {
         assertThat(captor.getValue().getDeliveryStatus()).isEqualTo(createEventDto.deliveryStatus());
         assertThat(captor.getValue().getHd()).isEqualTo(hd);
         assertThat(captor.getValue().getEventVenue()).isEqualTo(eventVenue);
-        assertThat(captor.getValue().getCustomer()).isEqualTo(customer);
+        assertThat(customersCaptor.getValue())
+                .extracting(EventCustomer::getCustomer, EventCustomer::isContracting)
+                .containsExactly(tuple(customer, true));
 
         assertThat(result.id()).isEqualTo(event.getId());
         assertThat(result.name()).isEqualTo(event.getName());
@@ -173,7 +185,7 @@ class EventServiceTest {
 
         assertThat(captor.getValue().getHd()).isNull();
         assertThat(captor.getValue().getEventVenue()).isNull();
-        assertThat(captor.getValue().getCustomer()).isNull();
+        verify(eventCustomerRepository, never()).saveAll(any());
         verify(hdRepository, never()).save(any());
     }
 
@@ -211,14 +223,15 @@ class EventServiceTest {
         CreateEventDto dto = new CreateEventDto(
                 "EVT-004", null, "Evento sem cliente valido", null,
                 null, null, null, null, null, null, null,
-                null, null, missingCustomerId, null);
+                null, null, List.of(new EventCustomerAssignmentDto(missingCustomerId, true)), null);
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
         when(customerRepository.findById(missingCustomerId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> eventService.createEvent(dto))
                 .isInstanceOf(CustomerNotFoundException.class)
                 .hasMessageContaining(missingCustomerId.toString());
 
-        verify(eventRepository, never()).save(any());
+        verify(eventCustomerRepository, never()).saveAll(any());
     }
 
     @Test
@@ -327,8 +340,9 @@ class EventServiceTest {
                 DeliveryStatus.DELIVERED,
                 hd.getId(),
                 eventVenue.getId(),
-                customer.getId(), null);
+                List.of(new EventCustomerAssignmentDto(customer.getId(), true)), null);
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventCustomerRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
         when(eventVenueRepository.findById(eventVenue.getId())).thenReturn(Optional.of(eventVenue));
@@ -342,7 +356,9 @@ class EventServiceTest {
         assertThat(result.name()).isEqualTo("Aniversario Ana");
         assertThat(result.sizeGb()).isEqualTo(20);
         assertThat(result.deliveryStatus()).isEqualTo(DeliveryStatus.DELIVERED);
-        assertThat(result.customerId()).isEqualTo(customer.getId());
+        assertThat(result.customers())
+                .extracting(EventCustomerSummaryDto::customerId, EventCustomerSummaryDto::contracting)
+                .containsExactly(tuple(customer.getId(), true));
     }
 
     @Test
@@ -563,6 +579,131 @@ class EventServiceTest {
         inOrder.verify(eventRepository).delete(event);
     }
 
+    @Test
+    void createEvent_withSeveralCustomers_persistsOneAssociationEachWithTheContractingFlag() {
+        Customer partner = Customer.builder().id(UUID.randomUUID()).name("Joao Silva").build();
+        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
+        when(customerRepository.findById(partner.getId())).thenReturn(Optional.of(partner));
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
+        ArgumentCaptor<List<EventCustomer>> captor = ArgumentCaptor.forClass(List.class);
+        when(eventCustomerRepository.saveAll(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        eventService.createEvent(dtoWithCustomers(List.of(
+                new EventCustomerAssignmentDto(customer.getId(), true),
+                new EventCustomerAssignmentDto(partner.getId(), null))));
+
+        assertThat(captor.getValue()).allSatisfy(association -> {
+            assertThat(association.getId().eventId()).isEqualTo(event.getId());
+            assertThat(association.getEvent()).isSameAs(event);
+        });
+        assertThat(captor.getValue())
+                .extracting(association -> association.getId().customerId(), EventCustomer::isContracting)
+                .containsExactly(tuple(customer.getId(), true), tuple(partner.getId(), false));
+    }
+
+    @Test
+    void createEvent_withSeveralCustomers_listsTheContractingOneFirstInTheResponseDto() {
+        Customer partner = Customer.builder().id(UUID.randomUUID()).name("Joao Silva").build();
+        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
+        when(customerRepository.findById(partner.getId())).thenReturn(Optional.of(partner));
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
+        when(eventCustomerRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventDto result = eventService.createEvent(dtoWithCustomers(List.of(
+                new EventCustomerAssignmentDto(partner.getId(), false),
+                new EventCustomerAssignmentDto(customer.getId(), true))));
+
+        assertThat(result.customers())
+                .extracting(EventCustomerSummaryDto::customerName, EventCustomerSummaryDto::contracting)
+                .containsExactly(tuple("Maria Silva", true), tuple("Joao Silva", false));
+    }
+
+    @Test
+    void createEvent_withRepeatedCustomer_keepsASingleAssociationMarkedContractingIfAnyIs() {
+        when(customerRepository.findById(customer.getId())).thenReturn(Optional.of(customer));
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
+        ArgumentCaptor<List<EventCustomer>> captor = ArgumentCaptor.forClass(List.class);
+        when(eventCustomerRepository.saveAll(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        eventService.createEvent(dtoWithCustomers(List.of(
+                new EventCustomerAssignmentDto(customer.getId(), true),
+                new EventCustomerAssignmentDto(customer.getId(), false))));
+
+        assertThat(captor.getValue())
+                .extracting(EventCustomer::getCustomer, EventCustomer::isContracting)
+                .containsExactly(tuple(customer, true));
+    }
+
+    @Test
+    void updateEvent_withEmptyCustomers_removesThemAll() {
+        UUID id = event.getId();
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ArgumentCaptor<List<EventCustomer>> captor = ArgumentCaptor.forClass(List.class);
+        when(eventCustomerRepository.saveAll(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventDto result = eventService.updateEvent(id, dtoWithCustomers(List.of()));
+
+        verify(eventCustomerRepository, times(1)).deleteByEvent_Id(id);
+        verify(eventCustomerRepository, times(1)).flush();
+        assertThat(captor.getValue()).isEmpty();
+        assertThat(result.customers()).isEmpty();
+    }
+
+    @Test
+    void updateEvent_withNullCustomers_keepsTheCurrentOnes() {
+        UUID id = event.getId();
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventDto result = eventService.updateEvent(id, dtoWithCustomers(null));
+
+        verify(eventCustomerRepository, never()).deleteByEvent_Id(any());
+        verify(eventCustomerRepository, never()).saveAll(any());
+        assertThat(result.customers()).extracting(EventCustomerSummaryDto::customerId).containsExactly(customer.getId());
+    }
+
+    @Test
+    void deleteEvent_removesCustomerAssociationsBeforeDeletingTheEvent() {
+        UUID id = event.getId();
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        InOrder inOrder = inOrder(eventCustomerRepository, eventRepository);
+
+        eventService.deleteEvent(id);
+
+        inOrder.verify(eventCustomerRepository).deleteByEvent_Id(id);
+        inOrder.verify(eventCustomerRepository).flush();
+        inOrder.verify(eventRepository).delete(event);
+    }
+
+    @Test
+    void searchEvents_byCustomerNameMatchesAnyOfTheEventsCustomers() {
+        Customer partner = Customer.builder().id(UUID.randomUUID()).name("Joao Pereira").build();
+        event.setEventCustomers(List.of(link(event, customer, true), link(event, partner, false)));
+        when(eventRepository.findAll()).thenReturn(List.of(event));
+
+        List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
+                null, null, null, null, null, null, null, "pereira", null, null, null));
+
+        assertThat(result).extracting(EventDto::id).containsExactly(event.getId());
+    }
+
+    private CreateEventDto dtoWithCustomers(List<EventCustomerAssignmentDto> customers) {
+        return new CreateEventDto(
+                "EVT-200", null, "Evento com clientes", null,
+                null, null, null, null, null, null, null,
+                null, null, customers, null);
+    }
+
+    private static EventCustomer link(Event event, Customer customer, boolean contracting) {
+        return EventCustomer.builder()
+                .id(new EventCustomerId(event.getId(), customer.getId()))
+                .event(event)
+                .customer(customer)
+                .contracting(contracting)
+                .build();
+    }
+
     private CreateEventDto dtoWithProfessionals(List<EventProfessionalAssignmentDto> professionals) {
         return new CreateEventDto(
                 "EVT-100", null, "Evento com equipe", null,
@@ -608,8 +749,9 @@ class EventServiceTest {
         Event other = Event.builder()
                 .id(UUID.randomUUID())
                 .name("Aniversario 15 anos")
-                .customer(Customer.builder().name("Ana Souza").build())
                 .build();
+        other.setEventCustomers(List.of(
+                link(other, Customer.builder().id(UUID.randomUUID()).name("Ana Souza").build(), true)));
         when(eventRepository.findAll()).thenReturn(List.of(event, other));
 
         List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(

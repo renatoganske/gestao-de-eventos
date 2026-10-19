@@ -1,5 +1,6 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
+import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class EventTest {
 
@@ -37,9 +39,14 @@ class EventTest {
                 .deliveryStatus(DeliveryStatus.PENDING)
                 .hd(hd)
                 .eventVenue(eventVenue)
-                .customer(customer)
                 .eventProfessionals(eventProfessionals)
                 .build();
+        Customer partner = Customer.builder().id(UUID.randomUUID()).name("Bruno").build();
+        event.setEventCustomers(List.of(
+                EventCustomer.builder().id(new EventCustomerId(id, partner.getId()))
+                        .event(event).customer(partner).contracting(false).build(),
+                EventCustomer.builder().id(new EventCustomerId(id, customer.getId()))
+                        .event(event).customer(customer).contracting(true).build()));
 
         EventDto dto = event.toDTO();
 
@@ -58,7 +65,13 @@ class EventTest {
         assertThat(dto.deliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(dto.hdId()).isEqualTo(hd.getId());
         assertThat(dto.eventVenueId()).isEqualTo(eventVenue.getId());
-        assertThat(dto.customerId()).isEqualTo(customer.getId());
+        // contracting customer comes first regardless of the association order
+        assertThat(dto.customers())
+                .extracting(EventCustomerSummaryDto::customerId, EventCustomerSummaryDto::customerName,
+                        EventCustomerSummaryDto::contracting)
+                .containsExactly(
+                        tuple(customer.getId(), "Ana e Bruno", true),
+                        tuple(partner.getId(), "Bruno", false));
         assertThat(dto.eventProfessionals()).isEmpty();
     }
 }

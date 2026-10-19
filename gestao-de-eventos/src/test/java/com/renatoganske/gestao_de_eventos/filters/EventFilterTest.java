@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.filters;
 
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
+import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
@@ -35,8 +36,10 @@ class EventFilterTest {
                 .eventVenue(EventVenue.builder().id(venueId).build())
                 .hd(Hd.builder().id(hdId).build())
                 .deliveryStatus(DeliveryStatus.PENDING)
-                .customer(Customer.builder().name("Maria Silva").build())
                 .build();
+        event.setEventCustomers(List.of(
+                EventCustomer.builder().event(event).customer(Customer.builder().name("Maria Silva").build()).build(),
+                EventCustomer.builder().event(event).customer(Customer.builder().name("Joao Pereira").build()).build()));
         EventProfessional eventProfessional = EventProfessional.builder()
                 .event(event)
                 .professional(professional)
@@ -46,7 +49,7 @@ class EventFilterTest {
     }
 
     private Event otherEvent() {
-        return Event.builder()
+        Event event = Event.builder()
                 .id(UUID.randomUUID())
                 .eventCode("EVT-002")
                 .type(birthdayType)
@@ -54,9 +57,11 @@ class EventFilterTest {
                 .eventVenue(EventVenue.builder().id(UUID.randomUUID()).build())
                 .hd(Hd.builder().id(UUID.randomUUID()).build())
                 .deliveryStatus(DeliveryStatus.DELIVERED)
-                .customer(Customer.builder().name("Ana Souza").build())
                 .eventProfessionals(List.of())
                 .build();
+        event.setEventCustomers(List.of(
+                EventCustomer.builder().event(event).customer(Customer.builder().name("Ana Souza").build()).build()));
+        return event;
     }
 
     @Test
@@ -150,6 +155,12 @@ class EventFilterTest {
         assertThat(EventFilter.byCustomerName("maria").test(weddingEvent())).isTrue();
         assertThat(EventFilter.byCustomerName("SILVA").test(weddingEvent())).isTrue();
         assertThat(EventFilter.byCustomerName("maria").test(otherEvent())).isFalse();
+    }
+
+    @Test
+    void byCustomerName_matchesAnyOfTheEventsCustomers() {
+        assertThat(EventFilter.byCustomerName("pereira").test(weddingEvent())).isTrue();
+        assertThat(EventFilter.byCustomerName("pereira").test(otherEvent())).isFalse();
     }
 
     @Test
