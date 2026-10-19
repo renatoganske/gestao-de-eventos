@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/renatoganske/gestao-de-eventos/compare/v1.2.0...v2.0.0) (2026-10-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* customerId sai de CreateEventDto e EventDto; no lugar entram customers (assignments na escrita, summaries na leitura).
+
+### Features
+
+* evento passa a ter varios clientes, um marcado como contratante (GDE-49) ([16bd3b8](https://github.com/renatoganske/gestao-de-eventos/commit/16bd3b80149d47323af8b5d11503d74939dc956d))
+
 ## [1.2.0](https://github.com/renatoganske/gestao-de-eventos/compare/v1.1.1...v1.2.0) (2026-09-30)
 
 
