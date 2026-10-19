@@ -2,7 +2,9 @@ package com.renatoganske.gestao_de_eventos.dtos;
 
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 
 import java.io.Serializable;
@@ -27,9 +29,24 @@ public record CreateEventDto(
         DeliveryStatus deliveryStatus,
         UUID hdId,
         UUID eventVenueId,
-        UUID customerId,
+        @Valid List<EventCustomerAssignmentDto> customers,
         @Valid List<EventProfessionalAssignmentDto> professionals
 ) implements Serializable {
+    /**
+     * An event has at most one contracting customer (ADR-0025); the database enforces it too, but
+     * rejecting it here turns the mistake into a 400 with a message instead of a 409.
+     */
+    @JsonIgnore
+    @AssertTrue(message = "at most one customer can be marked as contracting")
+    public boolean isAtMostOneContractingCustomer() {
+        return this.customers == null
+                || this.customers.stream()
+                        .filter(c -> c != null && c.isContracting())
+                        .map(EventCustomerAssignmentDto::customerId)
+                        .distinct()
+                        .count() <= 1;
+    }
+
     public Event toEntity() {
         return Event.builder()
                 .eventCode(this.eventCode())

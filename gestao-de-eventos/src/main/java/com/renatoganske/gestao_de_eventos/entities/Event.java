@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -56,9 +57,8 @@ public class Event {
     @JoinColumn(name = "event_venue_id")
     private EventVenue eventVenue;
 
-    @ManyToOne
-    @JoinColumn(name = "customer_id")
-    private Customer customer;
+    @OneToMany(mappedBy = "event")
+    private List<EventCustomer> eventCustomers;
 
     @OneToMany(mappedBy = "event")
     private List<EventProfessional> eventProfessionals;
@@ -79,7 +79,11 @@ public class Event {
                 this.deliveryStatus,
                 this.hd != null ? this.hd.getId() : null,
                 this.eventVenue != null ? this.eventVenue.getId() : null,
-                this.customer != null ? this.customer.getId() : null,
+                this.eventCustomers == null ? List.of() : this.eventCustomers.stream()
+                        // contracting customer first, so lists and labels can just take the head
+                        .sorted(Comparator.comparing((EventCustomer ec) -> !ec.isContracting()))
+                        .map(EventCustomer::toDTO)
+                        .collect(Collectors.toList()),
                 this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
                         .map(EventProfessional::toDTO)
                         .collect(Collectors.toList())

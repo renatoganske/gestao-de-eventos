@@ -88,4 +88,40 @@ class CreateDtoValidationTest {
         assertThat(validator.validate(withoutProfessionalId)).isNotEmpty();
         assertThat(validator.validate(withProfessionalId)).isEmpty();
     }
+
+    @Test
+    void createEventDto_rejectsCustomerAssignmentWithoutCustomerId() {
+        assertThat(validator.validate(eventWithCustomers(List.of(new EventCustomerAssignmentDto(null, true)))))
+                .isNotEmpty();
+        assertThat(validator.validate(eventWithCustomers(List.of(new EventCustomerAssignmentDto(UUID.randomUUID(), null)))))
+                .isEmpty();
+    }
+
+    @Test
+    void createEventDto_rejectsTwoDifferentContractingCustomers() {
+        Set<ConstraintViolation<CreateEventDto>> violations = validator.validate(eventWithCustomers(List.of(
+                new EventCustomerAssignmentDto(UUID.randomUUID(), true),
+                new EventCustomerAssignmentDto(UUID.randomUUID(), true))));
+
+        assertThat(violations)
+                .extracting(ConstraintViolation::getMessage)
+                .containsExactly("at most one customer can be marked as contracting");
+    }
+
+    @Test
+    void createEventDto_acceptsOneContractingCustomerAmongOthers_andTheSameOneRepeated() {
+        UUID bride = UUID.randomUUID();
+
+        assertThat(validator.validate(eventWithCustomers(List.of(
+                new EventCustomerAssignmentDto(bride, true),
+                new EventCustomerAssignmentDto(UUID.randomUUID(), false),
+                new EventCustomerAssignmentDto(bride, true))))).isEmpty();
+        assertThat(validator.validate(eventWithCustomers(null))).isEmpty();
+    }
+
+    private static CreateEventDto eventWithCustomers(List<EventCustomerAssignmentDto> customers) {
+        return new CreateEventDto(
+                "EVT-001", null, "Casamento Maria e Joao", null, null, null, null, null, null, null, null,
+                null, null, customers, null);
+    }
 }

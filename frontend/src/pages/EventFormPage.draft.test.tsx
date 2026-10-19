@@ -33,7 +33,7 @@ const CREATED_EVENT: EventDto = {
   deliveryStatus: 'PENDING',
   hdId: null,
   eventVenueId: null,
-  customerId: 'customer-1',
+  customers: [{ customerId: 'customer-1', customerName: 'Maria Silva', contracting: true }],
   eventProfessionals: [],
 }
 
@@ -51,14 +51,15 @@ function renderForm() {
 async function fillCustomer(user: ReturnType<typeof userEvent.setup>) {
   await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
   await user.type(screen.getByLabelText('Nome do evento'), 'Evento anterior')
-  await user.click(screen.getByLabelText('Cliente'))
+  await user.click(screen.getByRole('button', { name: '+ Adicionar cliente' }))
+  await user.click(screen.getByLabelText('Cliente 1'))
   await user.click(await screen.findByRole('option', { name: 'Maria Silva' }))
-  expect(screen.getByLabelText('Cliente')).toHaveValue('Maria Silva')
+  expect(screen.getByLabelText('Cliente 1')).toHaveValue('Maria Silva')
 }
 
 async function expectFreshForm() {
   await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
-  expect(screen.getByLabelText('Cliente')).toHaveValue('')
+  expect(screen.getByText('Nenhum cliente adicionado.')).toBeInTheDocument()
   expect(screen.getByLabelText('Nome do evento')).toHaveValue('')
 }
 
@@ -124,6 +125,6 @@ describe('EventFormPage - rascunho de novo evento (GDE-41)', () => {
     renderForm()
     await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
     expect(screen.getByLabelText('Nome do evento')).toHaveValue('Evento anterior')
-    expect(screen.getByLabelText('Cliente')).toHaveValue('Maria Silva')
+    expect(screen.getByLabelText('Cliente 1')).toHaveValue('Maria Silva')
   })
 })

@@ -20,6 +20,7 @@ import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Checkbox } from '../components/Checkbox'
 import { CustomerQuickCreateForm } from '../components/CustomerQuickCreateForm'
+import { EventCustomersSection } from '../components/EventCustomersSection'
 import { EventTeamSection } from '../components/EventTeamSection'
 import { EventVenueQuickCreateForm } from '../components/EventVenueQuickCreateForm'
 import { FormField } from '../components/FormField'
@@ -31,6 +32,7 @@ import { Toast } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { useFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
+import { customerRowsFromEvent, customerRowsToAssignments, type CustomerRow } from '../utils/eventCustomers'
 import { hasRoleWithoutProfessional, teamRowsFromEvent, teamRowsToAssignments, type TeamRow } from '../utils/eventTeam'
 import './EventFormPage.css'
 
@@ -51,7 +53,7 @@ interface EventFormState {
   deliveryStatus: DeliveryStatus
   hdId: string
   eventVenueId: string
-  customerId: string
+  customers: CustomerRow[]
   professionals: TeamRow[]
 }
 
@@ -69,7 +71,7 @@ const EMPTY_FORM_STATE: EventFormState = {
   deliveryStatus: 'PENDING',
   hdId: '',
   eventVenueId: '',
-  customerId: '',
+  customers: [],
   professionals: [],
 }
 
@@ -100,7 +102,7 @@ function eventToFormState(event: EventDto): EventFormState {
     deliveryStatus: event.deliveryStatus,
     hdId: event.hdId ?? '',
     eventVenueId: event.eventVenueId ?? '',
-    customerId: event.customerId ?? '',
+    customers: customerRowsFromEvent(event.customers),
     professionals: teamRowsFromEvent(event.eventProfessionals),
   }
 }
@@ -120,7 +122,8 @@ function formStateToDto(form: EventFormState, isWedding: boolean): CreateEventDt
     deliveryStatus: form.deliveryStatus,
     hdId: form.hdId || null,
     eventVenueId: form.eventVenueId || null,
-    customerId: form.customerId || null,
+    // Same rule as the team: always an array; "?? []" covers a draft saved before customers became a list.
+    customers: customerRowsToAssignments(form.customers ?? []),
     // Always an array (never omitted): omitting it on update would keep the old team instead of replacing it.
     // "?? []" covers a draft saved before the team existed.
     professionals: teamRowsToAssignments(form.professionals ?? []),
@@ -164,6 +167,7 @@ export function EventFormPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [quickCreateTarget, setQuickCreateTarget] = useState<QuickCreateTarget>(null)
   const [quickCreateTeamRowKey, setQuickCreateTeamRowKey] = useState<string | null>(null)
+  const [quickCreateCustomerRowKey, setQuickCreateCustomerRowKey] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -249,6 +253,12 @@ export function EventFormPage() {
   function closeQuickCreate() {
     setQuickCreateTarget(null)
     setQuickCreateTeamRowKey(null)
+    setQuickCreateCustomerRowKey(null)
+  }
+
+  function openCustomerQuickCreate(rowKey: string) {
+    setQuickCreateCustomerRowKey(rowKey)
+    setQuickCreateTarget('customer')
   }
 
   function openProfessionalQuickCreate(rowKey: string) {
@@ -279,8 +289,13 @@ export function EventFormPage() {
 
   function handleCustomerCreated(customer: CustomerDto) {
     setReferenceData((current) => (current ? { ...current, customers: [...current.customers, customer] } : current))
-    updateField('customerId', customer.id)
+    const rows = form.customers ?? []
+    updateField(
+      'customers',
+      rows.map((row) => (row.key === quickCreateCustomerRowKey ? { ...row, customerId: customer.id } : row)),
+    )
     setQuickCreateTarget(null)
+    setQuickCreateCustomerRowKey(null)
     setToast({ kind: 'success', text: 'Cliente criado e selecionado.' })
   }
 
@@ -425,18 +440,15 @@ export function EventFormPage() {
               </div>
             </Card>
 
-            <Card title="Cliente e local">
+            <Card title="Clientes e local">
               <div className="event-form-grid">
-                <FormField label="Cliente" htmlFor="event-customer">
-                  <Autocomplete
-                    id="event-customer"
-                    options={referenceData?.customers.map((customer) => ({ id: customer.id, label: customer.name })) ?? []}
-                    value={form.customerId}
-                    onChange={(customerId) => updateField('customerId', customerId)}
-                    placeholder="Buscar cliente..."
-                    onCreateNew={() => setQuickCreateTarget('customer')}
-                  />
-                </FormField>
+                <EventCustomersSection
+                  rows={form.customers ?? []}
+                  customers={referenceData?.customers ?? []}
+                  onChange={(rows) => updateField('customers', rows)}
+                  onCreateNew={openCustomerQuickCreate}
+                  disabled={isSubmitting}
+                />
 
                 <FormField label="Local do evento" htmlFor="event-venue">
                   <Autocomplete
