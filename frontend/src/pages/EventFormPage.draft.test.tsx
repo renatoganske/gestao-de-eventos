@@ -71,7 +71,7 @@ describe('EventFormPage - rascunho de novo evento (GDE-41)', () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([])
     vi.mocked(hdsApi.fetchHds).mockResolvedValue([])
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
-      { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null },
+      { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0 },
     ])
     vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([])
   })

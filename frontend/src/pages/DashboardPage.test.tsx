@@ -42,6 +42,7 @@ function makeHd(overrides: Partial<HdDto>): HdDto {
     serialNumber: 'SN-88213',
     acquisitionDate: '2025-01-10',
     status: 'ACTIVE',
+    eventCount: 0,
     ...overrides,
   }
 }

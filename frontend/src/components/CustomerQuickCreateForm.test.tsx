@@ -44,7 +44,7 @@ describe('CustomerQuickCreateForm', () => {
   })
 
   it('envia campos em branco como null', async () => {
-    const created = { id: 'customer-new', name: 'Cliente X', contact: null, address: null, notes: null }
+    const created = { id: 'customer-new', name: 'Cliente X', contact: null, address: null, notes: null, eventCount: 0 }
     vi.mocked(customersApi.createCustomer).mockResolvedValue(created)
     const onCreated = vi.fn()
     const user = userEvent.setup()

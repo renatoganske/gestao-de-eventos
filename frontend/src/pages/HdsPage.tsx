@@ -31,7 +31,7 @@ const HD_SORT_OPTIONS: { key: HdSortKey; label: string; value: (hd: HdDto) => So
   { key: 'usage', label: '% de uso', value: (hd) => (effectiveCapacityGb(hd) ? usagePercent(hd) : null) },
   { key: 'status', label: 'Status', value: (hd) => HD_STATUS_LABEL[hd.status] },
   { key: 'location', label: 'Localização', value: (hd) => hd.physicalLocation },
-  { key: 'eventCount', label: 'Nº de eventos', value: (hd) => hd.eventCount ?? 0 },
+  { key: 'eventCount', label: 'Nº de eventos', value: (hd) => hd.eventCount },
 ]
 
 function HdEventsList({ hd }: { hd: HdDto }) {
@@ -283,7 +283,7 @@ export function HdsPage() {
                     <dt>Nº de série</dt>
                     <dd className="mono">{hd.serialNumber ?? '—'}</dd>
                     <dt>Eventos</dt>
-                    <dd className="mono">{hd.eventCount ?? 0}</dd>
+                    <dd className="mono">{hd.eventCount}</dd>
                   </dl>
                   </div>
 

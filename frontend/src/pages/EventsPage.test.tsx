@@ -43,16 +43,16 @@ function makeEvent(overrides: Partial<EventDto>): EventDto {
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-1', name: 'Casamento', hasWeddingFields: false }])
   vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
-    { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null },
+    { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null, eventCount: 0 },
   ])
   vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
-    { id: 'prof-1', name: 'Renato', type: null, contact: null, specialtyTags: [], otherInfo: null },
+    { id: 'prof-1', name: 'Renato', type: null, contact: null, specialtyTags: [], otherInfo: null, eventCount: 0 },
   ])
   vi.mocked(hdsApi.fetchHds).mockResolvedValue([
-    { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE' },
+    { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE', eventCount: 0 },
   ])
   vi.mocked(customersApi.fetchCustomer).mockResolvedValue({
-    id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null,
+    id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0,
   })
 }
 

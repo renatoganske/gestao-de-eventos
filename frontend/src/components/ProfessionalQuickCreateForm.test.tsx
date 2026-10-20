@@ -15,6 +15,7 @@ const CREATED = {
   contact: null,
   specialtyTags: [],
   otherInfo: null,
+  eventCount: 0,
 }
 
 describe('ProfessionalQuickCreateForm', () => {

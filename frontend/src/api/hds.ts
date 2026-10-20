@@ -20,7 +20,7 @@ export interface HdDto {
   acquisitionDate: string | null
   status: HdStatus
   /** Number of events stored on the HD (GDE-58). */
-  eventCount?: number
+  eventCount: number
 }
 
 export interface CreateHdDto {

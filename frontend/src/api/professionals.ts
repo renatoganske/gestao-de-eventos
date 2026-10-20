@@ -10,7 +10,7 @@ export interface ProfessionalDto {
   specialtyTags: SpecialtyTagDto[]
   otherInfo: string | null
   /** Number of events the professional works on (GDE-58). */
-  eventCount?: number
+  eventCount: number
 }
 
 export interface CreateProfessionalDto {

@@ -22,7 +22,7 @@ describe('EventVenueQuickCreateForm', () => {
   })
 
   it('envia campos em branco como null e chama onCreated com o local criado', async () => {
-    const created = { id: 'venue-new', name: 'Salão Central', address: null, city: null, state: null, type: null }
+    const created = { id: 'venue-new', name: 'Salão Central', address: null, city: null, state: null, type: null, eventCount: 0 }
     vi.mocked(eventVenuesApi.createEventVenue).mockResolvedValue(created)
     const onCreated = vi.fn()
     const user = userEvent.setup()
@@ -42,7 +42,7 @@ describe('EventVenueQuickCreateForm', () => {
   })
 
   it('envia a UF escolhida no select de Estado', async () => {
-    const created = { id: 'venue-new', name: 'Salão Central', address: null, city: null, state: 'MG', type: null }
+    const created = { id: 'venue-new', name: 'Salão Central', address: null, city: null, state: 'MG', type: null, eventCount: 0 }
     vi.mocked(eventVenuesApi.createEventVenue).mockResolvedValue(created)
     const user = userEvent.setup()
     render(<EventVenueQuickCreateForm onCreated={vi.fn()} onCancel={vi.fn()} />)
