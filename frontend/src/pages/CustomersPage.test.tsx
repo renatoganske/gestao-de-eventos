@@ -225,3 +225,39 @@ describe('CustomersPage', () => {
     expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
   })
 })
+
+describe('CustomersPage - coluna Eventos (GDE-58)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('mostra a contagem de eventos de cada cliente, inclusive zero', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'Ana', eventCount: 3 }),
+      makeCustomer({ id: 'c2', name: 'Bia', eventCount: 0 }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument())
+    expect(screen.getByRole('columnheader', { name: /Eventos/ })).toBeInTheDocument()
+    expect(columnTexts(3)).toEqual(['3', '0'])
+  })
+
+  it('ordena pela coluna Eventos e inverte ao clicar de novo', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'Ana', eventCount: 3 }),
+      makeCustomer({ id: 'c2', name: 'Bia', eventCount: 0 }),
+      makeCustomer({ id: 'c3', name: 'Caio', eventCount: 10 }),
+    ])
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Bia', 'Ana', 'Caio'])
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Caio', 'Ana', 'Bia'])
+  })
+})

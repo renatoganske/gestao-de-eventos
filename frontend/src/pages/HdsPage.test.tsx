@@ -382,3 +382,35 @@ describe('HdsPage', () => {
     })
   })
 })
+
+describe('HdsPage - contagem de eventos (GDE-58)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.mocked(hdsApi.fetchHds).mockResolvedValue([
+      makeHd({ id: 'hd-a', name: 'Alfa', eventCount: 7 }),
+      makeHd({ id: 'hd-b', name: 'Beta', eventCount: 0 }),
+      makeHd({ id: 'hd-c', name: 'Gama', eventCount: 25 }),
+    ])
+    vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([])
+  })
+
+  it('mostra a contagem de eventos em cada card, inclusive zero', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Alfa')).toBeInTheDocument())
+
+    const counts = screen.getAllByText('Eventos', { selector: 'dt' }).map((dt) => dt.nextElementSibling?.textContent)
+    expect(counts).toEqual(['7', '0', '25'])
+  })
+
+  it('ordena por Nº de eventos e inverte a direção', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Alfa')).toBeInTheDocument())
+
+    await user.selectOptions(screen.getByLabelText('Ordenar por'), 'eventCount')
+    expect(cardNames()).toEqual(['Beta', 'Alfa', 'Gama'])
+
+    await user.click(screen.getByRole('button', { name: 'Direção: crescente' }))
+    expect(cardNames()).toEqual(['Gama', 'Alfa', 'Beta'])
+  })
+})

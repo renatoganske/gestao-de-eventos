@@ -266,3 +266,40 @@ describe('ProfessionalsPage', () => {
     expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
   })
 })
+
+describe('ProfessionalsPage - coluna Eventos (GDE-58)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+  })
+
+  it('mostra a contagem de eventos de cada profissional, inclusive zero', async () => {
+    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
+      makeProfessional({ id: 'p1', name: 'Ágata', eventCount: 5 }),
+      makeProfessional({ id: 'p2', name: 'Bento', eventCount: 0 }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Ágata')).toBeInTheDocument())
+    expect(screen.getByRole('columnheader', { name: /Eventos/ })).toBeInTheDocument()
+    expect(columnTexts(4)).toEqual(['5', '0'])
+  })
+
+  it('ordena pela coluna Eventos e inverte ao clicar de novo', async () => {
+    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
+      makeProfessional({ id: 'p1', name: 'Ágata', eventCount: 5 }),
+      makeProfessional({ id: 'p2', name: 'Bento', eventCount: 0 }),
+      makeProfessional({ id: 'p3', name: 'Zeca', eventCount: 20 }),
+    ])
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Ágata')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Bento', 'Ágata', 'Zeca'])
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Zeca', 'Ágata', 'Bento'])
+  })
+})

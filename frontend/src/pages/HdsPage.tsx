@@ -23,7 +23,7 @@ const GENERIC_LOAD_ERROR = 'Não foi possível carregar os HDs. Tente novamente 
 const GENERIC_EVENTS_ERROR = 'Não foi possível carregar os eventos deste HD. Tente novamente em instantes.'
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o HD. Tente novamente.'
 
-type HdSortKey = 'name' | 'free' | 'usage' | 'status' | 'location'
+type HdSortKey = 'name' | 'free' | 'usage' | 'status' | 'location' | 'eventCount'
 
 const HD_SORT_OPTIONS: { key: HdSortKey; label: string; value: (hd: HdDto) => SortValue }[] = [
   { key: 'name', label: 'Nome', value: (hd) => hd.name },
@@ -31,6 +31,7 @@ const HD_SORT_OPTIONS: { key: HdSortKey; label: string; value: (hd: HdDto) => So
   { key: 'usage', label: '% de uso', value: (hd) => (effectiveCapacityGb(hd) ? usagePercent(hd) : null) },
   { key: 'status', label: 'Status', value: (hd) => HD_STATUS_LABEL[hd.status] },
   { key: 'location', label: 'Localização', value: (hd) => hd.physicalLocation },
+  { key: 'eventCount', label: 'Nº de eventos', value: (hd) => hd.eventCount ?? 0 },
 ]
 
 function HdEventsList({ hd }: { hd: HdDto }) {
@@ -281,6 +282,8 @@ export function HdsPage() {
                     <dd>{hd.physicalLocation ?? '—'}</dd>
                     <dt>Nº de série</dt>
                     <dd className="mono">{hd.serialNumber ?? '—'}</dd>
+                    <dt>Eventos</dt>
+                    <dd className="mono">{hd.eventCount ?? 0}</dd>
                   </dl>
                   </div>
 
