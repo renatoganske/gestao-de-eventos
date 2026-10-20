@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { effectiveCapacityGb, usagePercent } from './hdCapacity'
+import { effectiveCapacityGb, freeSpaceGb, usagePercent } from './hdCapacity'
 
 describe('effectiveCapacityGb', () => {
   it('usa a capacidade real quando preenchida', () => {
@@ -31,5 +31,20 @@ describe('usagePercent', () => {
 
   it('limita a 100', () => {
     expect(usagePercent({ usedSpaceGb: 1500, capacityGb: 2000, realCapacityGb: 1000 })).toBe(100)
+  })
+})
+
+describe('freeSpaceGb', () => {
+  it('é a capacidade efetiva menos o usado', () => {
+    expect(freeSpaceGb({ capacityGb: 2000, usedSpaceGb: 500 })).toBe(1500)
+    expect(freeSpaceGb({ capacityGb: 2000, realCapacityGb: 1000, usedSpaceGb: 400 })).toBe(600)
+  })
+
+  it('nunca é negativo', () => {
+    expect(freeSpaceGb({ capacityGb: 1000, usedSpaceGb: 1200 })).toBe(0)
+  })
+
+  it('retorna null sem capacidade', () => {
+    expect(freeSpaceGb({ capacityGb: null, realCapacityGb: null, usedSpaceGb: 10 })).toBeNull()
   })
 })
