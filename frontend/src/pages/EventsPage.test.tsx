@@ -441,7 +441,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('abre ordenada por data crescente e, em empate, pelo número do código (RG2 antes de RG10)', async () => {
+  it('abre ordenada por data decrescente (mais recentes primeiro) e, em empate, pelo número do código (RG2 antes de RG10)', async () => {
     vi.mocked(eventsApi.searchEvents).mockResolvedValue([
       makeEvent({ id: 'e1', eventCode: 'RG10', eventDate: '2026-05-01' }),
       makeEvent({ id: 'e2', eventCode: 'RG3', eventDate: '2026-06-01' }),
@@ -451,11 +451,11 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     renderEventsPage()
 
     await waitFor(() => expect(screen.getByText('RG3')).toBeInTheDocument())
-    expect(columnTexts(0)).toEqual(['RG2', 'RG10', 'RG3'])
-    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'ascending')
+    expect(columnTexts(0)).toEqual(['RG3', 'RG2', 'RG10'])
+    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'descending')
 
     await userEvent.click(screen.getByRole('button', { name: /Data/ }))
-    expect(columnTexts(0)).toEqual(['RG3', 'RG2', 'RG10'])
+    expect(columnTexts(0)).toEqual(['RG2', 'RG10', 'RG3'])
   })
 
   it('ordena pelo código numericamente e não refaz a busca ao ordenar', async () => {
@@ -681,12 +681,29 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
     renderWithUrl('/eventos?sort=code:asc')
     await screen.findByText('RG10')
 
-    // Data asc (the default) -> desc -> asc again.
-    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+    // Data asc (clicking a new column) -> desc (the default, so the URL goes back to empty).
     await userEvent.click(screen.getByRole('button', { name: /Data/ }))
     await userEvent.click(screen.getByRole('button', { name: /Data/ }))
 
     expect(currentSearch()).toBe('')
+  })
+
+  it('ordenar a data de forma crescente grava sort=date:asc na URL', async () => {
+    renderWithUrl('/eventos')
+    await screen.findByText('RG10')
+
+    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+
+    expect(currentSearch()).toBe('?sort=date%3Aasc')
+    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
+  })
+
+  it('abre em ordem crescente de data quando a URL traz sort=date:asc', async () => {
+    renderWithUrl('/eventos?sort=date:asc')
+    await screen.findByText('RG10')
+
+    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'ascending')
+    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
   })
 
   it('abrir um evento e voltar mantém filtros, busca e ordenação', async () => {
@@ -739,8 +756,8 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
         venueId: undefined,
       }),
     )
-    // Default sort: date ascending.
-    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
+    // Default sort: date descending (most recent first).
+    expect(columnTexts(0)).toEqual(['RG2', 'RG10'])
   })
 
   it('"Limpar filtros" zera os campos e a URL, inclusive a ordenação', async () => {

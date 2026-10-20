@@ -91,7 +91,7 @@ function toSearchParams(filters: FilterState): SearchEventsParams {
 const ID_PATTERN = /^[\w-]{1,64}$/
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
-const DEFAULT_SORT: TableSort = { key: 'date', direction: 'asc', thenBy: 'code' }
+const DEFAULT_SORT: TableSort = { key: 'date', direction: 'desc', thenBy: 'code' }
 const SORTABLE_KEYS = ['code', 'customer', 'venues', 'type', 'date', 'status']
 
 interface UrlView {
