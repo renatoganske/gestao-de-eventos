@@ -18,6 +18,13 @@ function makeCustomer(overrides: Partial<CustomerDto> = {}): CustomerDto {
   }
 }
 
+function columnTexts(columnIndex: number): string[] {
+  return screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
+}
+
 describe('CustomersPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -128,5 +135,42 @@ describe('CustomersPage', () => {
 
     expect(await within(dialog).findByText('Cliente vinculado a eventos')).toBeInTheDocument()
     expect(screen.getByText('Maria Silva')).toBeInTheDocument()
+  })
+
+  it('abre ordenada por nome A-Z, ignorando acento e caixa, e o clique no cabeçalho inverte', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'zélia' }),
+      makeCustomer({ id: 'c2', name: 'Álvaro' }),
+      makeCustomer({ id: 'c3', name: 'Bruna' }),
+    ])
+
+    render(<CustomersPage />)
+
+    await waitFor(() => expect(screen.getByText('Bruna')).toBeInTheDocument())
+    expect(columnTexts(0)).toEqual(['Álvaro', 'Bruna', 'zélia'])
+    expect(screen.getByRole('columnheader', { name: /Nome/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.click(screen.getByRole('button', { name: /Nome/ }))
+
+    expect(columnTexts(0)).toEqual(['zélia', 'Bruna', 'Álvaro'])
+    expect(screen.getByRole('columnheader', { name: /Nome/ })).toHaveAttribute('aria-sort', 'descending')
+    expect(customersApi.fetchCustomers).toHaveBeenCalledTimes(1)
+  })
+
+  it('ordena por contato deixando os vazios no fim nas duas direções', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'Ana', contact: null }),
+      makeCustomer({ id: 'c2', name: 'Bia', contact: '222' }),
+      makeCustomer({ id: 'c3', name: 'Caio', contact: '111' }),
+    ])
+
+    render(<CustomersPage />)
+
+    await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /Contato/ }))
+    expect(columnTexts(0)).toEqual(['Caio', 'Bia', 'Ana'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Contato/ }))
+    expect(columnTexts(0)).toEqual(['Bia', 'Caio', 'Ana'])
   })
 })

@@ -113,10 +113,10 @@ export function EventVenuesPage() {
           {!isLoading && !loadError && venues && venues.length > 0 && (
             <Table
               columns={[
-                { key: 'name', header: 'Nome', render: (row) => row.name },
-                { key: 'city', header: 'Cidade', render: (row) => row.city ?? '—' },
-                { key: 'state', header: 'Estado', render: (row) => row.state ?? '—' },
-                { key: 'type', header: 'Tipo', render: (row) => row.type ?? '—' },
+                { key: 'name', header: 'Nome', render: (row) => row.name, sortValue: (row) => row.name },
+                { key: 'city', header: 'Cidade', render: (row) => row.city ?? '—', sortValue: (row) => row.city },
+                { key: 'state', header: 'Estado', render: (row) => row.state ?? '—', sortValue: (row) => row.state },
+                { key: 'type', header: 'Tipo', render: (row) => row.type ?? '—', sortValue: (row) => row.type },
                 {
                   key: 'actions',
                   header: 'Ações',
@@ -134,6 +134,7 @@ export function EventVenuesPage() {
               ]}
               rows={venues}
               rowKey={(row) => row.id}
+              defaultSort={{ key: 'name', direction: 'asc' }}
             />
           )}
         </Card>

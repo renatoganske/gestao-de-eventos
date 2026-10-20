@@ -22,6 +22,7 @@ import { Toast, type ToastMessage } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { discardFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
+import { codeNumber } from '../utils/sort'
 import { customerNames } from '../utils/eventCustomers'
 import { venueLabels } from '../utils/eventVenues'
 import './EventsPage.css'
@@ -387,14 +388,27 @@ export function EventsPage() {
           {!isLoading && !error && events && events.length > 0 && (
             <Table
               columns={[
-                { key: 'code', header: 'Código', render: (row) => <span className="mono">{row.eventCode}</span> },
-                { key: 'customer', header: 'Clientes', render: (row) => customerNames(row.customers) || '—' },
-                { key: 'venues', header: 'Locais', render: (row) => venueLabels(row.venues) || '—' },
-                { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—' },
-                { key: 'date', header: 'Data', render: (row) => <span className="mono">{row.eventDate}</span> },
+                {
+                  key: 'code',
+                  header: 'Código',
+                  render: (row) => <span className="mono">{row.eventCode}</span>,
+                  // Numeric suffix, so RG2 comes before RG10.
+                  sortValue: (row) => codeNumber(row.eventCode) ?? row.eventCode,
+                },
+                { key: 'customer', header: 'Clientes', render: (row) => customerNames(row.customers) || '—',
+                  sortValue: (row) => customerNames(row.customers) || null,
+                },
+                { key: 'venues', header: 'Locais', render: (row) => venueLabels(row.venues) || '—',
+                  sortValue: (row) => venueLabels(row.venues) || null,
+                },
+                { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—', sortValue: (row) => row.type?.name },
+                { key: 'date', header: 'Data', render: (row) => <span className="mono">{row.eventDate}</span>,
+                  sortValue: (row) => row.eventDate,
+                },
                 {
                   key: 'status',
                   header: 'Status',
+                  sortValue: (row) => DELIVERY_STATUS_LABEL[row.deliveryStatus],
                   render: (row) => (
                     <Pill status={DELIVERY_STATUS_TO_PILL[row.deliveryStatus]}>
                       {DELIVERY_STATUS_LABEL[row.deliveryStatus]}
@@ -404,6 +418,7 @@ export function EventsPage() {
               ]}
               rows={events}
               rowKey={(row) => row.id}
+              defaultSort={{ key: 'date', direction: 'asc', thenBy: 'code' }}
               onRowClick={(row) => {
                 discardFormDraft(`event-edit:${row.id}`)
                 navigate(`/eventos/${row.id}`)

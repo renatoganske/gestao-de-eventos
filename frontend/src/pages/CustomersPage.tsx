@@ -113,9 +113,9 @@ export function CustomersPage() {
           {!isLoading && !loadError && customers && customers.length > 0 && (
             <Table
               columns={[
-                { key: 'name', header: 'Nome', render: (row) => row.name },
-                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—' },
-                { key: 'address', header: 'Endereço', render: (row) => row.address ?? '—' },
+                { key: 'name', header: 'Nome', render: (row) => row.name, sortValue: (row) => row.name },
+                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—', sortValue: (row) => row.contact },
+                { key: 'address', header: 'Endereço', render: (row) => row.address ?? '—', sortValue: (row) => row.address },
                 {
                   key: 'actions',
                   header: 'Ações',
@@ -133,6 +133,7 @@ export function CustomersPage() {
               ]}
               rows={customers}
               rowKey={(row) => row.id}
+              defaultSort={{ key: 'name', direction: 'asc' }}
             />
           )}
         </Card>

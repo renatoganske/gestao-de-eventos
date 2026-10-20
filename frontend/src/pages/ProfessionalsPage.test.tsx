@@ -33,6 +33,13 @@ function mockReferenceData() {
   vi.mocked(specialtyTagsApi.fetchSpecialtyTags).mockResolvedValue([TAG_WEDDING])
 }
 
+function columnTexts(columnIndex: number): string[] {
+  return screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
+}
+
 describe('ProfessionalsPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -183,5 +190,28 @@ describe('ProfessionalsPage', () => {
 
     expect(await within(dialog).findByText('Profissional vinculado a eventos')).toBeInTheDocument()
     expect(screen.getByText('Renato Ganske')).toBeInTheDocument()
+  })
+
+  it('abre ordenada por nome A-Z e permite ordenar por tipo, contato e especialidades', async () => {
+    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
+      makeProfessional({ id: 'p1', name: 'Zeca', type: null, contact: '333', specialtyTags: [] }),
+      makeProfessional({ id: 'p2', name: 'Ágata', type: { id: 'type-2', name: 'Editor' }, contact: '222', specialtyTags: [TAG_WEDDING] }),
+      makeProfessional({ id: 'p3', name: 'Bento', type: TYPE_PHOTOGRAPHER, contact: '111', specialtyTags: [{ id: 'tag-2', name: 'Aniversário' }] }),
+    ])
+
+    render(<ProfessionalsPage />)
+
+    await waitFor(() => expect(screen.getByText('Zeca')).toBeInTheDocument())
+    expect(columnTexts(0)).toEqual(['Ágata', 'Bento', 'Zeca'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Tipo/ }))
+    expect(columnTexts(0)).toEqual(['Ágata', 'Bento', 'Zeca'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Contato/ }))
+    expect(columnTexts(0)).toEqual(['Bento', 'Ágata', 'Zeca'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Especialidades/ }))
+    expect(columnTexts(0)).toEqual(['Bento', 'Ágata', 'Zeca'])
+    expect(professionalsApi.fetchProfessionals).toHaveBeenCalledTimes(1)
   })
 })
