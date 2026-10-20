@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import * as professionalsApi from '../api/professionals'
 import type { ProfessionalDto } from '../api/professionals'
@@ -40,6 +41,22 @@ function columnTexts(columnIndex: number): string[] {
     .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
 }
 
+function EventsDestination() {
+  const location = useLocation()
+  return <div>Eventos {location.pathname}{location.search}</div>
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={<ProfessionalsPage />} />
+        <Route path="/eventos" element={<EventsDestination />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
 describe('ProfessionalsPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -49,7 +66,7 @@ describe('ProfessionalsPage', () => {
   it('mostra a lista de profissionais numa tabela, com tipo e especialidades', async () => {
     vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([makeProfessional()])
 
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Renato Ganske')).toBeInTheDocument())
     expect(screen.getByText('Fotógrafo')).toBeInTheDocument()
@@ -60,7 +77,7 @@ describe('ProfessionalsPage', () => {
   it('mostra o estado vazio quando não há profissionais cadastrados', async () => {
     vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([])
 
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum profissional cadastrado.')).toBeInTheDocument())
   })
@@ -68,7 +85,7 @@ describe('ProfessionalsPage', () => {
   it('mostra mensagem de erro quando o carregamento falha', async () => {
     vi.mocked(professionalsApi.fetchProfessionals).mockRejectedValue(new ApiError(500, 'Falha ao carregar profissionais'))
 
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falha ao carregar profissionais'))
   })
@@ -79,7 +96,7 @@ describe('ProfessionalsPage', () => {
       makeProfessional({ id: 'prof-new', name: 'Profissional Novo' }),
     )
     const user = userEvent.setup()
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum profissional cadastrado.')).toBeInTheDocument())
 
@@ -107,7 +124,7 @@ describe('ProfessionalsPage', () => {
     vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([])
     vi.mocked(professionalTypesApi.createProfessionalType).mockResolvedValue({ id: 'type-2', name: 'Videomaker' })
     const user = userEvent.setup()
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum profissional cadastrado.')).toBeInTheDocument())
 
@@ -129,7 +146,7 @@ describe('ProfessionalsPage', () => {
     vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([professional])
     vi.mocked(professionalsApi.updateProfessional).mockResolvedValue({ ...professional, name: 'Renato Renomeado' })
     const user = userEvent.setup()
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Renato Ganske')).toBeInTheDocument())
 
@@ -154,7 +171,7 @@ describe('ProfessionalsPage', () => {
     vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([professional])
     vi.mocked(professionalsApi.deleteProfessional).mockResolvedValue(undefined)
     const user = userEvent.setup()
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Renato Ganske')).toBeInTheDocument())
 
@@ -179,7 +196,7 @@ describe('ProfessionalsPage', () => {
     vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([professional])
     vi.mocked(professionalsApi.deleteProfessional).mockRejectedValue(new ApiError(409, 'Profissional vinculado a eventos'))
     const user = userEvent.setup()
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Renato Ganske')).toBeInTheDocument())
 
@@ -199,7 +216,7 @@ describe('ProfessionalsPage', () => {
       makeProfessional({ id: 'p3', name: 'Bento', type: TYPE_PHOTOGRAPHER, contact: '111', specialtyTags: [{ id: 'tag-2', name: 'Aniversário' }] }),
     ])
 
-    render(<ProfessionalsPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Zeca')).toBeInTheDocument())
     expect(columnTexts(0)).toEqual(['Ágata', 'Bento', 'Zeca'])
@@ -213,5 +230,39 @@ describe('ProfessionalsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Especialidades/ }))
     expect(columnTexts(0)).toEqual(['Bento', 'Ágata', 'Zeca'])
     expect(professionalsApi.fetchProfessionals).toHaveBeenCalledTimes(1)
+  })
+
+  it('navega para os eventos da pessoa ao clicar na linha', async () => {
+    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([makeProfessional()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByText('Renato Ganske'))
+
+    expect(await screen.findByText('Eventos /eventos?professionalId=prof-1')).toBeInTheDocument()
+  })
+
+  it('abre a edição pelo botão Editar sem navegar para os eventos', async () => {
+    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([makeProfessional()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Renato Ganske')
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(await screen.findByRole('dialog', { name: /Editar/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
+  })
+
+  it('abre a exclusão pelo botão Excluir sem navegar para os eventos', async () => {
+    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([makeProfessional()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Renato Ganske')
+    await user.click(screen.getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByRole('dialog', { name: /Excluir/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
   })
 })

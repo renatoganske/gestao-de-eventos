@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import {
   DELIVERY_STATUS_LABEL,
@@ -9,6 +9,7 @@ import {
   type EventDto,
   type SearchEventsParams,
 } from '../api/events'
+import { fetchCustomers, type CustomerDto } from '../api/customers'
 import { fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
 import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
 import { fetchHds, type HdDto } from '../api/hds'
@@ -34,6 +35,7 @@ interface FilterState {
   eventTypeId: string
   venueId: string
   professionalId: string
+  customerId: string
   from: string
   to: string
   hdId: string
@@ -46,6 +48,7 @@ const EMPTY_FILTERS: FilterState = {
   eventTypeId: '',
   venueId: '',
   professionalId: '',
+  customerId: '',
   from: '',
   to: '',
   hdId: '',
@@ -62,6 +65,7 @@ interface ReferenceData {
   eventTypes: EventTypeDto[]
   venues: EventVenueDto[]
   professionals: ProfessionalDto[]
+  customers: CustomerDto[]
   hds: HdDto[]
 }
 
@@ -72,12 +76,24 @@ function toSearchParams(filters: FilterState): SearchEventsParams {
     eventTypeId: filters.eventTypeId || undefined,
     venueId: filters.venueId || undefined,
     professionalId: filters.professionalId || undefined,
+    customerId: filters.customerId || undefined,
     from: filters.from || undefined,
     to: filters.to || undefined,
     hdId: filters.hdId || undefined,
     deliveryStatus: filters.deliveryStatus || undefined,
     daytimeWedding: toBooleanParam(filters.daytimeWedding),
     outdoorWedding: toBooleanParam(filters.outdoorWedding),
+  }
+}
+
+// Filters that other pages can pre-set through the URL (e.g. /eventos?customerId=...).
+function filtersFromSearchParams(searchParams: URLSearchParams): FilterState {
+  return {
+    ...EMPTY_FILTERS,
+    customerId: searchParams.get('customerId') ?? '',
+    professionalId: searchParams.get('professionalId') ?? '',
+    hdId: searchParams.get('hdId') ?? '',
+    venueId: searchParams.get('venueId') ?? '',
   }
 }
 
@@ -118,7 +134,10 @@ export function EventsPage() {
   }, [])
 
   const [freeText, setFreeText] = useState('')
-  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
+  const [searchParams, setSearchParams] = useSearchParams()
+  // Read once, on mount: typed filters are not synced back to the URL.
+  const [initialFilters] = useState(() => filtersFromSearchParams(searchParams))
+  const [filters, setFilters] = useState<FilterState>(initialFilters)
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true)
 
   const [referenceData, setReferenceData] = useState<ReferenceData | null>(null)
@@ -133,17 +152,18 @@ export function EventsPage() {
       setIsLoading(true)
       setError(null)
       try {
-        const [eventTypes, venues, professionals, hds] = await Promise.all([
+        const [eventTypes, venues, professionals, customers, hds] = await Promise.all([
           fetchEventTypes(),
           fetchEventVenues(),
           fetchProfessionals(),
+          fetchCustomers(),
           fetchHds(),
         ])
-        const initialEvents = await performSearch('', EMPTY_FILTERS)
+        const initialEvents = await performSearch('', initialFilters)
         if (cancelled) {
           return
         }
-        setReferenceData({ eventTypes, venues, professionals, hds })
+        setReferenceData({ eventTypes, venues, professionals, customers, hds })
         setEvents(initialEvents)
       } catch (err) {
         if (cancelled) {
@@ -185,11 +205,16 @@ export function EventsPage() {
     setFreeText('')
     setFilters(EMPTY_FILTERS)
     runSearch('', EMPTY_FILTERS)
+    // Drops the filters that came from the URL too, so a reload does not bring them back.
+    setSearchParams({}, { replace: true })
   }
 
   function updateFilter<K extends keyof FilterState>(key: K, value: FilterState[K]) {
     setFilters((current) => ({ ...current, [key]: value }))
   }
+
+  const activeCustomer = referenceData?.customers.find((customer) => customer.id === filters.customerId)
+  const activeProfessional = referenceData?.professionals.find((professional) => professional.id === filters.professionalId)
 
   const selectedEventType = referenceData?.eventTypes.find((type) => type.id === filters.eventTypeId)
   const isWeddingSelected = selectedEventType?.hasWeddingFields === true
@@ -371,6 +396,14 @@ export function EventsPage() {
             </div>
           </div>
         </form>
+
+        {(filters.customerId || filters.professionalId) && (
+          <p className="result-count">
+            {filters.customerId && `Cliente: ${activeCustomer?.name ?? '...'}`}
+            {filters.customerId && filters.professionalId && ' · '}
+            {filters.professionalId && `Profissional: ${activeProfessional?.name ?? '...'}`}
+          </p>
+        )}
 
         <Card>
           {isLoading && <p className="events-empty">Carregando...</p>}
