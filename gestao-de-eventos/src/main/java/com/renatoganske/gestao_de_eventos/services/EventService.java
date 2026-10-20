@@ -158,6 +158,7 @@ public class EventService {
                 EventSpecifications.byPeriod(criteria.from(), criteria.to()),
                 EventSpecifications.byHd(criteria.hdId()),
                 EventSpecifications.byDeliveryStatus(criteria.deliveryStatus()),
+                EventSpecifications.byCustomer(criteria.customerId()),
                 EventSpecifications.byCustomerName(criteria.customerName()),
                 EventSpecifications.byEventCode(criteria.eventCode()),
                 EventSpecifications.byDaytimeWedding(criteria.daytimeWedding()),

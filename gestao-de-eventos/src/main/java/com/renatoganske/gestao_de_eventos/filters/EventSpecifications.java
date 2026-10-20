@@ -82,6 +82,15 @@ public final class EventSpecifications {
         return (root, query, cb) -> cb.equal(root.get("deliveryStatus"), deliveryStatus);
     }
 
+    /** Matches when any of the event's customers is the given one, contracting or not. */
+    public static Specification<Event> byCustomer(UUID customerId) {
+        if (customerId == null) {
+            return null;
+        }
+        return hasLink(EventCustomer.class,
+                (link, cb) -> cb.equal(link.get("customer").get("id"), customerId));
+    }
+
     /** Partial, case-insensitive match on the name of any of the event's customers. */
     public static Specification<Event> byCustomerName(String customerName) {
         if (customerName == null || customerName.isBlank()) {

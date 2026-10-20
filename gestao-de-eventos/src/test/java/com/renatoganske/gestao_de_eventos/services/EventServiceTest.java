@@ -847,7 +847,7 @@ class EventServiceTest {
         when(eventRepository.findAll(any(Specification.class))).thenReturn(List.of(event));
 
         List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
-                weddingType.getId(), null, null, null, null, null, null, "maria", null, null, null));
+                weddingType.getId(), null, null, null, null, null, null, null, "maria", null, null, null));
 
         assertThat(result).extracting(EventDto::id).containsExactly(event.getId());
         verify(eventRepository, never()).findAll();

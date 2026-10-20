@@ -38,11 +38,11 @@ public class EventController implements IEventController {
     @Override
     public ResponseEntity<List<EventDto>> search(UUID eventTypeId, UUID venueId, UUID professionalId,
                                                   LocalDate from, LocalDate to, UUID hdId, DeliveryStatus deliveryStatus,
-                                                  String customerName, String eventCode,
+                                                  UUID customerId, String customerName, String eventCode,
                                                   Boolean daytimeWedding, Boolean outdoorWedding) {
         EventSearchCriteria criteria = new EventSearchCriteria(
                 eventTypeId, venueId, professionalId, from, to, hdId, deliveryStatus,
-                customerName, eventCode, daytimeWedding, outdoorWedding);
+                customerId, customerName, eventCode, daytimeWedding, outdoorWedding);
         return ResponseEntity.ok(eventService.searchEvents(criteria));
     }
 
