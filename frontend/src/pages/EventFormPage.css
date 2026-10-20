@@ -101,3 +101,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+.event-form-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
