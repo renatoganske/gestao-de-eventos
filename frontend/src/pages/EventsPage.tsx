@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import {
@@ -18,7 +18,7 @@ import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { FormField } from '../components/FormField'
 import { Pill } from '../components/Pill'
-import { Table } from '../components/Table'
+import { Table, type TableSort } from '../components/Table'
 import { Toast, type ToastMessage } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { discardFormDraft } from '../hooks/useFormDraft'
@@ -87,15 +87,87 @@ function toSearchParams(filters: FilterState): SearchEventsParams {
   }
 }
 
-// Filters that other pages can pre-set through the URL (e.g. /eventos?customerId=...).
-function filtersFromSearchParams(searchParams: URLSearchParams): FilterState {
+// Only the shape is checked (ids are UUIDs, but fixtures and older links need not be): it rules out junk, not unknown ids.
+const ID_PATTERN = /^[\w-]{1,64}$/
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+const DEFAULT_SORT: TableSort = { key: 'date', direction: 'asc', thenBy: 'code' }
+const SORTABLE_KEYS = ['code', 'customer', 'venues', 'type', 'date', 'status']
+
+interface UrlView {
+  freeText: string
+  filters: FilterState
+}
+
+// Each reader returns '' for a missing or invalid value, so a hand-edited URL never breaks the page.
+function readId(searchParams: URLSearchParams, name: string): string {
+  const value = searchParams.get(name) ?? ''
+  return ID_PATTERN.test(value) ? value : ''
+}
+
+function readDate(searchParams: URLSearchParams, name: string): string {
+  const value = searchParams.get(name) ?? ''
+  return DATE_PATTERN.test(value) ? value : ''
+}
+
+function readWeddingFlag(searchParams: URLSearchParams, name: string): WeddingFlagFilter {
+  const value = searchParams.get(name)
+  return value === 'true' || value === 'false' ? value : ''
+}
+
+// The applied view (filters + free text) that lives in the URL; other pages can pre-set it too
+// (e.g. /eventos?customerId=...). The sort is read separately by sortFromSearchParams.
+function viewFromSearchParams(searchParams: URLSearchParams): UrlView {
+  const deliveryStatus = searchParams.get('deliveryStatus') ?? ''
+  const eventTypeId = readId(searchParams, 'eventTypeId')
   return {
-    ...EMPTY_FILTERS,
-    customerId: searchParams.get('customerId') ?? '',
-    professionalId: searchParams.get('professionalId') ?? '',
-    hdId: searchParams.get('hdId') ?? '',
-    venueId: searchParams.get('venueId') ?? '',
+    freeText: searchParams.get('q') ?? '',
+    filters: {
+      eventTypeId,
+      venueId: readId(searchParams, 'venueId'),
+      professionalId: readId(searchParams, 'professionalId'),
+      customerId: readId(searchParams, 'customerId'),
+      from: readDate(searchParams, 'from'),
+      to: readDate(searchParams, 'to'),
+      hdId: readId(searchParams, 'hdId'),
+      deliveryStatus: deliveryStatus in DELIVERY_STATUS_LABEL ? (deliveryStatus as DeliveryStatus) : '',
+      // The wedding flags only exist together with an event type.
+      daytimeWedding: eventTypeId ? readWeddingFlag(searchParams, 'daytimeWedding') : '',
+      outdoorWedding: eventTypeId ? readWeddingFlag(searchParams, 'outdoorWedding') : '',
+    },
   }
+}
+
+function sortFromSearchParams(searchParams: URLSearchParams): TableSort {
+  const [key, direction] = (searchParams.get('sort') ?? '').split(':')
+  if (SORTABLE_KEYS.includes(key) && (direction === 'asc' || direction === 'desc')) {
+    return { key, direction, thenBy: DEFAULT_SORT.thenBy }
+  }
+  return DEFAULT_SORT
+}
+
+// Writes only what differs from "no filter" / the default sort, so the default view has a clean URL.
+function toUrlParams(freeText: string, filters: FilterState, sort: TableSort): URLSearchParams {
+  const params = new URLSearchParams()
+  if (freeText.trim()) {
+    params.set('q', freeText.trim())
+  }
+  for (const [name, value] of Object.entries(filters)) {
+    if (value) {
+      params.set(name, value)
+    }
+  }
+  if (sort.key !== DEFAULT_SORT.key || sort.direction !== DEFAULT_SORT.direction) {
+    params.set('sort', `${sort.key}:${sort.direction}`)
+  }
+  return params
+}
+
+// Everything but the sort: the sort is applied in memory, so changing it must not trigger a new search.
+function searchKey(searchParams: URLSearchParams): string {
+  const copy = new URLSearchParams(searchParams)
+  copy.delete('sort')
+  return copy.toString()
 }
 
 // Fetches just the customer named in the URL filter (works even if they have no events).
@@ -147,11 +219,15 @@ export function EventsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const [freeText, setFreeText] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
-  // Read once, on mount: typed filters are not synced back to the URL.
-  const [initialFilters] = useState(() => filtersFromSearchParams(searchParams))
-  const [filters, setFilters] = useState<FilterState>(initialFilters)
+  // The URL holds the applied view (filters, free text, sort); typing in the panel only changes the draft
+  // below, and "Aplicar filtros" copies it to the URL. The first read happens on mount.
+  const [initialView] = useState(() => viewFromSearchParams(searchParams))
+  const [freeText, setFreeText] = useState(initialView.freeText)
+  const [filters, setFilters] = useState<FilterState>(initialView.filters)
+  // Key of the URL view already searched, to tell our own writes from navigation (back/forward).
+  const appliedKey = useRef(searchKey(searchParams))
+  const sort = sortFromSearchParams(searchParams)
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true)
 
   const [referenceData, setReferenceData] = useState<ReferenceData | null>(null)
@@ -170,10 +246,10 @@ export function EventsPage() {
           fetchEventTypes(),
           fetchEventVenues(),
           fetchProfessionals(),
-          loadFilterCustomer(initialFilters.customerId),
+          loadFilterCustomer(initialView.filters.customerId),
           fetchHds(),
         ])
-        const initialEvents = await performSearch('', initialFilters)
+        const initialEvents = await performSearch(initialView.freeText, initialView.filters)
         if (cancelled) {
           return
         }
@@ -210,17 +286,46 @@ export function EventsPage() {
     }
   }
 
+  // Back/forward (or any URL change we did not make) restores the view the URL describes.
+  useEffect(() => {
+    const key = searchKey(searchParams)
+    if (key === appliedKey.current) {
+      return
+    }
+    appliedKey.current = key
+    const view = viewFromSearchParams(searchParams)
+    setFreeText(view.freeText)
+    setFilters(view.filters)
+    runSearch(view.freeText, view.filters)
+    if (view.filters.customerId !== referenceData?.filterCustomer?.id) {
+      loadFilterCustomer(view.filters.customerId).then((filterCustomer) =>
+        setReferenceData((current) => (current ? { ...current, filterCustomer } : current)),
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    const next = toUrlParams(freeText, filters, sort)
+    appliedKey.current = searchKey(next)
+    setSearchParams(next)
     runSearch(freeText, filters)
   }
 
   function handleClearFilters() {
     setFreeText('')
     setFilters(EMPTY_FILTERS)
+    appliedKey.current = ''
+    // Empties the whole query (filters, free text and sort), so a reload does not bring them back.
+    setSearchParams({})
     runSearch('', EMPTY_FILTERS)
-    // Drops the filters that came from the URL too, so a reload does not bring them back.
-    setSearchParams({}, { replace: true })
+  }
+
+  // The sort is saved over the applied view in the URL, not over filters still being typed.
+  function handleSortChange(next: TableSort) {
+    const applied = viewFromSearchParams(searchParams)
+    setSearchParams(toUrlParams(applied.freeText, applied.filters, next))
   }
 
   function updateFilter<K extends keyof FilterState>(key: K, value: FilterState[K]) {
@@ -475,7 +580,8 @@ export function EventsPage() {
               ]}
               rows={events}
               rowKey={(row) => row.id}
-              defaultSort={{ key: 'date', direction: 'asc', thenBy: 'code' }}
+              sort={sort}
+              onSortChange={handleSortChange}
               onRowClick={(row) => {
                 discardFormDraft(`event-edit:${row.id}`)
                 navigate(`/eventos/${row.id}`)
