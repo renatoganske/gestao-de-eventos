@@ -9,16 +9,18 @@ import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalNotFoundExcepti
 import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalTypeNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.SpecialtyTagNotFoundException;
 import com.renatoganske.gestao_de_eventos.filters.ProfessionalFilter;
+import com.renatoganske.gestao_de_eventos.repositories.EventCountProjection;
 import com.renatoganske.gestao_de_eventos.repositories.ProfessionalRepository;
 import com.renatoganske.gestao_de_eventos.repositories.ProfessionalTypeRepository;
 import com.renatoganske.gestao_de_eventos.repositories.SpecialtyTagRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -40,18 +42,21 @@ public class ProfessionalService {
         professional.setType(resolveProfessionalType(createProfessionalDto.typeId()));
         professional.setSpecialtyTags(resolveSpecialtyTags(createProfessionalDto.specialtyTagIds()));
 
-        return professionalRepository.save(professional).toResponseDto();
+        return professionalRepository.save(professional).toResponseDto(0);
     }
 
+    @Transactional(readOnly = true)
     public List<ProfessionalDto> getAllProfessionals() {
+        Map<UUID, Integer> eventCounts = eventCountsByProfessional();
         return professionalRepository.findAll().stream()
-                .map(Professional::toResponseDto)
+                .map(professional -> professional.toResponseDto(EventCountProjection.countOf(eventCounts, professional.getId())))
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public ProfessionalDto getProfessionalById(UUID id) {
         Optional<Professional> optionalProfessional = professionalRepository.findById(id);
-        return optionalProfessional.map(Professional::toResponseDto)
+        return optionalProfessional.map(professional -> professional.toResponseDto(countEvents(professional)))
                 .orElseThrow(() -> new ProfessionalNotFoundException(id));
     }
 
@@ -67,7 +72,7 @@ public class ProfessionalService {
         professional.setOtherInfo(createProfessionalDto.otherInfo());
 
         Professional updatedProfessional = professionalRepository.save(professional);
-        return updatedProfessional.toResponseDto();
+        return updatedProfessional.toResponseDto(countEvents(updatedProfessional));
     }
 
     @Transactional
@@ -77,14 +82,24 @@ public class ProfessionalService {
         professionalRepository.delete(professional);
     }
 
+    @Transactional(readOnly = true)
     public List<ProfessionalDto> searchProfessionals(UUID typeId, UUID specialtyTagId) {
         Predicate<Professional> filter = ProfessionalFilter.byType(typeId)
                 .and(ProfessionalFilter.bySpecialtyTag(specialtyTagId));
 
+        Map<UUID, Integer> eventCounts = eventCountsByProfessional();
         return professionalRepository.findAll().stream()
                 .filter(filter)
-                .map(Professional::toResponseDto)
+                .map(professional -> professional.toResponseDto(EventCountProjection.countOf(eventCounts, professional.getId())))
                 .collect(Collectors.toList());
+    }
+
+    private Map<UUID, Integer> eventCountsByProfessional() {
+        return EventCountProjection.toMap(professionalRepository.countEventsGroupedByProfessional());
+    }
+
+    private int countEvents(Professional professional) {
+        return Math.toIntExact(professionalRepository.countEventsByProfessionalId(professional.getId()));
     }
 
     private ProfessionalType resolveProfessionalType(UUID typeId) {

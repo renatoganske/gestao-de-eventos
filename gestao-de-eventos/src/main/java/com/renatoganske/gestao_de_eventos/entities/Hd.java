@@ -43,7 +43,7 @@ public class Hd {
     @OneToMany(mappedBy = "hd")
     private List<Event> events;
 
-    public HdDto toResponseDto() {
+    public HdDto toResponseDto(int eventCount) {
         return new HdDto(
                 this.id,
                 this.name,
@@ -56,7 +56,8 @@ public class Hd {
                 this.status,
                 this.events == null ? List.of() : this.events.stream()
                         .map(Event::toSummaryDto)
-                        .collect(Collectors.toList())
+                        .collect(Collectors.toList()),
+                eventCount
         );
     }
 }

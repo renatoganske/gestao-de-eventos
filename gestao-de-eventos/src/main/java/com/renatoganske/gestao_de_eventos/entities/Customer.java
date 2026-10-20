@@ -31,7 +31,7 @@ public class Customer {
     @OneToMany(mappedBy = "customer")
     private List<EventCustomer> eventCustomers;
 
-    public CustomerResponseDto toResponseDto() {
+    public CustomerResponseDto toResponseDto(int eventCount) {
         return new CustomerResponseDto(
                 this.id,
                 this.name,
@@ -40,6 +40,7 @@ public class Customer {
                 this.notes,
                 this.eventCustomers == null ? List.of() : this.eventCustomers.stream()
                         .map(eventCustomer -> eventCustomer.getEvent().toSummaryDto())
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList()),
+                eventCount);
     }
 }

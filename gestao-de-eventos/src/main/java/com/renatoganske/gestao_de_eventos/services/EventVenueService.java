@@ -4,13 +4,15 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueDto;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException;
+import com.renatoganske.gestao_de_eventos.repositories.EventCountProjection;
 import com.renatoganske.gestao_de_eventos.repositories.EventVenueRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -23,18 +25,22 @@ public class EventVenueService {
 
     @Transactional
     public EventVenueDto createEventVenue(CreateEventVenueDto createEventVenueDto) {
-        return eventVenueRepository.save(createEventVenueDto.toEntity()).toResponseDto();
+        // A just-created venue has no events yet.
+        return eventVenueRepository.save(createEventVenueDto.toEntity()).toResponseDto(0);
     }
 
+    @Transactional(readOnly = true)
     public List<EventVenueDto> getAllEventVenues() {
+        Map<UUID, Integer> eventCounts = EventCountProjection.toMap(eventVenueRepository.countEventsGroupedByEventVenue());
         return eventVenueRepository.findAll().stream()
-                .map(EventVenue::toResponseDto)
+                .map(venue -> venue.toResponseDto(EventCountProjection.countOf(eventCounts, venue.getId())))
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public EventVenueDto getEventVenueById(UUID id) {
         return eventVenueRepository.findById(id)
-                .map(EventVenue::toResponseDto)
+                .map(venue -> venue.toResponseDto(countEvents(venue)))
                 .orElseThrow(() -> new EventVenueNotFoundException(id));
     }
 
@@ -50,7 +56,7 @@ public class EventVenueService {
         eventVenue.setType(createEventVenueDto.type());
 
         EventVenue updatedEventVenue = eventVenueRepository.save(eventVenue);
-        return updatedEventVenue.toResponseDto();
+        return updatedEventVenue.toResponseDto(countEvents(updatedEventVenue));
     }
 
     @Transactional
@@ -58,5 +64,9 @@ public class EventVenueService {
         EventVenue eventVenue = eventVenueRepository.findById(id)
                 .orElseThrow(() -> new EventVenueNotFoundException(id));
         eventVenueRepository.delete(eventVenue);
+    }
+
+    private int countEvents(EventVenue eventVenue) {
+        return Math.toIntExact(eventVenueRepository.countEventsByEventVenueId(eventVenue.getId()));
     }
 }

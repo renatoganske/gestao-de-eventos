@@ -42,7 +42,7 @@ public class Professional {
     @OneToMany(mappedBy = "professional")
     private List<EventProfessional> eventProfessionals;
 
-    public ProfessionalDto toResponseDto() {
+    public ProfessionalDto toResponseDto(int eventCount) {
         return new ProfessionalDto(
                 this.id,
                 this.name,
@@ -54,7 +54,8 @@ public class Professional {
                 this.otherInfo,
                 this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
                         .map(EventProfessional::toDTO)
-                        .collect(Collectors.toList())
+                        .collect(Collectors.toList()),
+                eventCount
         );
     }
 }

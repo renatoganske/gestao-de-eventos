@@ -19,6 +19,8 @@ export interface HdDto {
   serialNumber: string | null
   acquisitionDate: string | null
   status: HdStatus
+  /** Number of events stored on the HD (GDE-58). */
+  eventCount?: number
 }
 
 export interface CreateHdDto {

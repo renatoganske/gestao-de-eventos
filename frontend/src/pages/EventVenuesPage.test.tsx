@@ -212,3 +212,39 @@ describe('EventVenuesPage', () => {
     expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
   })
 })
+
+describe('EventVenuesPage - coluna Eventos (GDE-58)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('mostra a contagem de eventos de cada local, inclusive zero', async () => {
+    vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
+      makeVenue({ id: 'v1', name: 'Buffet Rosa', eventCount: 4 }),
+      makeVenue({ id: 'v2', name: 'Igreja Matriz', eventCount: 0 }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Buffet Rosa')).toBeInTheDocument())
+    expect(screen.getByRole('columnheader', { name: /Eventos/ })).toBeInTheDocument()
+    expect(columnTexts(4)).toEqual(['4', '0'])
+  })
+
+  it('ordena pela coluna Eventos e inverte ao clicar de novo', async () => {
+    vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
+      makeVenue({ id: 'v1', name: 'Buffet Rosa', eventCount: 4 }),
+      makeVenue({ id: 'v2', name: 'Igreja Matriz', eventCount: 0 }),
+      makeVenue({ id: 'v3', name: 'Sítio Verde', eventCount: 12 }),
+    ])
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Buffet Rosa')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Igreja Matriz', 'Buffet Rosa', 'Sítio Verde'])
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Sítio Verde', 'Buffet Rosa', 'Igreja Matriz'])
+  })
+})

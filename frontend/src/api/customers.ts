@@ -6,6 +6,8 @@ export interface CustomerDto {
   contact: string | null
   address: string | null
   notes: string | null
+  /** Number of events the customer is in (GDE-58). */
+  eventCount?: number
 }
 
 export interface CreateCustomerDto {

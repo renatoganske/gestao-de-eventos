@@ -142,6 +142,7 @@ export function ProfessionalsPage() {
                   render: (row) => (row.specialtyTags.length > 0 ? row.specialtyTags.map((tag) => tag.name).join(', ') : '—'),
                   sortValue: (row) => row.specialtyTags.map((tag) => tag.name).join(', ') || null,
                 },
+                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount ?? 0, sortValue: (row) => row.eventCount ?? 0 },
                 {
                   key: 'actions',
                   header: 'Ações',
