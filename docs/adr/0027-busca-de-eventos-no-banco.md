@@ -32,7 +32,7 @@ Localmente cada query custa menos de 1 ms. Em produção cada uma paga a ida e v
 
 **3. Leituras do `EventService` com `@Transactional(readOnly = true)`** (`getAllEvents`, `getEventById`, `searchEvents`). Antes, o lazy loading do `toDTO()` só funcionava porque o open-in-view mantinha a sessão aberta até a resposta. Agora a sessão é explícita no service. O import passou de `jakarta.transaction.Transactional` para o do Spring, que tem `readOnly`; as escritas mantêm a mesma semântica de rollback.
 
-**4. Estatísticas do Hibernate controladas por variável de ambiente:** `HIBERNATE_STATISTICS` (padrão `true` em dev e `false` em prod). Em produção liga e desliga pelo painel do Render, sem deploy, para medir com a latência real. O placeholder `${...}` é necessário porque o relaxed binding do Spring trocaria o `_` de `generate_statistics` por `.`.
+**4. Estatísticas do Hibernate controladas por variável de ambiente:** `HIBERNATE_STATISTICS` (padrão `true` em dev e `false` em prod). Em produção liga e desliga pelo painel do Render, sem deploy, para medir com a latência real. O placeholder `${...}` dá à variável um nome curto: sem ele o override teria que ser `SPRING_JPA_PROPERTIES_HIBERNATE_GENERATE_STATISTICS`, em que o relaxed binding não distingue o `_` de `generate_statistics` do separador entre níveis. As chaves escritas no próprio `.properties`, como `default_batch_fetch_size`, mantêm o `_` e não precisam de placeholder.
 
 ### Resultado (banco local, mesma base)
 
@@ -45,7 +45,7 @@ Localmente cada query custa menos de 1 ms. Em produção cada uma paga a ida e v
 | `GET /professionals` | 220 / 0,23 s | 9 / 0,02 s |
 | `GET /event-venues` | 40 / 0,05 s | 3 / 0,01 s |
 
-Para confirmar a equivalência, as duas implementações rodaram lado a lado sobre a base importada em 186 buscas (cada tipo, local, profissional e HD existente, status, flags, períodos, textos com `%`/`_`/acentos e combinações). Os eventos devolvidos e o corpo de cada um foram idênticos em todas, fora a ordem da equipe (ver custos).
+Para confirmar a equivalência, as duas implementações rodaram lado a lado sobre a base importada em 186 buscas (cada tipo, local, profissional e HD existente, status, flags, períodos, textos com `%`/`_`/acentos e combinações). Os eventos devolvidos e o corpo de cada um foram idênticos em todas; a única diferença era a ordem da equipe, que nunca teve ordem definida e agora é ordenada por nome no `toDTO()`, como locais e clientes.
 
 ## Racional
 
@@ -60,7 +60,6 @@ Para confirmar a equivalência, as duas implementações rodaram lado a lado sob
 
 **Custos aceitos:**
 
-- **A ordem da equipe no `EventDto` pode variar entre respostas.** Ela nunca teve ordem definida (não há `ORDER BY` nem ordenação no `toDTO()`); antes saía na ordem em que o banco devolvia as linhas uma a uma, agora sai na ordem do lote. Locais e clientes já são ordenados no `toDTO()` e não mudam.
 - **As regras dos filtros só são testáveis contra o banco.** O `EventFilterTest` (unitário) deu lugar ao `EventSpecificationsIntegrationTest`, que roda no Postgres local junto com os dados importados. Por isso as asserções verificam se cada fixture está ou não no resultado, nunca a lista exata.
 - **`lower(...) LIKE '%x%'` não usa índice.** Com centenas de eventos isso é desprezível. Se a base crescer muito, a saída é um índice trigram (`pg_trgm`), decidido em ADR própria.
 

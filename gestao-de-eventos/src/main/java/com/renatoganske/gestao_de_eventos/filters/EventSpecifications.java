@@ -14,8 +14,10 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 /**
  * Composable criteria for the event search, run by the database (ADR-0027, revising ADR-0005).
@@ -60,8 +62,9 @@ public final class EventSpecifications {
         }
         return (root, query, cb) -> {
             Expression<LocalDate> eventDate = root.get("eventDate");
-            Predicate afterFrom = from == null ? cb.isNotNull(eventDate) : cb.greaterThanOrEqualTo(eventDate, from);
-            return to == null ? afterFrom : cb.and(afterFrom, cb.lessThanOrEqualTo(eventDate, to));
+            Predicate afterFrom = from == null ? null : cb.greaterThanOrEqualTo(eventDate, from);
+            Predicate beforeTo = to == null ? null : cb.lessThanOrEqualTo(eventDate, to);
+            return cb.and(Stream.of(afterFrom, beforeTo).filter(Objects::nonNull).toArray(Predicate[]::new));
         };
     }
 

@@ -7,11 +7,11 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateProfessionalDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueAssignmentDto;
-import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
-import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
 import com.renatoganske.gestao_de_eventos.services.CustomerService;
 import com.renatoganske.gestao_de_eventos.services.EventService;
 import com.renatoganske.gestao_de_eventos.services.EventTypeService;
@@ -23,7 +23,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +37,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * now, so only the database can prove they keep the behaviour of the in-memory EventFilter they
  * replaced -- nulls, case, "any of the event's venues/customers", no duplicated rows.
  *
+ * Every search goes through {@code EventService.searchEvents}, not through the specifications
+ * directly, so it also proves that each search parameter feeds the right filter: with two Booleans
+ * and several UUIDs of the same type, the compiler cannot catch a swapped argument.
+ *
  * The local dev database also holds the imported events, so the assertions never expect an exact
  * result list: they check that each fixture is in or out of it. The fixtures' names and codes carry
  * a random tag so text searches cannot be satisfied by real data.
@@ -46,9 +49,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 @Rollback
 class EventSpecificationsIntegrationTest {
-
-    @Autowired
-    private EventRepository eventRepository;
 
     @Autowired
     private EventService eventService;
@@ -122,66 +122,66 @@ class EventSpecificationsIntegrationTest {
 
     @Test
     void byType_matchesOnlyGivenType() {
-        assertThat(search(EventSpecifications.byType(weddingTypeId))).contains(wedding).doesNotContain(birthday, bare);
+        assertThat(search(criteria().eventTypeId(weddingTypeId))).contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byVenue_matchesAnyOfTheEventsVenues() {
-        assertThat(search(EventSpecifications.byVenue(churchId))).contains(wedding).doesNotContain(birthday, bare);
+        assertThat(search(criteria().venueId(churchId))).contains(wedding).doesNotContain(birthday, bare);
         // the second venue of the event matches too, not only the first one
-        assertThat(search(EventSpecifications.byVenue(hallId))).contains(wedding).doesNotContain(birthday, bare);
+        assertThat(search(criteria().venueId(hallId))).contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byProfessional_matchesOnlyEventsWithGivenProfessional() {
-        assertThat(search(EventSpecifications.byProfessional(professionalId)))
+        assertThat(search(criteria().professionalId(professionalId)))
                 .contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byPeriod_matchesWithinRange() {
-        assertThat(search(EventSpecifications.byPeriod(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30))))
+        assertThat(search(criteria().from(LocalDate.of(2026, 6, 1)).to(LocalDate.of(2026, 6, 30))))
                 .contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byPeriod_onlyFromBoundsLowerLimit() {
-        assertThat(search(EventSpecifications.byPeriod(LocalDate.of(2026, 3, 1), null)))
+        assertThat(search(criteria().from(LocalDate.of(2026, 3, 1))))
                 .contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byPeriod_onlyToBoundsUpperLimit() {
-        assertThat(search(EventSpecifications.byPeriod(null, LocalDate.of(2026, 3, 1))))
+        assertThat(search(criteria().to(LocalDate.of(2026, 3, 1))))
                 .contains(birthday).doesNotContain(wedding, bare);
     }
 
     @Test
     void byHd_matchesOnlyGivenHd() {
-        assertThat(search(EventSpecifications.byHd(hdId))).contains(wedding).doesNotContain(birthday, bare);
+        assertThat(search(criteria().hdId(hdId))).contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byDeliveryStatus_matchesOnlyGivenStatus() {
-        assertThat(search(EventSpecifications.byDeliveryStatus(DeliveryStatus.PENDING)))
+        assertThat(search(criteria().deliveryStatus(DeliveryStatus.PENDING)))
                 .contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byCustomerName_matchesPartialCaseInsensitive() {
-        assertThat(search(EventSpecifications.byCustomerName(tag.toUpperCase() + "SILVA")))
+        assertThat(search(criteria().customerName(tag.toUpperCase() + "SILVA")))
                 .contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byCustomerName_matchesAnyOfTheEventsCustomers() {
-        assertThat(search(EventSpecifications.byCustomerName(tag + "pereira")))
+        assertThat(search(criteria().customerName(tag + "pereira")))
                 .contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void byCustomerName_returnsAnEventOnceEvenWhenSeveralOfItsCustomersMatch() {
-        List<UUID> result = search(EventSpecifications.byCustomerName(tag));
+        List<UUID> result = search(criteria().customerName(tag));
 
         assertThat(result).filteredOn(wedding::equals).hasSize(1);
         assertThat(result).contains(birthday).doesNotContain(bare);
@@ -189,28 +189,28 @@ class EventSpecificationsIntegrationTest {
 
     @Test
     void byEventCode_matchesPartialCaseInsensitive() {
-        assertThat(search(EventSpecifications.byEventCode(tag.toUpperCase() + "-001")))
+        assertThat(search(criteria().eventCode(tag.toUpperCase() + "-001")))
                 .contains(wedding).doesNotContain(birthday, bare);
     }
 
     @Test
     void textFilters_matchLikeWildcardsLiterally() {
         // unescaped, "_" would match the "-" of the code and "%" any text in between
-        assertThat(search(EventSpecifications.byEventCode(tag + "_001"))).doesNotContain(wedding);
-        assertThat(search(EventSpecifications.byEventCode(tag + "%001"))).doesNotContain(wedding);
-        assertThat(search(EventSpecifications.byCustomerName("maria%" + tag))).doesNotContain(wedding);
+        assertThat(search(criteria().eventCode(tag + "_001"))).doesNotContain(wedding);
+        assertThat(search(criteria().eventCode(tag + "%001"))).doesNotContain(wedding);
+        assertThat(search(criteria().customerName("maria%" + tag))).doesNotContain(wedding);
     }
 
     @Test
     void byOutdoorWedding_matchesOnlyExplicitValue() {
-        assertThat(search(EventSpecifications.byOutdoorWedding(true))).contains(bare).doesNotContain(wedding, birthday);
-        assertThat(search(EventSpecifications.byOutdoorWedding(false))).contains(wedding).doesNotContain(bare, birthday);
+        assertThat(search(criteria().outdoorWedding(true))).contains(bare).doesNotContain(wedding, birthday);
+        assertThat(search(criteria().outdoorWedding(false))).contains(wedding).doesNotContain(bare, birthday);
     }
 
     @Test
     void byDaytimeWedding_matchesOnlyExplicitValue() {
-        assertThat(search(EventSpecifications.byDaytimeWedding(true))).contains(wedding).doesNotContain(bare, birthday);
-        assertThat(search(EventSpecifications.byDaytimeWedding(false))).contains(bare).doesNotContain(wedding, birthday);
+        assertThat(search(criteria().daytimeWedding(true))).contains(wedding).doesNotContain(bare, birthday);
+        assertThat(search(criteria().daytimeWedding(false))).contains(bare).doesNotContain(wedding, birthday);
     }
 
     @Test
@@ -228,26 +228,45 @@ class EventSpecificationsIntegrationTest {
         assertThat(EventSpecifications.byDaytimeWedding(null)).isNull();
         assertThat(EventSpecifications.byOutdoorWedding(null)).isNull();
 
-        assertThat(search(Specification.allOf(
-                EventSpecifications.byType(null), EventSpecifications.byCustomerName(null))))
-                .contains(wedding, birthday, bare);
+        assertThat(search(criteria())).contains(wedding, birthday, bare);
     }
 
     @Test
     void combinedCriteria_matchOnlyWhenAllMatch() {
-        Specification<Event> spec = Specification.allOf(
-                EventSpecifications.byType(weddingTypeId),
-                EventSpecifications.byVenue(hallId),
-                EventSpecifications.byCustomerName(tag + "silva"),
-                EventSpecifications.byPeriod(LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 30)));
+        Criteria combined = criteria()
+                .eventTypeId(weddingTypeId)
+                .venueId(hallId)
+                .customerName(tag + "silva")
+                .from(LocalDate.of(2026, 6, 1)).to(LocalDate.of(2026, 6, 30));
 
-        assertThat(search(spec)).contains(wedding).doesNotContain(birthday, bare);
-        assertThat(search(spec.and(EventSpecifications.byDeliveryStatus(DeliveryStatus.DELIVERED))))
+        assertThat(search(combined)).contains(wedding).doesNotContain(birthday, bare);
+        assertThat(search(combined.deliveryStatus(DeliveryStatus.DELIVERED)))
                 .doesNotContain(wedding, birthday, bare);
     }
 
-    private List<UUID> search(Specification<Event> spec) {
-        return eventRepository.findAll(spec).stream().map(Event::getId).toList();
+    @Test
+    void team_comesOrderedByNameWhateverTheOrderItWasAssigned() {
+        UUID assistantId = professionalService.createProfessional(
+                new CreateProfessionalDto(tag + " Assistant", null, null, null, null)).id();
+        UUID event = eventService.createEvent(new CreateEventDto(
+                tag + "-004", null, "Equipe " + tag, null, null, null, null, null, null, null, null, null,
+                null, null,
+                List.of(new EventProfessionalAssignmentDto(professionalId, "Fotógrafo"),
+                        new EventProfessionalAssignmentDto(assistantId, "Assistente")))).id();
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(eventService.getEventById(event).eventProfessionals())
+                .extracting(EventProfessionalSummaryDto::professionalName)
+                .containsExactly(tag + " Assistant", tag + " Photographer");
+    }
+
+    private List<UUID> search(Criteria criteria) {
+        return eventService.searchEvents(criteria.build()).stream().map(EventDto::id).toList();
+    }
+
+    private static Criteria criteria() {
+        return new Criteria();
     }
 
     private UUID venue(String name) {
@@ -260,5 +279,37 @@ class EventSpecificationsIntegrationTest {
 
     private UUID customer(String name) {
         return customerService.createCustomer(new CreateCustomerDto(name, null, null, null)).id();
+    }
+
+    /** Names each criterion at the call site, which the record's positional constructor does not. */
+    private static final class Criteria {
+        private UUID eventTypeId;
+        private UUID venueId;
+        private UUID professionalId;
+        private LocalDate from;
+        private LocalDate to;
+        private UUID hdId;
+        private DeliveryStatus deliveryStatus;
+        private String customerName;
+        private String eventCode;
+        private Boolean daytimeWedding;
+        private Boolean outdoorWedding;
+
+        Criteria eventTypeId(UUID value) { this.eventTypeId = value; return this; }
+        Criteria venueId(UUID value) { this.venueId = value; return this; }
+        Criteria professionalId(UUID value) { this.professionalId = value; return this; }
+        Criteria from(LocalDate value) { this.from = value; return this; }
+        Criteria to(LocalDate value) { this.to = value; return this; }
+        Criteria hdId(UUID value) { this.hdId = value; return this; }
+        Criteria deliveryStatus(DeliveryStatus value) { this.deliveryStatus = value; return this; }
+        Criteria customerName(String value) { this.customerName = value; return this; }
+        Criteria eventCode(String value) { this.eventCode = value; return this; }
+        Criteria daytimeWedding(Boolean value) { this.daytimeWedding = value; return this; }
+        Criteria outdoorWedding(Boolean value) { this.outdoorWedding = value; return this; }
+
+        EventSearchCriteria build() {
+            return new EventSearchCriteria(eventTypeId, venueId, professionalId, from, to, hdId,
+                    deliveryStatus, customerName, eventCode, daytimeWedding, outdoorWedding);
+        }
     }
 }
