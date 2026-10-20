@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.1.0](https://github.com/renatoganske/gestao-de-eventos/compare/v3.0.0...v3.1.0) (2026-10-20)
+
+
+### Features
+
+* clicar em cliente ou profissional abre os eventos da pessoa (GDE-56) ([#91](https://github.com/renatoganske/gestao-de-eventos/issues/91)) ([3a5db29](https://github.com/renatoganske/gestao-de-eventos/commit/3a5db2964d0d2b77a037363f47f2163616d46f42))
+* clicar em um local abre os eventos do local (GDE-57) ([#93](https://github.com/renatoganske/gestao-de-eventos/issues/93)) ([85aad03](https://github.com/renatoganske/gestao-de-eventos/commit/85aad03d8ada66052fc6fe55458e918cf338fb76))
+* coluna Eventos (eventCount) nas listas de Clientes, Profissionais, Locais e HDs ([#97](https://github.com/renatoganske/gestao-de-eventos/issues/97)) ([adedf43](https://github.com/renatoganske/gestao-de-eventos/commit/adedf430d10c153dda72d7a03e887c4d7363dda8))
+* espaço livre, ordenação e eventos dentro do HD (GDE-55) ([#92](https://github.com/renatoganske/gestao-de-eventos/issues/92)) ([e1fc81c](https://github.com/renatoganske/gestao-de-eventos/commit/e1fc81ce2450a0a35bd971f4a689501b48aff5ed))
+* filtro por customerId na busca de eventos (GDE-54) ([#89](https://github.com/renatoganske/gestao-de-eventos/issues/89)) ([d6ddcaf](https://github.com/renatoganske/gestao-de-eventos/commit/d6ddcaf010f0f8df8b2627476a2777bfa7fd2337))
+* filtros, busca e ordenação da lista de Eventos refletidos na URL (GDE-61) ([#96](https://github.com/renatoganske/gestao-de-eventos/issues/96)) ([769dc76](https://github.com/renatoganske/gestao-de-eventos/commit/769dc76c0708e797be0bc97d39aff740675a8ca0))
+* ordenação por coluna nas listas de Eventos, Clientes, Locais e Profissionais (GDE-53) ([#90](https://github.com/renatoganske/gestao-de-eventos/issues/90)) ([237edb5](https://github.com/renatoganske/gestao-de-eventos/commit/237edb5be97ddb52d143b4877a9e1982793de432))
+
+
+### Bug Fixes
+
+* busca só o cliente do filtro na EventsPage em vez de listar todos (GDE-60) ([#95](https://github.com/renatoganske/gestao-de-eventos/issues/95)) ([a2bc6af](https://github.com/renatoganske/gestao-de-eventos/commit/a2bc6af3899fd7d93c4d7ccff30b81671ea3d9f2))
+* consultas de eventos sem N+1 e com filtro no banco (GDE-52) ([#88](https://github.com/renatoganske/gestao-de-eventos/issues/88)) ([a7d0bc4](https://github.com/renatoganske/gestao-de-eventos/commit/a7d0bc489e261cac6e733731bd213dd2f6c9b98d))
+
 ## [3.0.0](https://github.com/renatoganske/gestao-de-eventos/compare/v2.0.0...v3.0.0) (2026-10-20)
 
 
