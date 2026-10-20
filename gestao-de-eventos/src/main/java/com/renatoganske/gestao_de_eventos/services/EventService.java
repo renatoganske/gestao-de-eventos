@@ -4,10 +4,13 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueAssignmentDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomerId;
+import com.renatoganske.gestao_de_eventos.entities.EventEventVenue;
+import com.renatoganske.gestao_de_eventos.entities.EventEventVenueId;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessionalId;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
@@ -24,6 +27,7 @@ import com.renatoganske.gestao_de_eventos.filters.EventFilter;
 import com.renatoganske.gestao_de_eventos.filters.EventSearchCriteria;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventCustomerRepository;
+import com.renatoganske.gestao_de_eventos.repositories.EventEventVenueRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventProfessionalRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
@@ -56,15 +60,16 @@ public class EventService {
     private final ProfessionalRepository professionalRepository;
     private final EventProfessionalRepository eventProfessionalRepository;
     private final EventCustomerRepository eventCustomerRepository;
+    private final EventEventVenueRepository eventEventVenueRepository;
 
     @Transactional
     public EventDto createEvent(CreateEventDto createEventDto) {
         Event event = createEventDto.toEntity();
         event.setType(resolveEventType(createEventDto.eventTypeId()));
         event.setHd(resolveHd(createEventDto.hdId()));
-        event.setEventVenue(resolveEventVenue(createEventDto.eventVenueId()));
 
         Event savedEvent = eventRepository.save(event);
+        syncEventVenues(savedEvent, createEventDto.venues());
         syncEventCustomers(savedEvent, createEventDto.customers());
         syncEventProfessionals(savedEvent, createEventDto.professionals());
         adjustHdUsedSpace(savedEvent.getHd(), savedEvent.getSizeGb());
@@ -104,9 +109,9 @@ public class EventService {
         event.setSizeGb(createEventDto.sizeGb());
         event.setDeliveryStatus(createEventDto.deliveryStatus());
         event.setHd(resolveHd(createEventDto.hdId()));
-        event.setEventVenue(resolveEventVenue(createEventDto.eventVenueId()));
 
         Event updatedEvent = eventRepository.save(event);
+        syncEventVenues(updatedEvent, createEventDto.venues());
         syncEventCustomers(updatedEvent, createEventDto.customers());
         syncEventProfessionals(updatedEvent, createEventDto.professionals());
 
@@ -131,6 +136,8 @@ public class EventService {
         eventProfessionalRepository.flush();
         eventCustomerRepository.deleteByEvent_Id(id);
         eventCustomerRepository.flush();
+        eventEventVenueRepository.deleteByEvent_Id(id);
+        eventEventVenueRepository.flush();
 
         eventRepository.delete(event);
 
@@ -171,11 +178,54 @@ public class EventService {
     }
 
     private EventVenue resolveEventVenue(UUID eventVenueId) {
-        if (eventVenueId == null) {
-            return null;
-        }
         return eventVenueRepository.findById(eventVenueId)
                 .orElseThrow(() -> new EventVenueNotFoundException(eventVenueId));
+    }
+
+    /**
+     * Replaces the event's whole venue list with the submitted one (ADR-0026), with the same
+     * semantics as customers (ADR-0025) and the team (ADR-0021): {@code null} leaves the current
+     * venues untouched, an empty list removes them all.
+     */
+    private void syncEventVenues(Event event, List<EventVenueAssignmentDto> assignments) {
+        if (assignments == null) {
+            return;
+        }
+
+        eventEventVenueRepository.deleteByEvent_Id(event.getId());
+        // Same reason as in syncEventProfessionals: the inserts below can reuse the deleted keys.
+        eventEventVenueRepository.flush();
+
+        List<EventEventVenue> persisted = eventEventVenueRepository.saveAll(
+                dedupeByVenue(assignments).stream()
+                        .map(assignment -> toEventEventVenue(event, assignment))
+                        .toList());
+
+        event.setEventVenues(persisted);
+    }
+
+    private EventEventVenue toEventEventVenue(Event event, EventVenueAssignmentDto assignment) {
+        EventVenue venue = resolveEventVenue(assignment.venueId());
+
+        return EventEventVenue.builder()
+                // Built explicitly for the same reason as EventProfessionalId (record, no @MapsId fill).
+                .id(new EventEventVenueId(event.getId(), venue.getId()))
+                .event(event)
+                .eventVenue(venue)
+                .role(assignment.role())
+                .build();
+    }
+
+    /**
+     * The primary key is (event_id, event_venue_id), so a venue cannot appear twice in one event.
+     * Keeping the last entry turns a duplicated payload into defined behaviour instead of a
+     * constraint violation surfacing as a 500.
+     */
+    private Collection<EventVenueAssignmentDto> dedupeByVenue(List<EventVenueAssignmentDto> assignments) {
+        Map<UUID, EventVenueAssignmentDto> byVenue = new LinkedHashMap<>();
+        assignments.forEach(assignment -> byVenue.put(assignment.venueId(), assignment));
+
+        return byVenue.values();
     }
 
     private Customer resolveCustomer(UUID customerId) {

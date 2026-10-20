@@ -32,7 +32,7 @@ const CREATED_EVENT: EventDto = {
   sizeGb: null,
   deliveryStatus: 'PENDING',
   hdId: null,
-  eventVenueId: null,
+  venues: [],
   customers: [{ customerId: 'customer-1', customerName: 'Maria Silva', contracting: true }],
   eventProfessionals: [],
 }

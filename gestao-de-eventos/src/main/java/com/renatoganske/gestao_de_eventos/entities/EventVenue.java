@@ -32,7 +32,7 @@ public class EventVenue {
     private String type;
 
     @OneToMany(mappedBy = "eventVenue")
-    private List<Event> events;
+    private List<EventEventVenue> eventEventVenues;
 
     public EventVenueDto toResponseDto() {
         return new EventVenueDto(
@@ -42,8 +42,8 @@ public class EventVenue {
                 this.city,
                 this.state,
                 this.type,
-                this.events == null ? List.of() : this.events.stream()
-                        .map(Event::toSummaryDto)
+                this.eventEventVenues == null ? List.of() : this.eventEventVenues.stream()
+                        .map(eventEventVenue -> eventEventVenue.getEvent().toSummaryDto())
                         .collect(Collectors.toList())
         );
     }

@@ -56,7 +56,7 @@ function makeEvent(overrides: Partial<EventDto> = {}): EventDto {
     sizeGb: 40,
     deliveryStatus: 'PENDING',
     hdId: 'hd-1',
-    eventVenueId: 'venue-1',
+    venues: [{ venueId: 'venue-1', venueName: 'Buffet Jardim das Rosas', role: null }],
     customers: [{ customerId: 'customer-1', customerName: 'Maria Silva', contracting: true }],
     eventProfessionals: [],
     ...overrides,
@@ -633,7 +633,7 @@ describe('EventFormPage - equipe do evento (GDE-37)', () => {
 
     await waitFor(() =>
       expect(eventsApi.createEvent).toHaveBeenCalledWith(
-        expect.objectContaining({ eventCode: 'EVT-777', professionals: [] }),
+        expect.objectContaining({ eventCode: 'EVT-777', professionals: [], venues: [] }),
       ),
     )
   })

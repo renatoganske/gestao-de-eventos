@@ -22,6 +22,7 @@ import { Checkbox } from '../components/Checkbox'
 import { CustomerQuickCreateForm } from '../components/CustomerQuickCreateForm'
 import { EventCustomersSection } from '../components/EventCustomersSection'
 import { EventTeamSection } from '../components/EventTeamSection'
+import { EventVenuesSection } from '../components/EventVenuesSection'
 import { EventVenueQuickCreateForm } from '../components/EventVenueQuickCreateForm'
 import { FormField } from '../components/FormField'
 import { HdQuickCreateForm } from '../components/HdQuickCreateForm'
@@ -34,6 +35,7 @@ import { useFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
 import { customerRowsFromEvent, customerRowsToAssignments, type CustomerRow } from '../utils/eventCustomers'
 import { hasRoleWithoutProfessional, teamRowsFromEvent, teamRowsToAssignments, type TeamRow } from '../utils/eventTeam'
+import { hasRoleWithoutVenue, venueRowsFromEvent, venueRowsToAssignments, type VenueRow } from '../utils/eventVenues'
 import './EventFormPage.css'
 
 const GENERIC_LOAD_ERROR = 'Não foi possível carregar os dados do formulário. Tente novamente em instantes.'
@@ -52,7 +54,7 @@ interface EventFormState {
   sizeGb: string
   deliveryStatus: DeliveryStatus
   hdId: string
-  eventVenueId: string
+  venues: VenueRow[]
   customers: CustomerRow[]
   professionals: TeamRow[]
 }
@@ -70,12 +72,12 @@ const EMPTY_FORM_STATE: EventFormState = {
   sizeGb: '',
   deliveryStatus: 'PENDING',
   hdId: '',
-  eventVenueId: '',
+  venues: [],
   customers: [],
   professionals: [],
 }
 
-type FormErrors = Partial<Record<'eventCode' | 'eventTypeId' | 'name' | 'eventDate' | 'professionals', string>>
+type FormErrors = Partial<Record<'eventCode' | 'eventTypeId' | 'name' | 'eventDate' | 'professionals' | 'venues', string>>
 
 interface ReferenceData {
   eventTypes: EventTypeDto[]
@@ -101,7 +103,7 @@ function eventToFormState(event: EventDto): EventFormState {
     sizeGb: event.sizeGb != null ? String(event.sizeGb) : '',
     deliveryStatus: event.deliveryStatus,
     hdId: event.hdId ?? '',
-    eventVenueId: event.eventVenueId ?? '',
+    venues: venueRowsFromEvent(event.venues),
     customers: customerRowsFromEvent(event.customers),
     professionals: teamRowsFromEvent(event.eventProfessionals),
   }
@@ -121,7 +123,8 @@ function formStateToDto(form: EventFormState, isWedding: boolean): CreateEventDt
     sizeGb: form.sizeGb ? Number(form.sizeGb) : null,
     deliveryStatus: form.deliveryStatus,
     hdId: form.hdId || null,
-    eventVenueId: form.eventVenueId || null,
+    // Same rule as the team: always an array; "?? []" covers a draft saved before venues became a list.
+    venues: venueRowsToAssignments(form.venues ?? []),
     // Same rule as the team: always an array; "?? []" covers a draft saved before customers became a list.
     customers: customerRowsToAssignments(form.customers ?? []),
     // Always an array (never omitted): omitting it on update would keep the old team instead of replacing it.
@@ -147,6 +150,9 @@ function validate(form: EventFormState): FormErrors {
   if (hasRoleWithoutProfessional(form.professionals ?? [])) {
     errors.professionals = 'Selecione o profissional em cada linha que tem um papel, ou remova a linha.'
   }
+  if (hasRoleWithoutVenue(form.venues ?? [])) {
+    errors.venues = 'Selecione o local em cada linha que tem um papel, ou remova a linha.'
+  }
   return errors
 }
 
@@ -168,6 +174,7 @@ export function EventFormPage() {
   const [quickCreateTarget, setQuickCreateTarget] = useState<QuickCreateTarget>(null)
   const [quickCreateTeamRowKey, setQuickCreateTeamRowKey] = useState<string | null>(null)
   const [quickCreateCustomerRowKey, setQuickCreateCustomerRowKey] = useState<string | null>(null)
+  const [quickCreateVenueRowKey, setQuickCreateVenueRowKey] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -254,6 +261,12 @@ export function EventFormPage() {
     setQuickCreateTarget(null)
     setQuickCreateTeamRowKey(null)
     setQuickCreateCustomerRowKey(null)
+    setQuickCreateVenueRowKey(null)
+  }
+
+  function openVenueQuickCreate(rowKey: string) {
+    setQuickCreateVenueRowKey(rowKey)
+    setQuickCreateTarget('venue')
   }
 
   function openCustomerQuickCreate(rowKey: string) {
@@ -301,8 +314,13 @@ export function EventFormPage() {
 
   function handleVenueCreated(venue: EventVenueDto) {
     setReferenceData((current) => (current ? { ...current, venues: [...current.venues, venue] } : current))
-    updateField('eventVenueId', venue.id)
+    const rows = form.venues ?? []
+    updateField(
+      'venues',
+      rows.map((row) => (row.key === quickCreateVenueRowKey ? { ...row, venueId: venue.id } : row)),
+    )
     setQuickCreateTarget(null)
+    setQuickCreateVenueRowKey(null)
     setToast({ kind: 'success', text: 'Local criado e selecionado.' })
   }
 
@@ -440,7 +458,7 @@ export function EventFormPage() {
               </div>
             </Card>
 
-            <Card title="Clientes e local">
+            <Card title="Clientes">
               <div className="event-form-grid">
                 <EventCustomersSection
                   rows={form.customers ?? []}
@@ -449,18 +467,18 @@ export function EventFormPage() {
                   onCreateNew={openCustomerQuickCreate}
                   disabled={isSubmitting}
                 />
-
-                <FormField label="Local do evento" htmlFor="event-venue">
-                  <Autocomplete
-                    id="event-venue"
-                    options={referenceData?.venues.map((venue) => ({ id: venue.id, label: venue.name })) ?? []}
-                    value={form.eventVenueId}
-                    onChange={(venueId) => updateField('eventVenueId', venueId)}
-                    placeholder="Buscar local..."
-                    onCreateNew={() => setQuickCreateTarget('venue')}
-                  />
-                </FormField>
               </div>
+            </Card>
+
+            <Card title="Locais">
+              <EventVenuesSection
+                rows={form.venues ?? []}
+                venues={referenceData?.venues ?? []}
+                onChange={(rows) => updateField('venues', rows)}
+                onCreateNew={openVenueQuickCreate}
+                disabled={isSubmitting}
+                error={errors.venues}
+              />
             </Card>
 
             <Card title="Profissionais">

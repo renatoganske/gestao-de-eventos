@@ -53,9 +53,8 @@ public class Event {
     @JoinColumn(name = "hd_id")
     private Hd hd;
 
-    @ManyToOne
-    @JoinColumn(name = "event_venue_id")
-    private EventVenue eventVenue;
+    @OneToMany(mappedBy = "event")
+    private List<EventEventVenue> eventVenues;
 
     @OneToMany(mappedBy = "event")
     private List<EventCustomer> eventCustomers;
@@ -78,7 +77,12 @@ public class Event {
                 this.sizeGb,
                 this.deliveryStatus,
                 this.hd != null ? this.hd.getId() : null,
-                this.eventVenue != null ? this.eventVenue.getId() : null,
+                this.eventVenues == null ? List.of() : this.eventVenues.stream()
+                        // by name, so the order does not depend on how the database returns the rows
+                        .sorted(Comparator.comparing((EventEventVenue ev) -> ev.getEventVenue().getName(),
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                        .map(EventEventVenue::toDTO)
+                        .collect(Collectors.toList()),
                 this.eventCustomers == null ? List.of() : this.eventCustomers.stream()
                         // contracting customer first, so lists and labels can just take the head
                         .sorted(Comparator.comparing((EventCustomer ec) -> !ec.isContracting()))
