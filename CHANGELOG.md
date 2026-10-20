@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0](https://github.com/renatoganske/gestao-de-eventos/compare/v2.0.0...v3.0.0) (2026-10-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* evento passa a ter varios locais, cada um com um papel (GDE-51)
+
+### Features
+
+* botao para excluir o evento no detalhe, com confirmacao (GDE-50) ([e71d1ef](https://github.com/renatoganske/gestao-de-eventos/commit/e71d1ef71401523a5db3260bfd500315a1c87ab9))
+* evento passa a ter varios locais, cada um com um papel (GDE-51) ([e71d1ef](https://github.com/renatoganske/gestao-de-eventos/commit/e71d1ef71401523a5db3260bfd500315a1c87ab9))
+
 ## [2.0.0](https://github.com/renatoganske/gestao-de-eventos/compare/v1.2.0...v2.0.0) (2026-10-19)
 
 
