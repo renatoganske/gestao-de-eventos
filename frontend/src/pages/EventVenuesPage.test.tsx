@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import * as eventVenuesApi from '../api/eventVenues'
 import type { EventVenueDto } from '../api/eventVenues'
@@ -26,6 +27,22 @@ function columnTexts(columnIndex: number): string[] {
     .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
 }
 
+function EventsDestination() {
+  const location = useLocation()
+  return <div>Eventos {location.pathname}{location.search}</div>
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={<EventVenuesPage />} />
+        <Route path="/eventos" element={<EventsDestination />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
 describe('EventVenuesPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -34,7 +51,7 @@ describe('EventVenuesPage', () => {
   it('mostra a lista de locais numa tabela', async () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([makeVenue({})])
 
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Buffet Jardim das Rosas')).toBeInTheDocument())
     expect(screen.getByText('São Paulo')).toBeInTheDocument()
@@ -43,7 +60,7 @@ describe('EventVenuesPage', () => {
   it('mostra o estado vazio quando não há locais cadastrados', async () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([])
 
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum local cadastrado.')).toBeInTheDocument())
   })
@@ -51,7 +68,7 @@ describe('EventVenuesPage', () => {
   it('mostra mensagem de erro quando o carregamento falha', async () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockRejectedValue(new ApiError(500, 'Falha ao carregar locais'))
 
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falha ao carregar locais'))
   })
@@ -60,7 +77,7 @@ describe('EventVenuesPage', () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([])
     vi.mocked(eventVenuesApi.createEventVenue).mockResolvedValue(makeVenue({ id: 'venue-new', name: 'Local Novo' }))
     const user = userEvent.setup()
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum local cadastrado.')).toBeInTheDocument())
 
@@ -78,7 +95,7 @@ describe('EventVenuesPage', () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([venue])
     vi.mocked(eventVenuesApi.updateEventVenue).mockResolvedValue({ ...venue, name: 'Buffet Renomeado' })
     const user = userEvent.setup()
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Buffet Jardim das Rosas')).toBeInTheDocument())
 
@@ -100,7 +117,7 @@ describe('EventVenuesPage', () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([venue])
     vi.mocked(eventVenuesApi.deleteEventVenue).mockResolvedValue(undefined)
     const user = userEvent.setup()
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Buffet Jardim das Rosas')).toBeInTheDocument())
 
@@ -125,7 +142,7 @@ describe('EventVenuesPage', () => {
     vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([venue])
     vi.mocked(eventVenuesApi.deleteEventVenue).mockRejectedValue(new ApiError(409, 'Local vinculado a eventos'))
     const user = userEvent.setup()
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Buffet Jardim das Rosas')).toBeInTheDocument())
 
@@ -145,7 +162,7 @@ describe('EventVenuesPage', () => {
       makeVenue({ id: 'v3', name: 'Igreja Matriz', city: null, state: null, type: null }),
     ])
 
-    render(<EventVenuesPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Sítio Verde')).toBeInTheDocument())
     expect(columnTexts(0)).toEqual(['Buffet Rosa', 'Igreja Matriz', 'Sítio Verde'])
@@ -159,5 +176,39 @@ describe('EventVenuesPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Tipo/ }))
     expect(columnTexts(0)).toEqual(['Buffet Rosa', 'Sítio Verde', 'Igreja Matriz'])
     expect(eventVenuesApi.fetchEventVenues).toHaveBeenCalledTimes(1)
+  })
+
+  it('navega para os eventos do local ao clicar na linha', async () => {
+    vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([makeVenue()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByText('Buffet Jardim das Rosas'))
+
+    expect(await screen.findByText('Eventos /eventos?venueId=venue-1')).toBeInTheDocument()
+  })
+
+  it('abre a edição pelo botão Editar sem navegar para os eventos', async () => {
+    vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([makeVenue()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Buffet Jardim das Rosas')
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(await screen.findByRole('dialog', { name: /Editar/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
+  })
+
+  it('abre a exclusão pelo botão Excluir sem navegar para os eventos', async () => {
+    vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([makeVenue()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Buffet Jardim das Rosas')
+    await user.click(screen.getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByRole('dialog', { name: /Excluir/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
   })
 })
