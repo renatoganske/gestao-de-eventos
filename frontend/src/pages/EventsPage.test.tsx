@@ -231,7 +231,7 @@ describe('EventsPage', () => {
       ])
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'Mini Wedding' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-mini')
       expect(screen.getByLabelText('Casamento diurno')).toBeInTheDocument()
@@ -245,7 +245,7 @@ describe('EventsPage', () => {
     it('esconde os dois filtros enquanto o tipo não for casamento', async () => {
       renderEventsPage()
 
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'BIRTHDAY' })
 
       expect(screen.queryByLabelText('Casamento diurno')).not.toBeInTheDocument()
       expect(screen.queryByLabelText('Casamento ao ar livre')).not.toBeInTheDocument()
@@ -259,7 +259,7 @@ describe('EventsPage', () => {
     it('mostra os dois filtros, com Todos/Sim/Não, quando o tipo é casamento', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
 
@@ -277,7 +277,7 @@ describe('EventsPage', () => {
     it('envia true e false à busca, sem descartar o Não', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.selectOptions(screen.getByLabelText('Casamento diurno'), 'true')
@@ -294,7 +294,7 @@ describe('EventsPage', () => {
     it('não envia os parâmetros de casamento enquanto ficarem em Todos', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
@@ -309,7 +309,7 @@ describe('EventsPage', () => {
     it('limpa os dois filtros e os esconde ao trocar o tipo para um que não é casamento', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.selectOptions(screen.getByLabelText('Casamento ao ar livre'), 'true')
@@ -332,7 +332,7 @@ describe('EventsPage', () => {
     it('"Limpar filtros" zera e esconde os filtros de casamento', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.selectOptions(screen.getByLabelText('Casamento diurno'), 'true')
