@@ -5,6 +5,7 @@ import { fetchCustomers, type CustomerDto } from '../api/customers'
 import {
   DELIVERY_STATUS_LABEL,
   createEvent,
+  deleteEvent,
   fetchEventById,
   updateEvent,
   type CreateEventDto,
@@ -19,6 +20,7 @@ import { Autocomplete } from '../components/Autocomplete'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { Checkbox } from '../components/Checkbox'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { CustomerQuickCreateForm } from '../components/CustomerQuickCreateForm'
 import { EventCustomersSection } from '../components/EventCustomersSection'
 import { EventTeamSection } from '../components/EventTeamSection'
@@ -38,6 +40,30 @@ import './EventFormPage.css'
 
 const GENERIC_LOAD_ERROR = 'Não foi possível carregar os dados do formulário. Tente novamente em instantes.'
 const GENERIC_SUBMIT_ERROR = 'Não foi possível salvar o evento. Tente novamente.'
+const GENERIC_DELETE_ERROR = 'Não foi possível excluir o evento. Tente novamente.'
+
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`
+}
+
+/** "2026-10-15" -> "15/10/2026"; anything unexpected is shown as received. */
+function formatIsoDate(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : iso
+}
+
+/** Says what goes away with the event and what stays: the customers/professionals themselves are kept. */
+function deleteConfirmationMessage(event: EventDto): string {
+  const unlinked = [
+    event.customers.length > 0 ? plural(event.customers.length, 'cliente', 'clientes') : null,
+    event.eventProfessionals.length > 0 ? plural(event.eventProfessionals.length, 'profissional', 'profissionais') : null,
+  ].filter((part): part is string => part !== null)
+  const base = `Excluir o evento "${event.name}" (${formatIsoDate(event.eventDate)})? Esta ação não pode ser desfeita.`
+  if (unlinked.length === 0) {
+    return base
+  }
+  return `${base} Os vínculos com ${unlinked.join(' e ')} serão removidos; os cadastros em si não são apagados.`
+}
 
 interface EventFormState {
   eventCode: string
@@ -168,6 +194,11 @@ export function EventFormPage() {
   const [quickCreateTarget, setQuickCreateTarget] = useState<QuickCreateTarget>(null)
   const [quickCreateTeamRowKey, setQuickCreateTeamRowKey] = useState<string | null>(null)
   const [quickCreateCustomerRowKey, setQuickCreateCustomerRowKey] = useState<string | null>(null)
+  // The saved event (not the form, which may hold unsaved edits) is what the delete confirmation describes.
+  const [savedEvent, setSavedEvent] = useState<EventDto | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -188,6 +219,7 @@ export function EventFormPage() {
           return
         }
         setReferenceData({ eventTypes, venues, hds, customers, professionals })
+        setSavedEvent(loadedEvent)
         if (loadedEvent && !hasRecoveredDraft) {
           setForm(eventToFormState(loadedEvent))
         }
@@ -231,6 +263,7 @@ export function EventFormPage() {
       if (isEditMode && id) {
         const updated = await updateEvent(id, dto)
         clearDraft()
+        setSavedEvent(updated)
         setForm(eventToFormState(updated))
         setToast({ kind: 'success', text: 'Evento atualizado com sucesso.' })
       } else {
@@ -248,6 +281,28 @@ export function EventFormPage() {
   function handleCancel() {
     clearDraft()
     navigate('/eventos')
+  }
+
+  function closeDeleteDialog() {
+    setIsDeleteDialogOpen(false)
+    setDeleteError(null)
+  }
+
+  async function handleConfirmDelete() {
+    if (!id) {
+      return
+    }
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteEvent(id)
+      clearDraft()
+      // This page unmounts on navigation, so the confirmation travels to the list as router state.
+      navigate('/eventos', { state: { toast: { kind: 'success', text: 'Evento excluído com sucesso.' } } })
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : GENERIC_DELETE_ERROR)
+      setIsDeleting(false)
+    }
   }
 
   function closeQuickCreate() {
@@ -318,9 +373,16 @@ export function EventFormPage() {
       <TopBar
         title={isEditMode ? 'Editar evento' : 'Novo evento'}
         action={
-          <Link to="/eventos" className="btn" onClick={clearDraft}>
-            Voltar para eventos
-          </Link>
+          <div className="event-form-topbar-actions">
+            {isEditMode && savedEvent && (
+              <Button type="button" variant="ghost" onClick={() => setIsDeleteDialogOpen(true)}>
+                Excluir evento
+              </Button>
+            )}
+            <Link to="/eventos" className="btn" onClick={clearDraft}>
+              Voltar para eventos
+            </Link>
+          </div>
         }
       />
       <div className="event-form-content">
@@ -560,6 +622,18 @@ export function EventFormPage() {
         <Modal title="Novo HD" onClose={closeQuickCreate}>
           <HdQuickCreateForm onCreated={handleHdCreated} onCancel={closeQuickCreate} />
         </Modal>
+      )}
+
+      {isDeleteDialogOpen && savedEvent && (
+        <ConfirmDialog
+          title="Excluir evento"
+          message={deleteConfirmationMessage(savedEvent)}
+          confirmLabel="Excluir"
+          isConfirming={isDeleting}
+          error={deleteError}
+          onConfirm={handleConfirmDelete}
+          onCancel={closeDeleteDialog}
+        />
       )}
 
       {toast && <Toast toast={toast} />}

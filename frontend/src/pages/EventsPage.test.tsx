@@ -375,3 +375,32 @@ describe('EventsPage', () => {
     expect(screen.getByText('Detalhe do evento')).toBeInTheDocument()
   })
 })
+
+describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+  })
+
+  it('mostra o toast recebido pelo state da navegação e o limpa do histórico', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/eventos', state: { toast: { kind: 'success', text: 'Evento excluído com sucesso.' } } }]}
+      >
+        <Routes>
+          <Route path="/eventos" element={<EventsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Evento excluído com sucesso.')).toBeInTheDocument()
+  })
+
+  it('sem state na navegação, não mostra toast nenhum', async () => {
+    renderEventsPage()
+
+    await screen.findByRole('link', { name: '+ Novo evento' })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+})
