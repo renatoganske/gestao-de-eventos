@@ -8,7 +8,7 @@ export interface EventVenueDto {
   state: string | null
   type: string | null
   /** Number of events held at the venue (GDE-58). */
-  eventCount?: number
+  eventCount: number
 }
 
 export interface CreateEventVenueDto {

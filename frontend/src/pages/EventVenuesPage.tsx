@@ -119,7 +119,7 @@ export function EventVenuesPage() {
                 { key: 'city', header: 'Cidade', render: (row) => row.city ?? '—', sortValue: (row) => row.city },
                 { key: 'state', header: 'Estado', render: (row) => row.state ?? '—', sortValue: (row) => row.state },
                 { key: 'type', header: 'Tipo', render: (row) => row.type ?? '—', sortValue: (row) => row.type },
-                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount ?? 0, sortValue: (row) => row.eventCount ?? 0 },
+                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount, sortValue: (row) => row.eventCount },
                 {
                   key: 'actions',
                   header: 'Ações',

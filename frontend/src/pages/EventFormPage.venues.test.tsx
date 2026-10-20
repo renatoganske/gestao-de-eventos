@@ -24,8 +24,8 @@ function mockReferenceData() {
     { id: 'type-other', name: 'PHOTO_SHOOT', hasWeddingFields: false },
   ])
   vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
-    { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null },
-    { id: 'venue-2', name: 'Igreja Matriz', address: null, city: null, state: null, type: null },
+    { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null, eventCount: 0 },
+    { id: 'venue-2', name: 'Igreja Matriz', address: null, city: null, state: null, type: null, eventCount: 0 },
   ])
   vi.mocked(hdsApi.fetchHds).mockResolvedValue([])
   vi.mocked(customersApi.fetchCustomers).mockResolvedValue([])
@@ -232,6 +232,7 @@ describe('EventFormPage - vários locais por evento (GDE-51)', () => {
       city: null,
       state: null,
       type: null,
+      eventCount: 0,
     })
     const user = userEvent.setup({ delay: null })
     renderForm('/eventos/novo')

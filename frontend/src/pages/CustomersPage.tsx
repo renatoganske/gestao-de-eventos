@@ -118,7 +118,7 @@ export function CustomersPage() {
                 { key: 'name', header: 'Nome', render: (row) => row.name, sortValue: (row) => row.name },
                 { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—', sortValue: (row) => row.contact },
                 { key: 'address', header: 'Endereço', render: (row) => row.address ?? '—', sortValue: (row) => row.address },
-                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount ?? 0, sortValue: (row) => row.eventCount ?? 0 },
+                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount, sortValue: (row) => row.eventCount },
                 {
                   key: 'actions',
                   header: 'Ações',

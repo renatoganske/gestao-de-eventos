@@ -15,6 +15,7 @@ function makeCustomer(overrides: Partial<CustomerDto> = {}): CustomerDto {
     contact: '(11) 99999-0000',
     address: 'Rua das Flores, 123',
     notes: null,
+    eventCount: 0,
     ...overrides,
   }
 }

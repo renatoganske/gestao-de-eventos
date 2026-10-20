@@ -25,6 +25,7 @@ function makeProfessional(overrides: Partial<ProfessionalDto> = {}): Professiona
     contact: '(11) 98888-0000',
     specialtyTags: [TAG_WEDDING],
     otherInfo: null,
+    eventCount: 0,
     ...overrides,
   }
 }
