@@ -16,6 +16,7 @@ public record ProfessionalDto(
         String contact,
         List<SpecialtyTagDto> specialtyTags,
         String otherInfo,
-        List<EventProfessionalSummaryDto> eventProfessionals
+        List<EventProfessionalSummaryDto> eventProfessionals,
+        int eventCount
 ) implements Serializable {
 }

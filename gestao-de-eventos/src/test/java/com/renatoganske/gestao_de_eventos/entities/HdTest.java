@@ -31,7 +31,7 @@ class HdTest {
                 .events(events)
                 .build();
 
-        HdDto dto = hd.toResponseDto();
+        HdDto dto = hd.toResponseDto(0);
 
         assertThat(dto.id()).isEqualTo(id);
         assertThat(dto.name()).isEqualTo("HD Externo 1TB");

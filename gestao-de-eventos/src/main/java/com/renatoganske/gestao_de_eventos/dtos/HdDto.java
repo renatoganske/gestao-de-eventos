@@ -20,6 +20,7 @@ public record HdDto(
         String serialNumber,
         LocalDate acquisitionDate,
         HdStatus status,
-        List<EventSummaryDto> events
+        List<EventSummaryDto> events,
+        int eventCount
 ) implements Serializable {
 }

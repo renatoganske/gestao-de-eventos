@@ -15,6 +15,7 @@ public record CustomerResponseDto(
         String contact,
         String address,
         String notes,
-        List<EventSummaryDto> events
+        List<EventSummaryDto> events,
+        int eventCount
 ) implements Serializable {
 }

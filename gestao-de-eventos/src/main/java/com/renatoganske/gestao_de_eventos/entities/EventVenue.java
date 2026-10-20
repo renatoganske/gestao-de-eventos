@@ -34,7 +34,7 @@ public class EventVenue {
     @OneToMany(mappedBy = "eventVenue")
     private List<EventEventVenue> eventEventVenues;
 
-    public EventVenueDto toResponseDto() {
+    public EventVenueDto toResponseDto(int eventCount) {
         return new EventVenueDto(
                 this.id,
                 this.name,
@@ -44,7 +44,8 @@ public class EventVenue {
                 this.type,
                 this.eventEventVenues == null ? List.of() : this.eventEventVenues.stream()
                         .map(eventEventVenue -> eventEventVenue.getEvent().toSummaryDto())
-                        .collect(Collectors.toList())
+                        .collect(Collectors.toList()),
+                eventCount
         );
     }
 }

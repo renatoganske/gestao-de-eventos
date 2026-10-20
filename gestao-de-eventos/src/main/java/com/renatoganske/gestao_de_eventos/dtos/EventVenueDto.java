@@ -16,6 +16,7 @@ public record EventVenueDto(
         String city,
         String state,
         String type,
-        List<EventSummaryDto> events
+        List<EventSummaryDto> events,
+        int eventCount
 ) implements Serializable {
 }
