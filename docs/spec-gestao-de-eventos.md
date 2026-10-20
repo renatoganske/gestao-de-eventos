@@ -320,7 +320,7 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0002](adr/0002-event-professional-entidade-associacao.md) | `Event`↔`Professional` vira entidade `EventProfessional` com `roleInEvent` |
 | [0003](adr/0003-sem-biblioteca-fp-externa.md) | Sem biblioteca de FP externa (Vavr etc.) |
 | [0004](adr/0004-tratamento-erro-debito-tecnico.md) | Tratamento de erro fica com débito técnico documentado, não resolvido agora |
-| [0005](adr/0005-metricas-via-filtros-composaveis.md) | Métricas de negócio via `EventFilter` composável / endpoint de busca genérico, não endpoints fixos |
+| [0005](adr/0005-metricas-via-filtros-composaveis.md) | Métricas de negócio via filtros composáveis / endpoint de busca genérico, não endpoints fixos — implementação revisada pela ADR-0027 |
 | [0006](adr/0006-adotar-flyway.md) | Adotar Flyway para migrations; `ddl-auto` passa de `update` para `validate` (GDE-14) |
 | [0007](adr/0007-ingles-idioma-padrao-migracao-pt-en.md) | Inglês vira idioma padrão da aplicação; migração PT→EN existente será finalizada (GDE-15) |
 | [0008](adr/0008-sequenciamento-gde15-antes-gde14.md) | Sequenciamento: GDE-15 (rename PT→EN) roda antes de GDE-14 (Flyway) |
@@ -338,6 +338,10 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0021](adr/0021-escrita-associacao-event-professional.md) | Escrita da associação `Event`↔`Professional`: embutida no `CreateEventDto`, replace-all, sem cascade JPA |
 | [0022](adr/0022-professional-type-e-specialty-tags.md) | `Professional.type` vira lookup (`ProfessionalType`, 1-pra-N) e `Professional.specialty` vira tags (`SpecialtyTag`, N-pra-N) |
 | [0023](adr/0023-release-automatico-release-please.md) | Release automático com release-please (substitui a ADR-0018) |
+| [0024](adr/0024-event-type-usa-campos-de-casamento.md) | O tipo de evento define se seus eventos usam os campos de casamento |
+| [0025](adr/0025-evento-com-varios-clientes.md) | O evento tem vários clientes (uma pessoa por cadastro), um deles marcado como contratante (`EventCustomer`) |
+| [0026](adr/0026-evento-com-varios-locais.md) | O evento tem vários locais, cada um com um papel opcional (`EventEventVenue`) |
+| [0027](adr/0027-busca-de-eventos-no-banco.md) | Busca de eventos filtra no banco (`Specification<Event>`) e associações carregam em lote (`default_batch_fetch_size`) — revisa a ADR-0005 |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
