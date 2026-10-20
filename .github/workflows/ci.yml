@@ -45,3 +45,6 @@ jobs:
 
       - name: Run tests
         run: ./mvnw --batch-mode clean test
+        env:
+          # dev is the default profile and logs Hibernate session metrics (GDE-52); they only bury failures here
+          HIBERNATE_STATISTICS: "false"
