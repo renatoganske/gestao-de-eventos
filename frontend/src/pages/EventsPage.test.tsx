@@ -541,3 +541,40 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     })
   })
 })
+
+describe('EventsPage - filtro de local vindo da URL (GDE-57)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+  })
+
+  it('filtra por venueId da URL e mostra o local como filtro ativo', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+
+    renderEventsPage('/eventos?venueId=venue-1')
+
+    expect(await screen.findByText('Local: Buffet Jardim das Rosas')).toBeInTheDocument()
+    expect(eventsApi.searchEvents).toHaveBeenCalledTimes(1)
+    expect(eventsApi.searchEvents).toHaveBeenCalledWith(expect.objectContaining({ venueId: 'venue-1' }))
+  })
+
+  it('mostra o estado vazio quando o local não tem eventos', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+
+    renderEventsPage('/eventos?venueId=venue-1')
+
+    expect(await screen.findByText('Nenhum evento encontrado com esses filtros.')).toBeInTheDocument()
+  })
+
+  it('"Limpar filtros" remove o local ativo e busca de novo sem ele', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    const user = userEvent.setup()
+    renderEventsPage('/eventos?venueId=venue-1')
+    await screen.findByText('Local: Buffet Jardim das Rosas')
+
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+    await waitFor(() => expect(screen.queryByText(/^Local:/)).not.toBeInTheDocument())
+    expect(vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]?.venueId).toBeUndefined()
+  })
+})

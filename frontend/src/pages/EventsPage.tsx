@@ -215,6 +215,7 @@ export function EventsPage() {
 
   const activeCustomer = referenceData?.customers.find((customer) => customer.id === filters.customerId)
   const activeProfessional = referenceData?.professionals.find((professional) => professional.id === filters.professionalId)
+  const activeVenue = referenceData?.venues.find((venue) => venue.id === filters.venueId)
 
   const selectedEventType = referenceData?.eventTypes.find((type) => type.id === filters.eventTypeId)
   const isWeddingSelected = selectedEventType?.hasWeddingFields === true
@@ -397,11 +398,20 @@ export function EventsPage() {
           </div>
         </form>
 
-        {(filters.customerId || filters.professionalId) && (
+        {(filters.customerId || filters.professionalId || filters.venueId) && (
           <p className="result-count">
-            {filters.customerId && `Cliente: ${activeCustomer?.name ?? '...'}`}
-            {filters.customerId && filters.professionalId && ' · '}
-            {filters.professionalId && `Profissional: ${activeProfessional?.name ?? '...'}`}
+            {[
+              filters.customerId && `Cliente: ${activeCustomer?.name ?? '...'}`,
+              filters.professionalId && `Profissional: ${activeProfessional?.name ?? '...'}`,
+              filters.venueId && `Local: ${activeVenue?.name ?? '...'}`,
+            ]
+              .filter(Boolean)
+              .map((label, index) => (
+                <span key={label}>
+                  {index > 0 && ' · '}
+                  <span>{label}</span>
+                </span>
+              ))}
           </p>
         )}
 
