@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import { searchEvents } from './events'
+import { deleteEvent, searchEvents } from './events'
 
 vi.mock('./client')
 
@@ -55,5 +55,18 @@ describe('searchEvents — montagem da query', () => {
       from: '2026-01-01',
       outdoorWedding: 'true',
     })
+  })
+})
+
+describe('deleteEvent', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    vi.mocked(apiFetch).mockResolvedValue(undefined)
+  })
+
+  it('chama DELETE /events/{id}', async () => {
+    await deleteEvent('evt-1')
+
+    expect(apiFetch).toHaveBeenCalledWith('/events/evt-1', { method: 'DELETE' })
   })
 })

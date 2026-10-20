@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import {
   DELIVERY_STATUS_LABEL,
@@ -18,9 +18,12 @@ import { Card } from '../components/Card'
 import { FormField } from '../components/FormField'
 import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
+import { Toast, type ToastMessage } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { discardFormDraft } from '../hooks/useFormDraft'
+import { useToast } from '../hooks/useToast'
 import { customerNames } from '../utils/eventCustomers'
+import { venueLabels } from '../utils/eventVenues'
 import './EventsPage.css'
 
 // '' = do not filter; 'true' / 'false' = only events where the flag is explicitly that value.
@@ -99,6 +102,19 @@ async function performSearch(freeText: string, filters: FilterState): Promise<Ev
 
 export function EventsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [toast, setToast] = useToast()
+
+  // Pages that send the user here after a write (e.g. deleting an event) hand over a toast as router state.
+  // The state is cleared right away so a reload does not show it again.
+  useEffect(() => {
+    const incoming = (location.state as { toast?: ToastMessage } | null)?.toast
+    if (incoming) {
+      setToast(incoming)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [freeText, setFreeText] = useState('')
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
@@ -373,6 +389,7 @@ export function EventsPage() {
               columns={[
                 { key: 'code', header: 'Código', render: (row) => <span className="mono">{row.eventCode}</span> },
                 { key: 'customer', header: 'Clientes', render: (row) => customerNames(row.customers) || '—' },
+                { key: 'venues', header: 'Locais', render: (row) => venueLabels(row.venues) || '—' },
                 { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—' },
                 { key: 'date', header: 'Data', render: (row) => <span className="mono">{row.eventDate}</span> },
                 {
@@ -395,6 +412,8 @@ export function EventsPage() {
           )}
         </Card>
       </div>
+
+      {toast && <Toast toast={toast} />}
     </section>
   )
 }

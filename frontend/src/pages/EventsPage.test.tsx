@@ -33,7 +33,7 @@ function makeEvent(overrides: Partial<EventDto>): EventDto {
     sizeGb: null,
     deliveryStatus: 'PENDING',
     hdId: null,
-    eventVenueId: null,
+    venues: [],
     customers: [],
     eventProfessionals: [],
     ...overrides,
@@ -373,5 +373,64 @@ describe('EventsPage', () => {
     await user.click(screen.getByText('EVT-042'))
 
     expect(screen.getByText('Detalhe do evento')).toBeInTheDocument()
+  })
+})
+
+describe('EventsPage - locais do evento (GDE-51)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+  })
+
+  it('lista todos os locais do evento, com o papel quando houver', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({
+        venues: [
+          { venueId: 'venue-2', venueName: 'Igreja Matriz', role: 'Cerimônia' },
+          { venueId: 'venue-1', venueName: 'Buffet Jardim das Rosas', role: null },
+        ],
+      }),
+    ])
+    renderEventsPage()
+
+    expect(await screen.findByText('Igreja Matriz (Cerimônia), Buffet Jardim das Rosas')).toBeInTheDocument()
+  })
+
+  it('mostra um traço quando o evento não tem local', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({ venues: [], customers: [] })])
+    renderEventsPage()
+
+    await screen.findByText('EVT-018')
+    // clientes e locais vazios
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+  })
+
+  it('mostra o toast recebido pelo state da navegação e o limpa do histórico', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[{ pathname: '/eventos', state: { toast: { kind: 'success', text: 'Evento excluído com sucesso.' } } }]}
+      >
+        <Routes>
+          <Route path="/eventos" element={<EventsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Evento excluído com sucesso.')).toBeInTheDocument()
+  })
+
+  it('sem state na navegação, não mostra toast nenhum', async () => {
+    renderEventsPage()
+
+    await screen.findByRole('link', { name: '+ Novo evento' })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

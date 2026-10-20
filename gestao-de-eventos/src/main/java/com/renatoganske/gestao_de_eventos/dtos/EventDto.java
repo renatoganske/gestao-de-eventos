@@ -24,7 +24,7 @@ public record EventDto(
         Integer sizeGb,
         DeliveryStatus deliveryStatus,
         UUID hdId,
-        UUID eventVenueId,
+        List<EventVenueSummaryDto> venues,
         List<EventCustomerSummaryDto> customers,
         List<EventProfessionalSummaryDto> eventProfessionals
 ) implements Serializable {

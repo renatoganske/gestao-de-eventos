@@ -33,21 +33,24 @@
   gap: 14px;
 }
 
-.event-team {
+.event-team,
+.event-venues {
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 16px 18px;
 }
 
-.event-team-row {
+.event-team-row,
+.event-venue-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 14px;
   align-items: end;
 }
 
-.event-team-empty {
+.event-team-empty,
+.event-venue-empty {
   color: var(--text-muted, inherit);
   font-size: 14px;
 }
@@ -73,7 +76,8 @@
   font-size: 14px;
 }
 
-.event-team-actions {
+.event-team-actions,
+.event-venue-actions {
   display: flex;
 }
 
@@ -97,7 +101,14 @@
   }
 
   .event-team-row,
+  .event-venue-row,
   .event-customer-row {
     grid-template-columns: 1fr;
   }
+}
+
+.event-form-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

@@ -2,6 +2,8 @@ package com.renatoganske.gestao_de_eventos.services;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
@@ -12,6 +14,8 @@ import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomerId;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
+import com.renatoganske.gestao_de_eventos.entities.EventEventVenue;
+import com.renatoganske.gestao_de_eventos.entities.EventEventVenueId;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
@@ -25,6 +29,7 @@ import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalNotFoundException;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventCustomerRepository;
+import com.renatoganske.gestao_de_eventos.repositories.EventEventVenueRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventProfessionalRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
@@ -83,6 +88,9 @@ class EventServiceTest {
     @Mock
     private EventCustomerRepository eventCustomerRepository;
 
+    @Mock
+    private EventEventVenueRepository eventEventVenueRepository;
+
     @InjectMocks
     private EventService eventService;
 
@@ -123,9 +131,9 @@ class EventServiceTest {
                 .sizeGb(50)
                 .deliveryStatus(DeliveryStatus.PENDING)
                 .hd(hd)
-                .eventVenue(eventVenue)
                 .build();
         event.setEventCustomers(List.of(link(event, customer, true)));
+        event.setEventVenues(List.of(venueLink(event, eventVenue, "Recepção")));
 
         createEventDto = new CreateEventDto(
                 event.getEventCode(),
@@ -140,7 +148,7 @@ class EventServiceTest {
                 event.getSizeGb(),
                 event.getDeliveryStatus(),
                 hd.getId(),
-                eventVenue.getId(),
+                List.of(new EventVenueAssignmentDto(eventVenue.getId(), "Recepção")),
                 List.of(new EventCustomerAssignmentDto(customer.getId(), true)), null);
     }
 
@@ -153,6 +161,8 @@ class EventServiceTest {
         when(eventRepository.save(captor.capture())).thenReturn(event);
         ArgumentCaptor<List<EventCustomer>> customersCaptor = ArgumentCaptor.forClass(List.class);
         when(eventCustomerRepository.saveAll(customersCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+        ArgumentCaptor<List<EventEventVenue>> venuesCaptor = ArgumentCaptor.forClass(List.class);
+        when(eventEventVenueRepository.saveAll(venuesCaptor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
         EventDto result = eventService.createEvent(createEventDto);
 
@@ -162,7 +172,9 @@ class EventServiceTest {
         assertThat(captor.getValue().getSizeGb()).isEqualTo(createEventDto.sizeGb());
         assertThat(captor.getValue().getDeliveryStatus()).isEqualTo(createEventDto.deliveryStatus());
         assertThat(captor.getValue().getHd()).isEqualTo(hd);
-        assertThat(captor.getValue().getEventVenue()).isEqualTo(eventVenue);
+        assertThat(venuesCaptor.getValue())
+                .extracting(EventEventVenue::getEventVenue, EventEventVenue::getRole)
+                .containsExactly(tuple(eventVenue, "Recepção"));
         assertThat(customersCaptor.getValue())
                 .extracting(EventCustomer::getCustomer, EventCustomer::isContracting)
                 .containsExactly(tuple(customer, true));
@@ -184,7 +196,7 @@ class EventServiceTest {
         eventService.createEvent(dtoWithoutAssociations);
 
         assertThat(captor.getValue().getHd()).isNull();
-        assertThat(captor.getValue().getEventVenue()).isNull();
+        verify(eventEventVenueRepository, never()).saveAll(any());
         verify(eventCustomerRepository, never()).saveAll(any());
         verify(hdRepository, never()).save(any());
     }
@@ -256,14 +268,15 @@ class EventServiceTest {
         CreateEventDto dto = new CreateEventDto(
                 "EVT-007", null, "Evento sem local valido", null,
                 null, null, null, null, null, null, null,
-                null, missingEventVenueId, null, null);
+                null, List.of(new EventVenueAssignmentDto(missingEventVenueId, null)), null, null);
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
         when(eventVenueRepository.findById(missingEventVenueId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> eventService.createEvent(dto))
                 .isInstanceOf(EventVenueNotFoundException.class)
                 .hasMessageContaining(missingEventVenueId.toString());
 
-        verify(eventRepository, never()).save(any());
+        verify(eventEventVenueRepository, never()).saveAll(any());
     }
 
     @Test
@@ -339,10 +352,11 @@ class EventServiceTest {
                 20,
                 DeliveryStatus.DELIVERED,
                 hd.getId(),
-                eventVenue.getId(),
+                List.of(new EventVenueAssignmentDto(eventVenue.getId(), "Cerimônia")),
                 List.of(new EventCustomerAssignmentDto(customer.getId(), true)), null);
         when(eventRepository.findById(id)).thenReturn(Optional.of(event));
         when(eventCustomerRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventEventVenueRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(hdRepository.findById(hd.getId())).thenReturn(Optional.of(hd));
         when(eventVenueRepository.findById(eventVenue.getId())).thenReturn(Optional.of(eventVenue));
@@ -359,6 +373,9 @@ class EventServiceTest {
         assertThat(result.customers())
                 .extracting(EventCustomerSummaryDto::customerId, EventCustomerSummaryDto::contracting)
                 .containsExactly(tuple(customer.getId(), true));
+        assertThat(result.venues())
+                .extracting(EventVenueSummaryDto::venueId, EventVenueSummaryDto::role)
+                .containsExactly(tuple(eventVenue.getId(), "Cerimônia"));
     }
 
     @Test
@@ -686,6 +703,135 @@ class EventServiceTest {
                 null, null, null, null, null, null, null, "pereira", null, null, null));
 
         assertThat(result).extracting(EventDto::id).containsExactly(event.getId());
+    }
+
+    @Test
+    void createEvent_withSeveralVenues_persistsOneAssociationEachWithItsRole() {
+        EventVenue church = EventVenue.builder().id(UUID.randomUUID()).name("Igreja Matriz").build();
+        stubVenues(church, eventVenue);
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
+        ArgumentCaptor<List<EventEventVenue>> captor = ArgumentCaptor.forClass(List.class);
+        when(eventEventVenueRepository.saveAll(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        eventService.createEvent(dtoWithVenues(List.of(
+                new EventVenueAssignmentDto(church.getId(), "Cerimônia"),
+                new EventVenueAssignmentDto(eventVenue.getId(), null))));
+
+        assertThat(captor.getValue()).allSatisfy(association -> {
+            assertThat(association.getId().eventId()).isEqualTo(event.getId());
+            assertThat(association.getEvent()).isSameAs(event);
+        });
+        assertThat(captor.getValue())
+                .extracting(association -> association.getId().eventVenueId(), EventEventVenue::getRole)
+                .containsExactly(tuple(church.getId(), "Cerimônia"), tuple(eventVenue.getId(), null));
+    }
+
+    @Test
+    void createEvent_withSeveralVenues_listsThemByNameInTheResponseDto() {
+        EventVenue church = EventVenue.builder().id(UUID.randomUUID()).name("Igreja Matriz").build();
+        stubVenues(church, eventVenue);
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
+        when(eventEventVenueRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventDto result = eventService.createEvent(dtoWithVenues(List.of(
+                new EventVenueAssignmentDto(eventVenue.getId(), "Recepção"),
+                new EventVenueAssignmentDto(church.getId(), "Cerimônia"))));
+
+        assertThat(result.venues())
+                .extracting(EventVenueSummaryDto::venueName, EventVenueSummaryDto::role)
+                .containsExactly(tuple("Buffet Jardim das Rosas", "Recepção"), tuple("Igreja Matriz", "Cerimônia"));
+    }
+
+    @Test
+    void createEvent_withRepeatedVenue_keepsASingleAssociationWithTheLastRole() {
+        stubVenues(eventVenue);
+        when(eventRepository.save(any(Event.class))).thenReturn(event);
+        ArgumentCaptor<List<EventEventVenue>> captor = ArgumentCaptor.forClass(List.class);
+        when(eventEventVenueRepository.saveAll(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        eventService.createEvent(dtoWithVenues(List.of(
+                new EventVenueAssignmentDto(eventVenue.getId(), "Cerimônia"),
+                new EventVenueAssignmentDto(eventVenue.getId(), "Cerimônia e recepção"))));
+
+        assertThat(captor.getValue())
+                .extracting(EventEventVenue::getEventVenue, EventEventVenue::getRole)
+                .containsExactly(tuple(eventVenue, "Cerimônia e recepção"));
+    }
+
+    @Test
+    void updateEvent_withEmptyVenues_removesThemAll() {
+        UUID id = event.getId();
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ArgumentCaptor<List<EventEventVenue>> captor = ArgumentCaptor.forClass(List.class);
+        when(eventEventVenueRepository.saveAll(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventDto result = eventService.updateEvent(id, dtoWithVenues(List.of()));
+
+        verify(eventEventVenueRepository, times(1)).deleteByEvent_Id(id);
+        verify(eventEventVenueRepository, times(1)).flush();
+        assertThat(captor.getValue()).isEmpty();
+        assertThat(result.venues()).isEmpty();
+    }
+
+    @Test
+    void updateEvent_withNullVenues_keepsTheCurrentOnes() {
+        UUID id = event.getId();
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        when(eventRepository.save(any(Event.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventDto result = eventService.updateEvent(id, dtoWithVenues(null));
+
+        verify(eventEventVenueRepository, never()).deleteByEvent_Id(any());
+        verify(eventEventVenueRepository, never()).saveAll(any());
+        assertThat(result.venues()).extracting(EventVenueSummaryDto::venueId).containsExactly(eventVenue.getId());
+    }
+
+    @Test
+    void deleteEvent_removesVenueAssociationsBeforeDeletingTheEvent() {
+        UUID id = event.getId();
+        when(eventRepository.findById(id)).thenReturn(Optional.of(event));
+        InOrder inOrder = inOrder(eventEventVenueRepository, eventRepository);
+
+        eventService.deleteEvent(id);
+
+        inOrder.verify(eventEventVenueRepository).deleteByEvent_Id(id);
+        inOrder.verify(eventEventVenueRepository).flush();
+        inOrder.verify(eventRepository).delete(event);
+    }
+
+    @Test
+    void searchEvents_byVenueMatchesAnyOfTheEventsVenues() {
+        EventVenue church = EventVenue.builder().id(UUID.randomUUID()).name("Igreja Matriz").build();
+        event.setEventVenues(List.of(venueLink(event, church, "Cerimônia"), venueLink(event, eventVenue, "Recepção")));
+        when(eventRepository.findAll()).thenReturn(List.of(event));
+
+        List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
+                null, church.getId(), null, null, null, null, null, null, null, null, null));
+
+        assertThat(result).extracting(EventDto::id).containsExactly(event.getId());
+    }
+
+    private CreateEventDto dtoWithVenues(List<EventVenueAssignmentDto> venues) {
+        return new CreateEventDto(
+                "EVT-300", null, "Evento com locais", null,
+                null, null, null, null, null, null, null,
+                null, venues, null, null);
+    }
+
+    private void stubVenues(EventVenue... venues) {
+        for (EventVenue venue : venues) {
+            when(eventVenueRepository.findById(venue.getId())).thenReturn(Optional.of(venue));
+        }
+    }
+
+    private static EventEventVenue venueLink(Event event, EventVenue venue, String role) {
+        return EventEventVenue.builder()
+                .id(new EventEventVenueId(event.getId(), venue.getId()))
+                .event(event)
+                .eventVenue(venue)
+                .role(role)
+                .build();
     }
 
     private CreateEventDto dtoWithCustomers(List<EventCustomerAssignmentDto> customers) {

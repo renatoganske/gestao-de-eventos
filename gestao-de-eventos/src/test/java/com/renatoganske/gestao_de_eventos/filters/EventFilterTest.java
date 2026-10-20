@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.filters;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
+import com.renatoganske.gestao_de_eventos.entities.EventEventVenue;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
@@ -33,13 +34,18 @@ class EventFilterTest {
                 .eventCode("EVT-001")
                 .type(weddingType)
                 .eventDate(LocalDate.of(2026, 6, 15))
-                .eventVenue(EventVenue.builder().id(venueId).build())
                 .hd(Hd.builder().id(hdId).build())
                 .deliveryStatus(DeliveryStatus.PENDING)
                 .build();
         event.setEventCustomers(List.of(
                 EventCustomer.builder().event(event).customer(Customer.builder().name("Maria Silva").build()).build(),
                 EventCustomer.builder().event(event).customer(Customer.builder().name("Joao Pereira").build()).build()));
+        // the ceremony is somewhere else: the filter has to look at every venue, not only the first one
+        event.setEventVenues(List.of(
+                EventEventVenue.builder().event(event)
+                        .eventVenue(EventVenue.builder().id(UUID.randomUUID()).build()).role("Cerimônia").build(),
+                EventEventVenue.builder().event(event)
+                        .eventVenue(EventVenue.builder().id(venueId).build()).role("Recepção").build()));
         EventProfessional eventProfessional = EventProfessional.builder()
                 .event(event)
                 .professional(professional)
@@ -54,13 +60,15 @@ class EventFilterTest {
                 .eventCode("EVT-002")
                 .type(birthdayType)
                 .eventDate(LocalDate.of(2026, 1, 1))
-                .eventVenue(EventVenue.builder().id(UUID.randomUUID()).build())
                 .hd(Hd.builder().id(UUID.randomUUID()).build())
                 .deliveryStatus(DeliveryStatus.DELIVERED)
                 .eventProfessionals(List.of())
                 .build();
         event.setEventCustomers(List.of(
                 EventCustomer.builder().event(event).customer(Customer.builder().name("Ana Souza").build()).build()));
+        event.setEventVenues(List.of(
+                EventEventVenue.builder().event(event)
+                        .eventVenue(EventVenue.builder().id(UUID.randomUUID()).build()).build()));
         return event;
     }
 
@@ -85,6 +93,24 @@ class EventFilterTest {
     @Test
     void byVenue_nullMatchesEverything() {
         assertThat(EventFilter.byVenue(null).test(weddingEvent())).isTrue();
+    }
+
+    @Test
+    void byVenue_matchesTheSecondVenueOfAnEvent() {
+        Event event = weddingEvent();
+
+        assertThat(event.getEventVenues()).hasSize(2);
+        assertThat(EventFilter.byVenue(venueId).test(event)).isTrue();
+    }
+
+    @Test
+    void byVenue_doesNotMatchAnEventWithoutVenues() {
+        Event event = Event.builder().id(UUID.randomUUID()).build();
+
+        assertThat(EventFilter.byVenue(venueId).test(event)).isFalse();
+
+        event.setEventVenues(List.of());
+        assertThat(EventFilter.byVenue(venueId).test(event)).isFalse();
     }
 
     @Test
