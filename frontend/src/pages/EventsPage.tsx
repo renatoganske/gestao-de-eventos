@@ -23,6 +23,7 @@ import { TopBar } from '../components/TopBar'
 import { discardFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
 import { customerNames } from '../utils/eventCustomers'
+import { venueLabels } from '../utils/eventVenues'
 import './EventsPage.css'
 
 // '' = do not filter; 'true' / 'false' = only events where the flag is explicitly that value.
@@ -388,6 +389,7 @@ export function EventsPage() {
               columns={[
                 { key: 'code', header: 'Código', render: (row) => <span className="mono">{row.eventCode}</span> },
                 { key: 'customer', header: 'Clientes', render: (row) => customerNames(row.customers) || '—' },
+                { key: 'venues', header: 'Locais', render: (row) => venueLabels(row.venues) || '—' },
                 { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—' },
                 { key: 'date', header: 'Data', render: (row) => <span className="mono">{row.eventDate}</span> },
                 {

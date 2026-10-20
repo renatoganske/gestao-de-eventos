@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.entities;
 
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueSummaryDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +39,6 @@ class EventTest {
                 .sizeGb(120)
                 .deliveryStatus(DeliveryStatus.PENDING)
                 .hd(hd)
-                .eventVenue(eventVenue)
                 .eventProfessionals(eventProfessionals)
                 .build();
         Customer partner = Customer.builder().id(UUID.randomUUID()).name("Bruno").build();
@@ -47,6 +47,13 @@ class EventTest {
                         .event(event).customer(partner).contracting(false).build(),
                 EventCustomer.builder().id(new EventCustomerId(id, customer.getId()))
                         .event(event).customer(customer).contracting(true).build()));
+
+        EventVenue church = EventVenue.builder().id(UUID.randomUUID()).name("Igreja Matriz").build();
+        event.setEventVenues(List.of(
+                EventEventVenue.builder().id(new EventEventVenueId(id, church.getId()))
+                        .event(event).eventVenue(church).role("Cerimônia").build(),
+                EventEventVenue.builder().id(new EventEventVenueId(id, eventVenue.getId()))
+                        .event(event).eventVenue(eventVenue).build()));
 
         EventDto dto = event.toDTO();
 
@@ -64,7 +71,12 @@ class EventTest {
         assertThat(dto.sizeGb()).isEqualTo(120);
         assertThat(dto.deliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(dto.hdId()).isEqualTo(hd.getId());
-        assertThat(dto.eventVenueId()).isEqualTo(eventVenue.getId());
+        // venues come sorted by name, each with its optional role
+        assertThat(dto.venues())
+                .extracting(EventVenueSummaryDto::venueId, EventVenueSummaryDto::venueName, EventVenueSummaryDto::role)
+                .containsExactly(
+                        tuple(church.getId(), "Igreja Matriz", "Cerimônia"),
+                        tuple(eventVenue.getId(), "Salao de Festas", null));
         // contracting customer comes first regardless of the association order
         assertThat(dto.customers())
                 .extracting(EventCustomerSummaryDto::customerId, EventCustomerSummaryDto::customerName,

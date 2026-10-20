@@ -25,7 +25,7 @@ function makeEvent(overrides: Partial<EventDto>): EventDto {
     sizeGb: 45,
     deliveryStatus: 'PENDING',
     hdId: null,
-    eventVenueId: null,
+    venues: [],
     customers: [],
     eventProfessionals: [],
     ...overrides,

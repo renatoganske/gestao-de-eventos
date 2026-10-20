@@ -6,6 +6,8 @@ import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomerId;
+import com.renatoganske.gestao_de_eventos.entities.EventEventVenue;
+import com.renatoganske.gestao_de_eventos.entities.EventEventVenueId;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessionalId;
 import com.renatoganske.gestao_de_eventos.entities.EventType;
@@ -48,7 +50,6 @@ class ResponseDtoSerializationTest {
                 .name("Casamento Maria e Joao")
                 .eventDate(LocalDate.of(2026, 10, 15))
                 .deliveryStatus(DeliveryStatus.PENDING)
-                .eventVenue(eventVenue)
                 .hd(hd)
                 .build();
 
@@ -70,7 +71,14 @@ class ResponseDtoSerializationTest {
         event.setEventProfessionals(List.of(eventProfessional));
         event.setEventCustomers(List.of(eventCustomer));
         customer.setEventCustomers(List.of(eventCustomer));
-        eventVenue.setEvents(List.of(event));
+        EventEventVenue eventEventVenue = EventEventVenue.builder()
+                .id(new EventEventVenueId(event.getId(), eventVenue.getId()))
+                .event(event)
+                .eventVenue(eventVenue)
+                .role("Recepcao")
+                .build();
+        event.setEventVenues(List.of(eventEventVenue));
+        eventVenue.setEventEventVenues(List.of(eventEventVenue));
         hd.setEvents(List.of(event));
         professional.setEventProfessionals(List.of(eventProfessional));
 

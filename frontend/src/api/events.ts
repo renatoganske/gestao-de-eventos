@@ -48,6 +48,19 @@ export interface EventCustomerAssignmentDto {
   contracting: boolean
 }
 
+/** A venue linked to the event; `role` says what it is for ("Cerimônia", "Recepção"...) and is optional (ADR-0026). */
+export interface EventVenueSummaryDto {
+  venueId: string
+  venueName: string
+  role: string | null
+}
+
+/** Write-side of the event's venues. */
+export interface EventVenueAssignmentDto {
+  venueId: string
+  role: string | null
+}
+
 export interface EventDto {
   id: string
   eventCode: string
@@ -62,7 +75,8 @@ export interface EventDto {
   sizeGb: number | null
   deliveryStatus: DeliveryStatus
   hdId: string | null
-  eventVenueId: string | null
+  /** Sorted by venue name. */
+  venues: EventVenueSummaryDto[]
   /** Contracting customer first. */
   customers: EventCustomerSummaryDto[]
   eventProfessionals: EventProfessionalSummaryDto[]
@@ -81,7 +95,8 @@ export interface CreateEventDto {
   sizeGb: number | null
   deliveryStatus: DeliveryStatus
   hdId: string | null
-  eventVenueId: string | null
+  /** Same rule as `professionals`: always sent, [] removes every venue (ADR-0026). */
+  venues: EventVenueAssignmentDto[]
   /** Same rule as `professionals`: always sent, [] removes every customer (ADR-0025). */
   customers: EventCustomerAssignmentDto[]
   /**

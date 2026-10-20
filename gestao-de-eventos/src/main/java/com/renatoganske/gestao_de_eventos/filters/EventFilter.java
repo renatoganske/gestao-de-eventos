@@ -16,7 +16,8 @@ public interface EventFilter extends Predicate<Event> {
 
     static EventFilter byVenue(UUID venueId) {
         return e -> venueId == null
-                || (e.getEventVenue() != null && venueId.equals(e.getEventVenue().getId()));
+                || (e.getEventVenues() != null && e.getEventVenues().stream()
+                        .anyMatch(ev -> ev.getEventVenue() != null && venueId.equals(ev.getEventVenue().getId())));
     }
 
     static EventFilter byProfessional(UUID professionalId) {

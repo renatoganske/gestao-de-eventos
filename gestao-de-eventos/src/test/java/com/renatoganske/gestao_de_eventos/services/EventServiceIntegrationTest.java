@@ -11,7 +11,9 @@ import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalSummaryDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
 import com.renatoganske.gestao_de_eventos.dtos.ProfessionalDto;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
@@ -76,7 +78,8 @@ class EventServiceIntegrationTest {
         CreateEventDto createEventDto = new CreateEventDto(
                 "EVT-INTEGRATION-001", null, "Integration Test Event", null,
                 null, null, null, null, null, 50, null,
-                hd.id(), eventVenue.id(), List.of(new EventCustomerAssignmentDto(customer.id(), true)), null);
+                hd.id(), List.of(new EventVenueAssignmentDto(eventVenue.id(), "Recepção")),
+                List.of(new EventCustomerAssignmentDto(customer.id(), true)), null);
 
         EventDto result = eventService.createEvent(createEventDto);
         entityManager.flush();
@@ -84,7 +87,9 @@ class EventServiceIntegrationTest {
         assertThat(result.id()).isNotNull();
         assertThat(result.customers()).extracting(EventCustomerSummaryDto::customerId).containsExactly(customer.id());
         assertThat(result.hdId()).isEqualTo(hd.id());
-        assertThat(result.eventVenueId()).isEqualTo(eventVenue.id());
+        assertThat(result.venues())
+                .extracting(EventVenueSummaryDto::venueId, EventVenueSummaryDto::role)
+                .containsExactly(tuple(eventVenue.id(), "Recepção"));
         assertThat(hdService.getHdById(hd.id()).usedSpaceGb()).isEqualTo(50);
     }
 
@@ -100,6 +105,76 @@ class EventServiceIntegrationTest {
             eventService.createEvent(createEventDto);
             entityManager.flush();
         }).isInstanceOf(CustomerNotFoundException.class);
+    }
+
+    /**
+     * Same reason as the customers test below: EventEventVenueId is a record built by hand, so only a
+     * flush + re-read proves the composite key, the role and the venue side round-trip.
+     */
+    @Test
+    void createEvent_withSeveralVenues_persistsThemAndBothSidesReadThemBack() {
+        EventVenueDto church = eventVenueService.createEventVenue(
+                new CreateEventVenueDto("Integration Church", null, null, null, null));
+        EventVenueDto hall = eventVenueService.createEventVenue(
+                new CreateEventVenueDto("Integration Hall", null, null, null, null));
+
+        EventDto created = eventService.createEvent(new CreateEventDto(
+                "EVT-INTEGRATION-020", null, "Integration Two Venues", null,
+                null, null, null, null, null, null, null,
+                null,
+                List.of(new EventVenueAssignmentDto(hall.id(), "Recepção"),
+                        new EventVenueAssignmentDto(church.id(), "Cerimônia")),
+                null, null));
+        entityManager.flush();
+        entityManager.clear();
+
+        EventDto reloaded = eventService.getEventById(created.id());
+        // sorted by venue name
+        assertThat(reloaded.venues())
+                .extracting(EventVenueSummaryDto::venueId, EventVenueSummaryDto::role)
+                .containsExactly(tuple(church.id(), "Cerimônia"), tuple(hall.id(), "Recepção"));
+        assertThat(eventVenueService.getEventVenueById(church.id()).events())
+                .extracting(summary -> summary.id())
+                .containsExactly(created.id());
+    }
+
+    @Test
+    void updateEvent_withEmptyVenues_removesTheAssociationRows() {
+        EventVenueDto venue = eventVenueService.createEventVenue(
+                new CreateEventVenueDto("Integration Venue To Remove", null, null, null, null));
+        EventDto created = eventService.createEvent(new CreateEventDto(
+                "EVT-INTEGRATION-021", null, "Integration Event 21", null,
+                null, null, null, null, null, null, null,
+                null, List.of(new EventVenueAssignmentDto(venue.id(), null)), null, null));
+        entityManager.flush();
+
+        eventService.updateEvent(created.id(), new CreateEventDto(
+                "EVT-INTEGRATION-021", null, "Integration Event 21", null,
+                null, null, null, null, null, null, null,
+                null, List.of(), null, null));
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(eventService.getEventById(created.id()).venues()).isEmpty();
+        assertThat(eventVenueService.getEventVenueById(venue.id()).events()).isEmpty();
+    }
+
+    @Test
+    void deleteEvent_withVenues_removesTheAssociationRowsAndTheEvent() {
+        EventVenueDto venue = eventVenueService.createEventVenue(
+                new CreateEventVenueDto("Integration Venue Of Deleted Event", null, null, null, null));
+        EventDto created = eventService.createEvent(new CreateEventDto(
+                "EVT-INTEGRATION-022", null, "Integration Event 22", null,
+                null, null, null, null, null, null, null,
+                null, List.of(new EventVenueAssignmentDto(venue.id(), "Cerimônia")), null, null));
+        entityManager.flush();
+
+        eventService.deleteEvent(created.id());
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThatThrownBy(() -> eventService.getEventById(created.id())).isInstanceOf(EventNotFoundException.class);
+        assertThat(eventVenueService.getEventVenueById(venue.id()).events()).isEmpty();
     }
 
     /**
