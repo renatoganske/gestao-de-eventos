@@ -19,6 +19,10 @@ export function fetchCustomers(): Promise<CustomerDto[]> {
   return apiFetch<CustomerDto[]>('/customers')
 }
 
+export function fetchCustomer(id: string): Promise<CustomerDto> {
+  return apiFetch<CustomerDto>(`/customers/${id}`)
+}
+
 export function createCustomer(dto: CreateCustomerDto): Promise<CustomerDto> {
   return apiFetch<CustomerDto>('/customers', { method: 'POST', body: JSON.stringify(dto) })
 }

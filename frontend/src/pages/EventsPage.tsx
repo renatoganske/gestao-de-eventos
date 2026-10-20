@@ -9,7 +9,7 @@ import {
   type EventDto,
   type SearchEventsParams,
 } from '../api/events'
-import { fetchCustomers, type CustomerDto } from '../api/customers'
+import { fetchCustomer, type CustomerDto } from '../api/customers'
 import { fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
 import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
 import { fetchHds, type HdDto } from '../api/hds'
@@ -65,7 +65,8 @@ interface ReferenceData {
   eventTypes: EventTypeDto[]
   venues: EventVenueDto[]
   professionals: ProfessionalDto[]
-  customers: CustomerDto[]
+  // Only the customer from the URL filter (if any); the full customer list is never loaded here.
+  filterCustomer: CustomerDto | null
   hds: HdDto[]
 }
 
@@ -94,6 +95,19 @@ function filtersFromSearchParams(searchParams: URLSearchParams): FilterState {
     professionalId: searchParams.get('professionalId') ?? '',
     hdId: searchParams.get('hdId') ?? '',
     venueId: searchParams.get('venueId') ?? '',
+  }
+}
+
+// Fetches just the customer named in the URL filter (works even if they have no events).
+// A missing customer must not break the page, so any failure falls back to null.
+async function loadFilterCustomer(customerId: string): Promise<CustomerDto | null> {
+  if (!customerId) {
+    return null
+  }
+  try {
+    return await fetchCustomer(customerId)
+  } catch {
+    return null
   }
 }
 
@@ -152,18 +166,18 @@ export function EventsPage() {
       setIsLoading(true)
       setError(null)
       try {
-        const [eventTypes, venues, professionals, customers, hds] = await Promise.all([
+        const [eventTypes, venues, professionals, filterCustomer, hds] = await Promise.all([
           fetchEventTypes(),
           fetchEventVenues(),
           fetchProfessionals(),
-          fetchCustomers(),
+          loadFilterCustomer(initialFilters.customerId),
           fetchHds(),
         ])
         const initialEvents = await performSearch('', initialFilters)
         if (cancelled) {
           return
         }
-        setReferenceData({ eventTypes, venues, professionals, customers, hds })
+        setReferenceData({ eventTypes, venues, professionals, filterCustomer, hds })
         setEvents(initialEvents)
       } catch (err) {
         if (cancelled) {
@@ -213,7 +227,7 @@ export function EventsPage() {
     setFilters((current) => ({ ...current, [key]: value }))
   }
 
-  const activeCustomer = referenceData?.customers.find((customer) => customer.id === filters.customerId)
+  const activeCustomer = referenceData?.filterCustomer?.id === filters.customerId ? referenceData.filterCustomer : undefined
   const activeProfessional = referenceData?.professionals.find((professional) => professional.id === filters.professionalId)
   const activeVenue = referenceData?.venues.find((venue) => venue.id === filters.venueId)
 
@@ -401,7 +415,7 @@ export function EventsPage() {
         {(filters.customerId || filters.professionalId || filters.venueId) && (
           <p className="result-count">
             {[
-              filters.customerId && `Cliente: ${activeCustomer?.name ?? '...'}`,
+              filters.customerId && `Cliente: ${activeCustomer?.name ?? 'não encontrado'}`,
               filters.professionalId && `Profissional: ${activeProfessional?.name ?? '...'}`,
               filters.venueId && `Local: ${activeVenue?.name ?? '...'}`,
             ]

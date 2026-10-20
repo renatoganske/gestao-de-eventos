@@ -51,9 +51,9 @@ function mockReferenceData() {
   vi.mocked(hdsApi.fetchHds).mockResolvedValue([
     { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE' },
   ])
-  vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
-    { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null },
-  ])
+  vi.mocked(customersApi.fetchCustomer).mockResolvedValue({
+    id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null,
+  })
 }
 
 function renderEventsPage(initialPath = '/eventos') {
@@ -494,6 +494,25 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
       expect(await screen.findByText('Cliente: Maria Silva')).toBeInTheDocument()
       expect(eventsApi.searchEvents).toHaveBeenCalledTimes(1)
       expect(eventsApi.searchEvents).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'customer-1' }))
+      expect(customersApi.fetchCustomer).toHaveBeenCalledWith('customer-1')
+      expect(customersApi.fetchCustomers).not.toHaveBeenCalled()
+    })
+
+    it('mostra o nome do cliente no filtro mesmo quando ele não tem eventos', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+
+      renderEventsPage('/eventos?customerId=customer-1')
+
+      expect(await screen.findByText('Cliente: Maria Silva')).toBeInTheDocument()
+    })
+
+    it('usa um texto claro quando o cliente do filtro não é encontrado', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+      vi.mocked(customersApi.fetchCustomer).mockRejectedValue(new ApiError(404, 'Cliente não encontrado'))
+
+      renderEventsPage('/eventos?customerId=customer-x')
+
+      expect(await screen.findByText('Cliente: não encontrado')).toBeInTheDocument()
     })
 
     it('filtra por professionalId, hdId e venueId da URL, preenchendo os campos do painel', async () => {
@@ -538,6 +557,8 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
       await screen.findByText('EVT-018')
       expect(screen.queryByText(/^Cliente:/)).not.toBeInTheDocument()
       expect(vi.mocked(eventsApi.searchEvents).mock.calls[0][0]?.customerId).toBeUndefined()
+      expect(customersApi.fetchCustomer).not.toHaveBeenCalled()
+      expect(customersApi.fetchCustomers).not.toHaveBeenCalled()
     })
   })
 })
