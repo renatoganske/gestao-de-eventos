@@ -15,6 +15,7 @@ function makeVenue(overrides: Partial<EventVenueDto> = {}): EventVenueDto {
     city: 'São Paulo',
     state: 'SP',
     type: 'Buffet',
+    eventCount: 0,
     ...overrides,
   }
 }

@@ -1,7 +1,7 @@
 # ADR-0005: Métricas de negócio via filtros composáveis, não endpoints fixos
 
 **Data:** 2026-09-22
-**Status:** Aceito
+**Status:** Aceito — implementação revisada pela [ADR-0027](0027-busca-de-eventos-no-banco.md): o contrato composável continua, mas os filtros viraram `Specification<Event>` (`EventSpecifications`) executados pelo banco, no lugar do `Predicate` em memória descrito abaixo.
 
 ## Contexto
 

@@ -5,13 +5,15 @@ import com.renatoganske.gestao_de_eventos.dtos.HdDto;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.policies.HdCapacityPolicy;
+import com.renatoganske.gestao_de_eventos.repositories.EventCountProjection;
 import com.renatoganske.gestao_de_eventos.repositories.HdRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,18 +27,22 @@ public class HdService {
 
     @Transactional
     public HdDto createHd(CreateHdDto createHdDto) {
-        return hdRepository.save(createHdDto.toEntity()).toResponseDto();
+        // A just-created HD has no events yet.
+        return hdRepository.save(createHdDto.toEntity()).toResponseDto(0);
     }
 
+    @Transactional(readOnly = true)
     public List<HdDto> getAllHds() {
+        Map<UUID, Integer> eventCounts = EventCountProjection.toMap(hdRepository.countEventsGroupedByHd());
         return hdRepository.findAll().stream()
-                .map(Hd::toResponseDto)
+                .map(hd -> hd.toResponseDto(EventCountProjection.countOf(eventCounts, hd.getId())))
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public HdDto getHdById(UUID id) {
         Optional<Hd> optionalHd = hdRepository.findById(id);
-        return optionalHd.map(Hd::toResponseDto)
+        return optionalHd.map(hd -> hd.toResponseDto(countEvents(hd)))
                 .orElseThrow(() -> new HdNotFoundException(id));
     }
 
@@ -55,7 +61,7 @@ public class HdService {
         hd.setStatus(createHdDto.status());
 
         Hd updatedHd = hdRepository.save(hd);
-        return updatedHd.toResponseDto();
+        return updatedHd.toResponseDto(countEvents(updatedHd));
     }
 
     @Transactional
@@ -65,11 +71,17 @@ public class HdService {
         hdRepository.delete(hd);
     }
 
+    @Transactional(readOnly = true)
     public List<HdDto> getHdsNearCapacity() {
+        Map<UUID, Integer> eventCounts = EventCountProjection.toMap(hdRepository.countEventsGroupedByHd());
         return hdRepository.findAll().stream()
                 .filter(HdCapacityPolicy::isNearCapacity)
-                .map(Hd::toResponseDto)
+                .map(hd -> hd.toResponseDto(EventCountProjection.countOf(eventCounts, hd.getId())))
                 .collect(Collectors.toList());
+    }
+
+    private int countEvents(Hd hd) {
+        return Math.toIntExact(hdRepository.countEventsByHdId(hd.getId()));
     }
 
 }

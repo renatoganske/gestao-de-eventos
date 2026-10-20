@@ -32,6 +32,7 @@ describe('HdQuickCreateForm', () => {
       serialNumber: null,
       acquisitionDate: null,
       status: 'ACTIVE',
+      eventCount: 0,
     }
     vi.mocked(hdsApi.createHd).mockResolvedValue(created)
     const onCreated = vi.fn()

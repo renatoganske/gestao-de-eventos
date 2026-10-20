@@ -84,10 +84,10 @@ class ResponseDtoSerializationTest {
 
         assertThatCode(() -> {
             objectMapper.writeValueAsString(event.toDTO());
-            objectMapper.writeValueAsString(customer.toResponseDto());
-            objectMapper.writeValueAsString(eventVenue.toResponseDto());
-            objectMapper.writeValueAsString(hd.toResponseDto());
-            objectMapper.writeValueAsString(professional.toResponseDto());
+            objectMapper.writeValueAsString(customer.toResponseDto(0));
+            objectMapper.writeValueAsString(eventVenue.toResponseDto(0));
+            objectMapper.writeValueAsString(hd.toResponseDto(0));
+            objectMapper.writeValueAsString(professional.toResponseDto(0));
         }).doesNotThrowAnyException();
     }
 
@@ -108,7 +108,7 @@ class ResponseDtoSerializationTest {
         event.setEventCustomers(List.of(eventCustomer));
         customer.setEventCustomers(List.of(eventCustomer));
 
-        String json = objectMapper.writeValueAsString(customer.toResponseDto());
+        String json = objectMapper.writeValueAsString(customer.toResponseDto(0));
 
         assertThat(json).contains("\"eventCode\":\"EVT-001\"");
         assertThat(json).doesNotContain("\"customer\"");

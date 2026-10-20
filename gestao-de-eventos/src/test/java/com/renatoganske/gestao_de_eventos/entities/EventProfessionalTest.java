@@ -37,7 +37,7 @@ class EventProfessionalTest {
         professional.setEventProfessionals(List.of(eventProfessional));
 
         EventDto eventDto = event.toDTO();
-        ProfessionalDto professionalDto = professional.toResponseDto();
+        ProfessionalDto professionalDto = professional.toResponseDto(0);
 
         assertThat(eventDto.eventProfessionals()).hasSize(1);
         assertThat(eventDto.eventProfessionals().get(0).roleInEvent()).isEqualTo("Segundo fotógrafo");

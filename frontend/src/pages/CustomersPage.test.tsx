@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import * as customersApi from '../api/customers'
 import type { CustomerDto } from '../api/customers'
@@ -14,8 +15,32 @@ function makeCustomer(overrides: Partial<CustomerDto> = {}): CustomerDto {
     contact: '(11) 99999-0000',
     address: 'Rua das Flores, 123',
     notes: null,
+    eventCount: 0,
     ...overrides,
   }
+}
+
+function columnTexts(columnIndex: number): string[] {
+  return screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
+}
+
+function EventsDestination() {
+  const location = useLocation()
+  return <div>Eventos {location.pathname}{location.search}</div>
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={<CustomersPage />} />
+        <Route path="/eventos" element={<EventsDestination />} />
+      </Routes>
+    </MemoryRouter>,
+  )
 }
 
 describe('CustomersPage', () => {
@@ -26,7 +51,7 @@ describe('CustomersPage', () => {
   it('mostra a lista de clientes numa tabela', async () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer({})])
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
     expect(screen.getByText('(11) 99999-0000')).toBeInTheDocument()
@@ -35,7 +60,7 @@ describe('CustomersPage', () => {
   it('mostra o estado vazio quando não há clientes cadastrados', async () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([])
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum cliente cadastrado.')).toBeInTheDocument())
   })
@@ -43,7 +68,7 @@ describe('CustomersPage', () => {
   it('mostra mensagem de erro quando o carregamento falha', async () => {
     vi.mocked(customersApi.fetchCustomers).mockRejectedValue(new ApiError(500, 'Falha ao carregar clientes'))
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falha ao carregar clientes'))
   })
@@ -52,7 +77,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([])
     vi.mocked(customersApi.createCustomer).mockResolvedValue(makeCustomer({ id: 'customer-new', name: 'Cliente Novo' }))
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum cliente cadastrado.')).toBeInTheDocument())
 
@@ -70,7 +95,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([customer])
     vi.mocked(customersApi.updateCustomer).mockResolvedValue({ ...customer, name: 'Maria Renomeada' })
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
 
@@ -92,7 +117,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([customer])
     vi.mocked(customersApi.deleteCustomer).mockResolvedValue(undefined)
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
 
@@ -117,7 +142,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([customer])
     vi.mocked(customersApi.deleteCustomer).mockRejectedValue(new ApiError(409, 'Cliente vinculado a eventos'))
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
 
@@ -128,5 +153,112 @@ describe('CustomersPage', () => {
 
     expect(await within(dialog).findByText('Cliente vinculado a eventos')).toBeInTheDocument()
     expect(screen.getByText('Maria Silva')).toBeInTheDocument()
+  })
+
+  it('abre ordenada por nome A-Z, ignorando acento e caixa, e o clique no cabeçalho inverte', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'zélia' }),
+      makeCustomer({ id: 'c2', name: 'Álvaro' }),
+      makeCustomer({ id: 'c3', name: 'Bruna' }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Bruna')).toBeInTheDocument())
+    expect(columnTexts(0)).toEqual(['Álvaro', 'Bruna', 'zélia'])
+    expect(screen.getByRole('columnheader', { name: /Nome/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.click(screen.getByRole('button', { name: /Nome/ }))
+
+    expect(columnTexts(0)).toEqual(['zélia', 'Bruna', 'Álvaro'])
+    expect(screen.getByRole('columnheader', { name: /Nome/ })).toHaveAttribute('aria-sort', 'descending')
+    expect(customersApi.fetchCustomers).toHaveBeenCalledTimes(1)
+  })
+
+  it('ordena por contato deixando os vazios no fim nas duas direções', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'Ana', contact: null }),
+      makeCustomer({ id: 'c2', name: 'Bia', contact: '222' }),
+      makeCustomer({ id: 'c3', name: 'Caio', contact: '111' }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument())
+    await userEvent.click(screen.getByRole('button', { name: /Contato/ }))
+    expect(columnTexts(0)).toEqual(['Caio', 'Bia', 'Ana'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Contato/ }))
+    expect(columnTexts(0)).toEqual(['Bia', 'Caio', 'Ana'])
+  })
+
+  it('navega para os eventos da pessoa ao clicar na linha', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByText('Maria Silva'))
+
+    expect(await screen.findByText('Eventos /eventos?customerId=customer-1')).toBeInTheDocument()
+  })
+
+  it('abre a edição pelo botão Editar sem navegar para os eventos', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Maria Silva')
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(await screen.findByRole('dialog', { name: /Editar/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
+  })
+
+  it('abre a exclusão pelo botão Excluir sem navegar para os eventos', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Maria Silva')
+    await user.click(screen.getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByRole('dialog', { name: /Excluir/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
+  })
+})
+
+describe('CustomersPage - coluna Eventos (GDE-58)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it('mostra a contagem de eventos de cada cliente, inclusive zero', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'Ana', eventCount: 3 }),
+      makeCustomer({ id: 'c2', name: 'Bia', eventCount: 0 }),
+    ])
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument())
+    expect(screen.getByRole('columnheader', { name: /Eventos/ })).toBeInTheDocument()
+    expect(columnTexts(3)).toEqual(['3', '0'])
+  })
+
+  it('ordena pela coluna Eventos e inverte ao clicar de novo', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+      makeCustomer({ id: 'c1', name: 'Ana', eventCount: 3 }),
+      makeCustomer({ id: 'c2', name: 'Bia', eventCount: 0 }),
+      makeCustomer({ id: 'c3', name: 'Caio', eventCount: 10 }),
+    ])
+    const user = userEvent.setup()
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Bia', 'Ana', 'Caio'])
+
+    await user.click(screen.getByRole('button', { name: /Eventos/ }))
+    expect(columnTexts(0)).toEqual(['Caio', 'Ana', 'Bia'])
   })
 })

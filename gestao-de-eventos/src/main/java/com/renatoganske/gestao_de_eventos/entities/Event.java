@@ -89,6 +89,9 @@ public class Event {
                         .map(EventCustomer::toDTO)
                         .collect(Collectors.toList()),
                 this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
+                        // by name too: batch fetching returns the rows in batch order, not in a stable one
+                        .sorted(Comparator.comparing((EventProfessional ep) -> ep.getProfessional().getName(),
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                         .map(EventProfessional::toDTO)
                         .collect(Collectors.toList())
         );

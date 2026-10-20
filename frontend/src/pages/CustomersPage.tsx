@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { deleteCustomer, fetchCustomers, type CustomerDto } from '../api/customers'
 import { Button } from '../components/Button'
@@ -18,6 +19,7 @@ const GENERIC_LOAD_ERROR = 'Não foi possível carregar os clientes. Tente novam
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o cliente. Tente novamente.'
 
 export function CustomersPage() {
+  const navigate = useNavigate()
   const [customers, setCustomers] = useState<CustomerDto[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -113,14 +115,16 @@ export function CustomersPage() {
           {!isLoading && !loadError && customers && customers.length > 0 && (
             <Table
               columns={[
-                { key: 'name', header: 'Nome', render: (row) => row.name },
-                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—' },
-                { key: 'address', header: 'Endereço', render: (row) => row.address ?? '—' },
+                { key: 'name', header: 'Nome', render: (row) => row.name, sortValue: (row) => row.name },
+                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—', sortValue: (row) => row.contact },
+                { key: 'address', header: 'Endereço', render: (row) => row.address ?? '—', sortValue: (row) => row.address },
+                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount, sortValue: (row) => row.eventCount },
                 {
                   key: 'actions',
                   header: 'Ações',
+                  // Inside a clickable row: stop the click so Editar/Excluir do not also navigate.
                   render: (row) => (
-                    <div className="table-actions">
+                    <div className="table-actions" onClick={(event) => event.stopPropagation()}>
                       <Button type="button" variant="ghost" onClick={() => setModal({ type: 'edit', customer: row })}>
                         Editar
                       </Button>
@@ -133,6 +137,8 @@ export function CustomersPage() {
               ]}
               rows={customers}
               rowKey={(row) => row.id}
+              defaultSort={{ key: 'name', direction: 'asc' }}
+              onRowClick={(row) => navigate(`/eventos?customerId=${row.id}`)}
             />
           )}
         </Card>

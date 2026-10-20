@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { deleteProfessional, fetchProfessionals, type ProfessionalDto } from '../api/professionals'
 import { fetchProfessionalTypes, type ProfessionalTypeDto } from '../api/professionalTypes'
@@ -20,6 +21,7 @@ const GENERIC_LOAD_ERROR = 'Não foi possível carregar os profissionais. Tente 
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o profissional. Tente novamente.'
 
 export function ProfessionalsPage() {
+  const navigate = useNavigate()
   const [professionals, setProfessionals] = useState<ProfessionalDto[] | null>(null)
   const [professionalTypes, setProfessionalTypes] = useState<ProfessionalTypeDto[]>([])
   const [specialtyTags, setSpecialtyTags] = useState<SpecialtyTagDto[]>([])
@@ -131,19 +133,22 @@ export function ProfessionalsPage() {
           {!isLoading && !loadError && professionals && professionals.length > 0 && (
             <Table
               columns={[
-                { key: 'name', header: 'Nome', render: (row) => row.name },
-                { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—' },
-                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—' },
+                { key: 'name', header: 'Nome', render: (row) => row.name, sortValue: (row) => row.name },
+                { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—', sortValue: (row) => row.type?.name },
+                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—', sortValue: (row) => row.contact },
                 {
                   key: 'specialtyTags',
                   header: 'Especialidades',
                   render: (row) => (row.specialtyTags.length > 0 ? row.specialtyTags.map((tag) => tag.name).join(', ') : '—'),
+                  sortValue: (row) => row.specialtyTags.map((tag) => tag.name).join(', ') || null,
                 },
+                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount, sortValue: (row) => row.eventCount },
                 {
                   key: 'actions',
                   header: 'Ações',
+                  // Inside a clickable row: stop the click so Editar/Excluir do not also navigate.
                   render: (row) => (
-                    <div className="table-actions">
+                    <div className="table-actions" onClick={(event) => event.stopPropagation()}>
                       <Button type="button" variant="ghost" onClick={() => setModal({ type: 'edit', professional: row })}>
                         Editar
                       </Button>
@@ -156,6 +161,8 @@ export function ProfessionalsPage() {
               ]}
               rows={professionals}
               rowKey={(row) => row.id}
+              defaultSort={{ key: 'name', direction: 'asc' }}
+              onRowClick={(row) => navigate(`/eventos?professionalId=${row.id}`)}
             />
           )}
         </Card>

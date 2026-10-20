@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { deleteEventVenue, fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
 import { Button } from '../components/Button'
@@ -18,6 +19,7 @@ const GENERIC_LOAD_ERROR = 'Não foi possível carregar os locais. Tente novamen
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o local. Tente novamente.'
 
 export function EventVenuesPage() {
+  const navigate = useNavigate()
   const [venues, setVenues] = useState<EventVenueDto[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -113,15 +115,17 @@ export function EventVenuesPage() {
           {!isLoading && !loadError && venues && venues.length > 0 && (
             <Table
               columns={[
-                { key: 'name', header: 'Nome', render: (row) => row.name },
-                { key: 'city', header: 'Cidade', render: (row) => row.city ?? '—' },
-                { key: 'state', header: 'Estado', render: (row) => row.state ?? '—' },
-                { key: 'type', header: 'Tipo', render: (row) => row.type ?? '—' },
+                { key: 'name', header: 'Nome', render: (row) => row.name, sortValue: (row) => row.name },
+                { key: 'city', header: 'Cidade', render: (row) => row.city ?? '—', sortValue: (row) => row.city },
+                { key: 'state', header: 'Estado', render: (row) => row.state ?? '—', sortValue: (row) => row.state },
+                { key: 'type', header: 'Tipo', render: (row) => row.type ?? '—', sortValue: (row) => row.type },
+                { key: 'eventCount', header: 'Eventos', render: (row) => row.eventCount, sortValue: (row) => row.eventCount },
                 {
                   key: 'actions',
                   header: 'Ações',
+                  // Inside a clickable row: stop the click so Editar/Excluir do not also navigate.
                   render: (row) => (
-                    <div className="table-actions">
+                    <div className="table-actions" onClick={(event) => event.stopPropagation()}>
                       <Button type="button" variant="ghost" onClick={() => setModal({ type: 'edit', venue: row })}>
                         Editar
                       </Button>
@@ -134,6 +138,8 @@ export function EventVenuesPage() {
               ]}
               rows={venues}
               rowKey={(row) => row.id}
+              defaultSort={{ key: 'name', direction: 'asc' }}
+              onRowClick={(row) => navigate(`/eventos?venueId=${row.id}`)}
             />
           )}
         </Card>

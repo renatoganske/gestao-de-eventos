@@ -4,12 +4,14 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.CustomerResponseDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
-import jakarta.transaction.Transactional;
+import com.renatoganske.gestao_de_eventos.repositories.EventCountProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,18 +25,23 @@ public class CustomerService {
 
     @Transactional
     public CustomerResponseDto createCustomer(CreateCustomerDto createCustomerDto) {
-        return customerRepository.save(createCustomerDto.toEntity()).toResponseDto();
+        // A just-created customer has no events yet.
+        return customerRepository.save(createCustomerDto.toEntity()).toResponseDto(0);
     }
 
+    @Transactional(readOnly = true)
     public List<CustomerResponseDto> getAllCustomers() {
+        // One GROUP BY for every customer's event count (GDE-58), not one count query per customer.
+        Map<UUID, Integer> eventCounts = EventCountProjection.toMap(customerRepository.countEventsGroupedByCustomer());
         return customerRepository.findAll().stream()
-                .map(Customer::toResponseDto)
+                .map(customer -> customer.toResponseDto(EventCountProjection.countOf(eventCounts, customer.getId())))
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public CustomerResponseDto getCustomerById(UUID id) {
         Optional<Customer> optionalCustomer = customerRepository.findById(id);
-        return optionalCustomer.map(Customer::toResponseDto)
+        return optionalCustomer.map(customer -> customer.toResponseDto(countEvents(customer)))
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
     }
 
@@ -49,7 +56,7 @@ public class CustomerService {
         customer.setNotes(createCustomerDto.notes());
 
         Customer updatedCustomer = customerRepository.save(customer);
-        return updatedCustomer.toResponseDto();
+        return updatedCustomer.toResponseDto(countEvents(updatedCustomer));
     }
 
     @Transactional
@@ -57,6 +64,10 @@ public class CustomerService {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
         customerRepository.delete(customer);
+    }
+
+    private int countEvents(Customer customer) {
+        return Math.toIntExact(customerRepository.countEventsByCustomerId(customer.getId()));
     }
 
 }

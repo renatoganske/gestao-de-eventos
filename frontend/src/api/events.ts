@@ -110,6 +110,7 @@ export interface SearchEventsParams {
   eventTypeId?: string
   venueId?: string
   professionalId?: string
+  customerId?: string
   from?: string
   to?: string
   hdId?: string
@@ -130,6 +131,9 @@ function buildSearchQuery(params: SearchEventsParams): string {
   }
   if (params.professionalId) {
     query.set('professionalId', params.professionalId)
+  }
+  if (params.customerId) {
+    query.set('customerId', params.customerId)
   }
   if (params.from) {
     query.set('from', params.from)

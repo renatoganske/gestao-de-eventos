@@ -9,6 +9,8 @@ export interface ProfessionalDto {
   contact: string | null
   specialtyTags: SpecialtyTagDto[]
   otherInfo: string | null
+  /** Number of events the professional works on (GDE-58). */
+  eventCount: number
 }
 
 export interface CreateProfessionalDto {

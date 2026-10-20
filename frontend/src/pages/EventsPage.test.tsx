@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import * as customersApi from '../api/customers'
 import * as eventsApi from '../api/events'
@@ -43,22 +43,22 @@ function makeEvent(overrides: Partial<EventDto>): EventDto {
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-1', name: 'Casamento', hasWeddingFields: false }])
   vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
-    { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null },
+    { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null, eventCount: 0 },
   ])
   vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
-    { id: 'prof-1', name: 'Renato', type: null, contact: null, specialtyTags: [], otherInfo: null },
+    { id: 'prof-1', name: 'Renato', type: null, contact: null, specialtyTags: [], otherInfo: null, eventCount: 0 },
   ])
   vi.mocked(hdsApi.fetchHds).mockResolvedValue([
-    { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE' },
+    { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE', eventCount: 0 },
   ])
-  vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
-    { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null },
-  ])
+  vi.mocked(customersApi.fetchCustomer).mockResolvedValue({
+    id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0,
+  })
 }
 
-function renderEventsPage() {
+function renderEventsPage(initialPath = '/eventos') {
   return render(
-    <MemoryRouter initialEntries={['/eventos']}>
+    <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/eventos" element={<EventsPage />} />
         <Route path="/eventos/novo" element={<div>Formulário novo</div>} />
@@ -66,6 +66,13 @@ function renderEventsPage() {
       </Routes>
     </MemoryRouter>,
   )
+}
+
+function columnTexts(columnIndex: number): string[] {
+  return screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
 }
 
 describe('EventsPage', () => {
@@ -224,7 +231,7 @@ describe('EventsPage', () => {
       ])
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'Mini Wedding' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-mini')
       expect(screen.getByLabelText('Casamento diurno')).toBeInTheDocument()
@@ -238,7 +245,7 @@ describe('EventsPage', () => {
     it('esconde os dois filtros enquanto o tipo não for casamento', async () => {
       renderEventsPage()
 
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'BIRTHDAY' })
 
       expect(screen.queryByLabelText('Casamento diurno')).not.toBeInTheDocument()
       expect(screen.queryByLabelText('Casamento ao ar livre')).not.toBeInTheDocument()
@@ -252,7 +259,7 @@ describe('EventsPage', () => {
     it('mostra os dois filtros, com Todos/Sim/Não, quando o tipo é casamento', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
 
@@ -270,7 +277,7 @@ describe('EventsPage', () => {
     it('envia true e false à busca, sem descartar o Não', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.selectOptions(screen.getByLabelText('Casamento diurno'), 'true')
@@ -287,7 +294,7 @@ describe('EventsPage', () => {
     it('não envia os parâmetros de casamento enquanto ficarem em Todos', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
@@ -302,7 +309,7 @@ describe('EventsPage', () => {
     it('limpa os dois filtros e os esconde ao trocar o tipo para um que não é casamento', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.selectOptions(screen.getByLabelText('Casamento ao ar livre'), 'true')
@@ -325,7 +332,7 @@ describe('EventsPage', () => {
     it('"Limpar filtros" zera e esconde os filtros de casamento', async () => {
       const user = userEvent.setup()
       renderEventsPage()
-      await waitFor(() => expect(screen.getByLabelText('Tipo')).toBeInTheDocument())
+      await screen.findByRole('option', { name: 'WEDDING' })
 
       await user.selectOptions(screen.getByLabelText('Tipo'), 'type-wedding')
       await user.selectOptions(screen.getByLabelText('Casamento diurno'), 'true')
@@ -432,5 +439,328 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
 
     await screen.findByRole('link', { name: '+ Novo evento' })
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('abre ordenada por data crescente e, em empate, pelo número do código (RG2 antes de RG10)', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'e1', eventCode: 'RG10', eventDate: '2026-05-01' }),
+      makeEvent({ id: 'e2', eventCode: 'RG3', eventDate: '2026-06-01' }),
+      makeEvent({ id: 'e3', eventCode: 'RG2', eventDate: '2026-05-01' }),
+    ])
+
+    renderEventsPage()
+
+    await waitFor(() => expect(screen.getByText('RG3')).toBeInTheDocument())
+    expect(columnTexts(0)).toEqual(['RG2', 'RG10', 'RG3'])
+    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+    expect(columnTexts(0)).toEqual(['RG3', 'RG2', 'RG10'])
+  })
+
+  it('ordena pelo código numericamente e não refaz a busca ao ordenar', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'e1', eventCode: 'RG10' }),
+      makeEvent({ id: 'e2', eventCode: 'RG2' }),
+    ])
+
+    renderEventsPage()
+
+    await waitFor(() => expect(screen.getByText('RG10')).toBeInTheDocument())
+    const callsBefore = vi.mocked(eventsApi.searchEvents).mock.calls.length
+    await userEvent.click(screen.getByRole('button', { name: /Código/ }))
+
+    expect(columnTexts(0)).toEqual(['RG2', 'RG10'])
+    expect(vi.mocked(eventsApi.searchEvents).mock.calls.length).toBe(callsBefore)
+  })
+
+  it('torna clientes, locais, tipo e status ordenáveis', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+
+    renderEventsPage()
+
+    await waitFor(() => expect(screen.getByText('EVT-018')).toBeInTheDocument())
+    for (const name of [/Clientes/, /Locais/, /Tipo/, /Status/]) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    }
+  })
+
+  describe('filtros vindos da URL (GDE-56)', () => {
+    it('filtra por customerId da URL na primeira busca e mostra o cliente ativo', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+
+      renderEventsPage('/eventos?customerId=customer-1')
+
+      expect(await screen.findByText('Cliente: Maria Silva')).toBeInTheDocument()
+      expect(eventsApi.searchEvents).toHaveBeenCalledTimes(1)
+      expect(eventsApi.searchEvents).toHaveBeenCalledWith(expect.objectContaining({ customerId: 'customer-1' }))
+      expect(customersApi.fetchCustomer).toHaveBeenCalledWith('customer-1')
+      expect(customersApi.fetchCustomers).not.toHaveBeenCalled()
+    })
+
+    it('mostra o nome do cliente no filtro mesmo quando ele não tem eventos', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+
+      renderEventsPage('/eventos?customerId=customer-1')
+
+      expect(await screen.findByText('Cliente: Maria Silva')).toBeInTheDocument()
+    })
+
+    it('usa um texto claro quando o cliente do filtro não é encontrado', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+      vi.mocked(customersApi.fetchCustomer).mockRejectedValue(new ApiError(404, 'Cliente não encontrado'))
+
+      renderEventsPage('/eventos?customerId=customer-x')
+
+      expect(await screen.findByText('Cliente: não encontrado')).toBeInTheDocument()
+    })
+
+    it('filtra por professionalId, hdId e venueId da URL, preenchendo os campos do painel', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+
+      renderEventsPage('/eventos?professionalId=prof-1&hdId=hd-1&venueId=venue-1')
+
+      expect(await screen.findByText('Profissional: Renato')).toBeInTheDocument()
+      expect(eventsApi.searchEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ professionalId: 'prof-1', hdId: 'hd-1', venueId: 'venue-1' }),
+      )
+      await waitFor(() => expect(screen.getByLabelText('Profissional')).toHaveValue('prof-1'))
+      expect(screen.getByLabelText('HD')).toHaveValue('hd-1')
+      expect(screen.getByLabelText('Local')).toHaveValue('venue-1')
+    })
+
+    it('mostra o estado vazio quando a pessoa não tem eventos', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+
+      renderEventsPage('/eventos?customerId=customer-1')
+
+      expect(await screen.findByText('Nenhum evento encontrado com esses filtros.')).toBeInTheDocument()
+    })
+
+    it('"Limpar filtros" remove o filtro vindo da URL e busca de novo sem ele', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+      const user = userEvent.setup()
+      renderEventsPage('/eventos?customerId=customer-1')
+      await screen.findByText('Cliente: Maria Silva')
+
+      await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+      await waitFor(() => expect(screen.queryByText('Cliente: Maria Silva')).not.toBeInTheDocument())
+      expect(vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]?.customerId).toBeUndefined()
+    })
+
+    it('sem parâmetros na URL não mostra filtro ativo nem filtra', async () => {
+      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+
+      renderEventsPage()
+
+      await screen.findByText('EVT-018')
+      expect(screen.queryByText(/^Cliente:/)).not.toBeInTheDocument()
+      expect(vi.mocked(eventsApi.searchEvents).mock.calls[0][0]?.customerId).toBeUndefined()
+      expect(customersApi.fetchCustomer).not.toHaveBeenCalled()
+      expect(customersApi.fetchCustomers).not.toHaveBeenCalled()
+    })
+  })
+})
+
+describe('EventsPage - filtro de local vindo da URL (GDE-57)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+  })
+
+  it('filtra por venueId da URL e mostra o local como filtro ativo', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+
+    renderEventsPage('/eventos?venueId=venue-1')
+
+    expect(await screen.findByText('Local: Buffet Jardim das Rosas')).toBeInTheDocument()
+    expect(eventsApi.searchEvents).toHaveBeenCalledTimes(1)
+    expect(eventsApi.searchEvents).toHaveBeenCalledWith(expect.objectContaining({ venueId: 'venue-1' }))
+  })
+
+  it('mostra o estado vazio quando o local não tem eventos', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+
+    renderEventsPage('/eventos?venueId=venue-1')
+
+    expect(await screen.findByText('Nenhum evento encontrado com esses filtros.')).toBeInTheDocument()
+  })
+
+  it('"Limpar filtros" remove o local ativo e busca de novo sem ele', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    const user = userEvent.setup()
+    renderEventsPage('/eventos?venueId=venue-1')
+    await screen.findByText('Local: Buffet Jardim das Rosas')
+
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+    await waitFor(() => expect(screen.queryByText(/^Local:/)).not.toBeInTheDocument())
+    expect(vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]?.venueId).toBeUndefined()
+  })
+})
+
+function CurrentSearch() {
+  return <span data-testid="current-search">{useLocation().search}</span>
+}
+
+function BackButton() {
+  const navigate = useNavigate()
+  return <button onClick={() => navigate(-1)}>Voltar</button>
+}
+
+function renderWithUrl(initialPath = '/eventos') {
+  return render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <CurrentSearch />
+      <BackButton />
+      <Routes>
+        <Route path="/eventos" element={<EventsPage />} />
+        <Route path="/eventos/:id" element={<div>Detalhe do evento</div>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+function currentSearch() {
+  return screen.getByTestId('current-search').textContent
+}
+
+describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'e1', eventCode: 'RG10', eventDate: '2026-05-01' }),
+      makeEvent({ id: 'e2', eventCode: 'RG2', eventDate: '2026-06-01' }),
+    ])
+  })
+
+  it('lê filtros, busca livre e ordenação da URL na montagem', async () => {
+    renderWithUrl('/eventos?q=Maria&deliveryStatus=DELIVERED&from=2026-01-01&to=2026-12-31&sort=code:desc')
+
+    await screen.findByText('RG10')
+    expect(screen.getByLabelText('Buscar por nome do cliente ou código do evento')).toHaveValue('Maria')
+    expect(screen.getByLabelText('Status de entrega')).toHaveValue('DELIVERED')
+    expect(screen.getByLabelText('Data inicial')).toHaveValue('2026-01-01')
+    expect(vi.mocked(eventsApi.searchEvents)).toHaveBeenCalledWith(
+      expect.objectContaining({ customerName: 'Maria', deliveryStatus: 'DELIVERED', from: '2026-01-01', to: '2026-12-31' }),
+    )
+    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
+    expect(screen.getByRole('columnheader', { name: /Código/ })).toHaveAttribute('aria-sort', 'descending')
+  })
+
+  it('aplicar filtros grava a URL, e só então, não a cada tecla', async () => {
+    const user = userEvent.setup()
+    renderWithUrl()
+    await screen.findByText('RG10')
+
+    await user.type(screen.getByLabelText('Buscar por nome do cliente ou código do evento'), 'Maria')
+    await screen.findByRole('option', { name: 'Pendente' })
+    await user.selectOptions(screen.getByLabelText('Status de entrega'), 'PENDING')
+    expect(currentSearch()).toBe('')
+
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    await waitFor(() => expect(currentSearch()).toBe('?q=Maria&deliveryStatus=PENDING'))
+  })
+
+  it('ordenar grava sort na URL sem refazer a busca, mantendo os filtros aplicados', async () => {
+    renderWithUrl('/eventos?deliveryStatus=PENDING')
+    await screen.findByText('RG10')
+    const callsBefore = vi.mocked(eventsApi.searchEvents).mock.calls.length
+
+    await userEvent.click(screen.getByRole('button', { name: /Código/ }))
+
+    expect(currentSearch()).toBe('?deliveryStatus=PENDING&sort=code%3Aasc')
+    expect(columnTexts(0)).toEqual(['RG2', 'RG10'])
+    expect(vi.mocked(eventsApi.searchEvents).mock.calls.length).toBe(callsBefore)
+  })
+
+  it('a ordenação padrão não suja a URL', async () => {
+    renderWithUrl('/eventos?sort=code:asc')
+    await screen.findByText('RG10')
+
+    // Data asc (the default) -> desc -> asc again.
+    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+
+    expect(currentSearch()).toBe('')
+  })
+
+  it('abrir um evento e voltar mantém filtros, busca e ordenação', async () => {
+    const user = userEvent.setup()
+    renderWithUrl('/eventos?q=Maria&deliveryStatus=PENDING&sort=code:desc')
+    await screen.findByText('RG10')
+
+    await user.click(screen.getByText('RG2'))
+    await screen.findByText('Detalhe do evento')
+    await user.click(screen.getByRole('button', { name: 'Voltar' }))
+
+    await screen.findByText('RG10')
+    expect(currentSearch()).toBe('?q=Maria&deliveryStatus=PENDING&sort=code:desc')
+    expect(screen.getByLabelText('Buscar por nome do cliente ou código do evento')).toHaveValue('Maria')
+    expect(screen.getByLabelText('Status de entrega')).toHaveValue('PENDING')
+    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
+  })
+
+  it('voltar do navegador restaura a visão anterior e refaz a busca', async () => {
+    const user = userEvent.setup()
+    renderWithUrl('/eventos')
+    await screen.findByText('RG10')
+    await screen.findByRole('option', { name: 'Pendente' })
+
+    await user.selectOptions(screen.getByLabelText('Status de entrega'), 'PENDING')
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+    await waitFor(() => expect(currentSearch()).toBe('?deliveryStatus=PENDING'))
+
+    await user.click(screen.getByRole('button', { name: 'Voltar' }))
+
+    await waitFor(() => expect(currentSearch()).toBe(''))
+    await waitFor(() => expect(screen.getByLabelText('Status de entrega')).toHaveValue(''))
+    expect(vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]?.deliveryStatus).toBeUndefined()
+  })
+
+  it('ignora parâmetros inválidos sem quebrar a tela', async () => {
+    renderWithUrl(
+      '/eventos?deliveryStatus=XYZ&from=ontem&to=2026-13&daytimeWedding=talvez&customerId=<script>&venueId=a%20b&sort=banana:up',
+    )
+
+    await screen.findByText('RG10')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    const params = vi.mocked(eventsApi.searchEvents).mock.calls[0][0]
+    expect(params).toEqual(
+      expect.objectContaining({
+        deliveryStatus: undefined,
+        from: undefined,
+        daytimeWedding: undefined,
+        customerId: undefined,
+        venueId: undefined,
+      }),
+    )
+    // Default sort: date ascending.
+    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
+  })
+
+  it('"Limpar filtros" zera os campos e a URL, inclusive a ordenação', async () => {
+    const user = userEvent.setup()
+    renderWithUrl('/eventos?q=Maria&customerId=customer-1&hdId=hd-1&sort=code:desc')
+    await screen.findByText('RG10')
+
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+    await waitFor(() => expect(currentSearch()).toBe(''))
+    expect(screen.getByLabelText('Buscar por nome do cliente ou código do evento')).toHaveValue('')
+    expect(vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]?.customerId).toBeUndefined()
+  })
+
+  it('os parâmetros do GDE-56 continuam filtrando a primeira busca', async () => {
+    renderWithUrl('/eventos?customerId=customer-1&professionalId=prof-1&hdId=hd-1&venueId=venue-1')
+
+    await screen.findByText('RG10')
+    expect(vi.mocked(eventsApi.searchEvents)).toHaveBeenCalledWith(
+      expect.objectContaining({ customerId: 'customer-1', professionalId: 'prof-1', hdId: 'hd-1', venueId: 'venue-1' }),
+    )
   })
 })

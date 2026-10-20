@@ -21,3 +21,12 @@ export function usagePercent(hd: HdCapacityFields): number {
   }
   return Math.min(100, Math.round((hd.usedSpaceGb / capacity) * 100))
 }
+
+/** Espaço livre em GB (capacidade efetiva - usado, nunca negativo); null quando não há capacidade. */
+export function freeSpaceGb(hd: HdCapacityFields): number | null {
+  const capacity = effectiveCapacityGb(hd)
+  if (capacity === null) {
+    return null
+  }
+  return Math.max(0, capacity - hd.usedSpaceGb)
+}

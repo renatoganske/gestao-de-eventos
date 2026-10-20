@@ -23,7 +23,7 @@ import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalNotFoundException;
-import com.renatoganske.gestao_de_eventos.filters.EventFilter;
+import com.renatoganske.gestao_de_eventos.filters.EventSpecifications;
 import com.renatoganske.gestao_de_eventos.filters.EventSearchCriteria;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventCustomerRepository;
@@ -34,17 +34,17 @@ import com.renatoganske.gestao_de_eventos.repositories.EventTypeRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventVenueRepository;
 import com.renatoganske.gestao_de_eventos.repositories.HdRepository;
 import com.renatoganske.gestao_de_eventos.repositories.ProfessionalRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -77,12 +77,16 @@ public class EventService {
         return savedEvent.toDTO();
     }
 
+    // Read-only transactions keep the session open while toDTO() walks the lazy associations,
+    // instead of relying on the implicit open-in-view session (ADR-0027).
+    @Transactional(readOnly = true)
     public List<EventDto> getAllEvents() {
         return eventRepository.findAll().stream()
                 .map(Event::toDTO)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public EventDto getEventById(UUID id) {
         return eventRepository.findById(id)
                 .map(Event::toDTO)
@@ -144,20 +148,23 @@ public class EventService {
         adjustHdUsedSpace(hd, sizeGb == null ? null : -sizeGb);
     }
 
+    @Transactional(readOnly = true)
     public List<EventDto> searchEvents(EventSearchCriteria criteria) {
-        Predicate<Event> filter = EventFilter.byType(criteria.eventTypeId())
-                .and(EventFilter.byVenue(criteria.venueId()))
-                .and(EventFilter.byProfessional(criteria.professionalId()))
-                .and(EventFilter.byPeriod(criteria.from(), criteria.to()))
-                .and(EventFilter.byHd(criteria.hdId()))
-                .and(EventFilter.byDeliveryStatus(criteria.deliveryStatus()))
-                .and(EventFilter.byCustomerName(criteria.customerName()))
-                .and(EventFilter.byEventCode(criteria.eventCode()))
-                .and(EventFilter.byDaytimeWedding(criteria.daytimeWedding()))
-                .and(EventFilter.byOutdoorWedding(criteria.outdoorWedding()));
+        // Filtered by the database (ADR-0027): only the matching events are read.
+        Specification<Event> spec = Specification.allOf(
+                EventSpecifications.byType(criteria.eventTypeId()),
+                EventSpecifications.byVenue(criteria.venueId()),
+                EventSpecifications.byProfessional(criteria.professionalId()),
+                EventSpecifications.byPeriod(criteria.from(), criteria.to()),
+                EventSpecifications.byHd(criteria.hdId()),
+                EventSpecifications.byDeliveryStatus(criteria.deliveryStatus()),
+                EventSpecifications.byCustomer(criteria.customerId()),
+                EventSpecifications.byCustomerName(criteria.customerName()),
+                EventSpecifications.byEventCode(criteria.eventCode()),
+                EventSpecifications.byDaytimeWedding(criteria.daytimeWedding()),
+                EventSpecifications.byOutdoorWedding(criteria.outdoorWedding()));
 
-        return eventRepository.findAll().stream()
-                .filter(filter)
+        return eventRepository.findAll(spec).stream()
                 .map(Event::toDTO)
                 .collect(Collectors.toList());
     }

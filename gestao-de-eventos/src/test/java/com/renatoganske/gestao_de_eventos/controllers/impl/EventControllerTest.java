@@ -35,6 +35,7 @@ class EventControllerTest {
         UUID venueId = UUID.randomUUID();
         UUID professionalId = UUID.randomUUID();
         UUID hdId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
         LocalDate from = LocalDate.of(2026, 1, 1);
         LocalDate to = LocalDate.of(2026, 12, 31);
         List<EventDto> expected = List.of();
@@ -43,13 +44,13 @@ class EventControllerTest {
 
         ResponseEntity<List<EventDto>> response = eventController.search(
                 eventTypeId, venueId, professionalId, from, to, hdId, DeliveryStatus.PENDING,
-                "maria", "EVT-001", true, false);
+                customerId, "maria", "EVT-001", true, false);
 
         ArgumentCaptor<EventSearchCriteria> captor = ArgumentCaptor.forClass(EventSearchCriteria.class);
         verify(eventService).searchEvents(captor.capture());
         assertThat(captor.getValue()).isEqualTo(new EventSearchCriteria(
                 eventTypeId, venueId, professionalId, from, to, hdId, DeliveryStatus.PENDING,
-                "maria", "EVT-001", true, false));
+                customerId, "maria", "EVT-001", true, false));
         assertThat(response.getBody()).isSameAs(expected);
     }
 
@@ -58,7 +59,7 @@ class EventControllerTest {
         when(eventService.searchEvents(org.mockito.ArgumentMatchers.any(EventSearchCriteria.class)))
                 .thenReturn(List.of());
 
-        eventController.search(null, null, null, null, null, null, null, null, null, null, null);
+        eventController.search(null, null, null, null, null, null, null, null, null, null, null, null);
 
         ArgumentCaptor<EventSearchCriteria> captor = ArgumentCaptor.forClass(EventSearchCriteria.class);
         verify(eventService).searchEvents(captor.capture());

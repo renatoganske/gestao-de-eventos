@@ -6,6 +6,8 @@ export interface CustomerDto {
   contact: string | null
   address: string | null
   notes: string | null
+  /** Number of events the customer is in (GDE-58). */
+  eventCount: number
 }
 
 export interface CreateCustomerDto {
@@ -17,6 +19,10 @@ export interface CreateCustomerDto {
 
 export function fetchCustomers(): Promise<CustomerDto[]> {
   return apiFetch<CustomerDto[]>('/customers')
+}
+
+export function fetchCustomer(id: string): Promise<CustomerDto> {
+  return apiFetch<CustomerDto>(`/customers/${id}`)
 }
 
 export function createCustomer(dto: CreateCustomerDto): Promise<CustomerDto> {
