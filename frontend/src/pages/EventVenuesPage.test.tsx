@@ -19,6 +19,13 @@ function makeVenue(overrides: Partial<EventVenueDto> = {}): EventVenueDto {
   }
 }
 
+function columnTexts(columnIndex: number): string[] {
+  return screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
+}
+
 describe('EventVenuesPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -129,5 +136,28 @@ describe('EventVenuesPage', () => {
 
     expect(await within(dialog).findByText('Local vinculado a eventos')).toBeInTheDocument()
     expect(screen.getByText('Buffet Jardim das Rosas')).toBeInTheDocument()
+  })
+
+  it('abre ordenada por nome A-Z e permite ordenar por cidade, estado e tipo', async () => {
+    vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
+      makeVenue({ id: 'v1', name: 'Sítio Verde', city: 'Campinas', state: 'SP', type: 'Sítio' }),
+      makeVenue({ id: 'v2', name: 'Buffet Rosa', city: 'Belo Horizonte', state: 'MG', type: 'Buffet' }),
+      makeVenue({ id: 'v3', name: 'Igreja Matriz', city: null, state: null, type: null }),
+    ])
+
+    render(<EventVenuesPage />)
+
+    await waitFor(() => expect(screen.getByText('Sítio Verde')).toBeInTheDocument())
+    expect(columnTexts(0)).toEqual(['Buffet Rosa', 'Igreja Matriz', 'Sítio Verde'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Cidade/ }))
+    expect(columnTexts(0)).toEqual(['Buffet Rosa', 'Sítio Verde', 'Igreja Matriz'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Estado/ }))
+    expect(columnTexts(0)).toEqual(['Buffet Rosa', 'Sítio Verde', 'Igreja Matriz'])
+
+    await userEvent.click(screen.getByRole('button', { name: /Tipo/ }))
+    expect(columnTexts(0)).toEqual(['Buffet Rosa', 'Sítio Verde', 'Igreja Matriz'])
+    expect(eventVenuesApi.fetchEventVenues).toHaveBeenCalledTimes(1)
   })
 })

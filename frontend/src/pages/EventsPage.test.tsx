@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ApiError } from '../api/client'
@@ -66,6 +66,13 @@ function renderEventsPage() {
       </Routes>
     </MemoryRouter>,
   )
+}
+
+function columnTexts(columnIndex: number): string[] {
+  return screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
 }
 
 describe('EventsPage', () => {
@@ -432,5 +439,49 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
 
     await screen.findByRole('link', { name: '+ Novo evento' })
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('abre ordenada por data crescente e, em empate, pelo número do código (RG2 antes de RG10)', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'e1', eventCode: 'RG10', eventDate: '2026-05-01' }),
+      makeEvent({ id: 'e2', eventCode: 'RG3', eventDate: '2026-06-01' }),
+      makeEvent({ id: 'e3', eventCode: 'RG2', eventDate: '2026-05-01' }),
+    ])
+
+    renderEventsPage()
+
+    await waitFor(() => expect(screen.getByText('RG3')).toBeInTheDocument())
+    expect(columnTexts(0)).toEqual(['RG2', 'RG10', 'RG3'])
+    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+    expect(columnTexts(0)).toEqual(['RG3', 'RG2', 'RG10'])
+  })
+
+  it('ordena pelo código numericamente e não refaz a busca ao ordenar', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'e1', eventCode: 'RG10' }),
+      makeEvent({ id: 'e2', eventCode: 'RG2' }),
+    ])
+
+    renderEventsPage()
+
+    await waitFor(() => expect(screen.getByText('RG10')).toBeInTheDocument())
+    const callsBefore = vi.mocked(eventsApi.searchEvents).mock.calls.length
+    await userEvent.click(screen.getByRole('button', { name: /Código/ }))
+
+    expect(columnTexts(0)).toEqual(['RG2', 'RG10'])
+    expect(vi.mocked(eventsApi.searchEvents).mock.calls.length).toBe(callsBefore)
+  })
+
+  it('torna clientes, locais, tipo e status ordenáveis', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+
+    renderEventsPage()
+
+    await waitFor(() => expect(screen.getByText('EVT-018')).toBeInTheDocument())
+    for (const name of [/Clientes/, /Locais/, /Tipo/, /Status/]) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    }
   })
 })

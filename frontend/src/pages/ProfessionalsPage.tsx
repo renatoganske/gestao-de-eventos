@@ -131,13 +131,14 @@ export function ProfessionalsPage() {
           {!isLoading && !loadError && professionals && professionals.length > 0 && (
             <Table
               columns={[
-                { key: 'name', header: 'Nome', render: (row) => row.name },
-                { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—' },
-                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—' },
+                { key: 'name', header: 'Nome', render: (row) => row.name, sortValue: (row) => row.name },
+                { key: 'type', header: 'Tipo', render: (row) => row.type?.name ?? '—', sortValue: (row) => row.type?.name },
+                { key: 'contact', header: 'Contato', render: (row) => row.contact ?? '—', sortValue: (row) => row.contact },
                 {
                   key: 'specialtyTags',
                   header: 'Especialidades',
                   render: (row) => (row.specialtyTags.length > 0 ? row.specialtyTags.map((tag) => tag.name).join(', ') : '—'),
+                  sortValue: (row) => row.specialtyTags.map((tag) => tag.name).join(', ') || null,
                 },
                 {
                   key: 'actions',
@@ -156,6 +157,7 @@ export function ProfessionalsPage() {
               ]}
               rows={professionals}
               rowKey={(row) => row.id}
+              defaultSort={{ key: 'name', direction: 'asc' }}
             />
           )}
         </Card>
