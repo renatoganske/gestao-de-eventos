@@ -18,12 +18,13 @@ public record EventSearchCriteria(
         LocalDate to,
         UUID hdId,
         DeliveryStatus deliveryStatus,
+        UUID customerId,
         String customerName,
         String eventCode,
         Boolean daytimeWedding,
         Boolean outdoorWedding) {
 
     public static EventSearchCriteria none() {
-        return new EventSearchCriteria(null, null, null, null, null, null, null, null, null, null, null);
+        return new EventSearchCriteria(null, null, null, null, null, null, null, null, null, null, null, null);
     }
 }

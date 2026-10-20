@@ -30,7 +30,7 @@ public interface IEventController {
     @GetMapping("/{id}")
     ResponseEntity<EventDto> findById(@PathVariable UUID id);
 
-    @Operation(summary = "Search events", description = "Searches events combining optional filters (type, venue, professional, period, HD, delivery status, customer name, event code, daytime wedding, outdoor wedding). "
+    @Operation(summary = "Search events", description = "Searches events combining optional filters (type, venue, professional, period, HD, delivery status, customer id, customer name, event code, daytime wedding, outdoor wedding). "
             + "'daytimeWedding' and 'outdoorWedding' only match events whose flag is explicitly true or false; "
             + "events where the flag is not set (for example, non-wedding events) are left out whenever one of them is provided.")
     @GetMapping("/search")
@@ -42,6 +42,7 @@ public interface IEventController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) UUID hdId,
             @RequestParam(required = false) DeliveryStatus deliveryStatus,
+            @RequestParam(required = false) UUID customerId,
             @RequestParam(required = false) String customerName,
             @RequestParam(required = false) String eventCode,
             @RequestParam(required = false) Boolean daytimeWedding,

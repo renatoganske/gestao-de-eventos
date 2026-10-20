@@ -79,6 +79,9 @@ class EventSpecificationsIntegrationTest {
     private UUID hallId;
     private UUID hdId;
     private UUID professionalId;
+    private UUID contractingCustomerId;
+    private UUID otherCustomerId;
+    private UUID birthdayCustomerId;
 
     /** Wedding on 2026-06-15: church + hall, two customers, one professional, daytime indoor, PENDING. */
     private UUID wedding;
@@ -99,18 +102,22 @@ class EventSpecificationsIntegrationTest {
         professionalId = professionalService.createProfessional(
                 new CreateProfessionalDto(tag + " Photographer", null, null, null, null)).id();
 
+        contractingCustomerId = customer("Maria " + tag + "silva");
+        otherCustomerId = customer("Joao " + tag + "pereira");
+        birthdayCustomerId = customer("Ana " + tag + "souza");
+
         wedding = eventService.createEvent(new CreateEventDto(
                 tag + "-001", weddingTypeId, "Casamento " + tag, LocalDate.of(2026, 6, 15),
                 true, false, null, null, null, null, DeliveryStatus.PENDING, hdId,
                 List.of(new EventVenueAssignmentDto(churchId, "Cerimônia"), new EventVenueAssignmentDto(hallId, "Recepção")),
-                List.of(new EventCustomerAssignmentDto(customer("Maria " + tag + "silva"), true),
-                        new EventCustomerAssignmentDto(customer("Joao " + tag + "pereira"), false)),
+                List.of(new EventCustomerAssignmentDto(contractingCustomerId, true),
+                        new EventCustomerAssignmentDto(otherCustomerId, false)),
                 List.of(new EventProfessionalAssignmentDto(professionalId, "Fotógrafo")))).id();
         birthday = eventService.createEvent(new CreateEventDto(
                 tag + "-002", birthdayTypeId, "Aniversario " + tag, LocalDate.of(2026, 1, 1),
                 null, null, null, null, null, null, DeliveryStatus.DELIVERED, otherHdId,
                 List.of(new EventVenueAssignmentDto(otherVenueId, null)),
-                List.of(new EventCustomerAssignmentDto(customer("Ana " + tag + "souza"), true)),
+                List.of(new EventCustomerAssignmentDto(birthdayCustomerId, true)),
                 List.of())).id();
         bare = eventService.createEvent(new CreateEventDto(
                 tag + "-003", null, "Sem dados " + tag, null,
@@ -232,6 +239,38 @@ class EventSpecificationsIntegrationTest {
     }
 
     @Test
+    void byCustomerId_matchesContractingAndNonContractingCustomersOfTheEvent() {
+        assertThat(search(criteria().customerId(contractingCustomerId))).contains(wedding).doesNotContain(birthday, bare);
+        assertThat(search(criteria().customerId(otherCustomerId))).contains(wedding).doesNotContain(birthday, bare);
+        assertThat(search(criteria().customerId(birthdayCustomerId))).contains(birthday).doesNotContain(wedding, bare);
+    }
+
+    @Test
+    void byCustomerId_returnsEachEventOnce() {
+        assertThat(search(criteria().customerId(contractingCustomerId))).containsOnlyOnce(wedding);
+        assertThat(search(criteria().customerId(otherCustomerId))).containsOnlyOnce(wedding);
+    }
+
+    @Test
+    void byCustomerId_withCustomerWithoutEvents_returnsNothing() {
+        UUID lonelyCustomerId = customer("Sozinho " + tag);
+
+        assertThat(search(criteria().customerId(lonelyCustomerId))).isEmpty();
+        assertThat(search(criteria().customerId(UUID.randomUUID()))).isEmpty();
+    }
+
+    @Test
+    void byCustomerId_combinesWithPeriodAndOtherCriteria() {
+        assertThat(search(criteria().customerId(contractingCustomerId)
+                .from(LocalDate.of(2026, 6, 1)).to(LocalDate.of(2026, 6, 30)))).containsExactly(wedding);
+        assertThat(search(criteria().customerId(contractingCustomerId)
+                .from(LocalDate.of(2026, 7, 1)))).isEmpty();
+        assertThat(search(criteria().customerId(contractingCustomerId).customerName(tag + "souza"))).isEmpty();
+        assertThat(search(criteria().customerId(contractingCustomerId).customerName(tag + "pereira")))
+                .containsExactly(wedding);
+    }
+
+    @Test
     void combinedCriteria_matchOnlyWhenAllMatch() {
         Criteria combined = criteria()
                 .eventTypeId(weddingTypeId)
@@ -290,6 +329,7 @@ class EventSpecificationsIntegrationTest {
         private LocalDate to;
         private UUID hdId;
         private DeliveryStatus deliveryStatus;
+        private UUID customerId;
         private String customerName;
         private String eventCode;
         private Boolean daytimeWedding;
@@ -302,6 +342,7 @@ class EventSpecificationsIntegrationTest {
         Criteria to(LocalDate value) { this.to = value; return this; }
         Criteria hdId(UUID value) { this.hdId = value; return this; }
         Criteria deliveryStatus(DeliveryStatus value) { this.deliveryStatus = value; return this; }
+        Criteria customerId(UUID value) { this.customerId = value; return this; }
         Criteria customerName(String value) { this.customerName = value; return this; }
         Criteria eventCode(String value) { this.eventCode = value; return this; }
         Criteria daytimeWedding(Boolean value) { this.daytimeWedding = value; return this; }
@@ -309,7 +350,7 @@ class EventSpecificationsIntegrationTest {
 
         EventSearchCriteria build() {
             return new EventSearchCriteria(eventTypeId, venueId, professionalId, from, to, hdId,
-                    deliveryStatus, customerName, eventCode, daytimeWedding, outdoorWedding);
+                    deliveryStatus, customerId, customerName, eventCode, daytimeWedding, outdoorWedding);
         }
     }
 }
