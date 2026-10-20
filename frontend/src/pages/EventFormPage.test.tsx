@@ -674,3 +674,112 @@ describe('EventFormPage - equipe do evento (GDE-37)', () => {
     expect(await screen.findByText('Profissional criado e selecionado.')).toBeInTheDocument()
   })
 })
+
+describe('EventFormPage - exclusão do evento (GDE-50)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    sessionStorage.clear()
+    mockReferenceData()
+  })
+
+  async function openDeleteDialog(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => expect(screen.getByLabelText('Nome do evento')).toHaveValue('Casamento Maria & João'))
+    await user.click(screen.getByRole('button', { name: 'Excluir evento' }))
+    return screen.findByRole('dialog')
+  }
+
+  it('não oferece o botão de excluir ao criar um evento novo', async () => {
+    renderForm('/eventos/novo')
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar evento' })).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Excluir evento' })).not.toBeInTheDocument()
+  })
+
+  it('na edição, abre a confirmação com nome, data e quantos clientes e profissionais perdem o vínculo', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(
+      makeEvent({
+        eventProfessionals: [
+          { eventId: 'evt-1', eventCode: 'EVT-018', eventName: 'x', professionalId: 'prof-1', professionalName: 'Renato Fotógrafo', roleInEvent: null },
+          { eventId: 'evt-1', eventCode: 'EVT-018', eventName: 'x', professionalId: 'prof-2', professionalName: 'Ana Videomaker', roleInEvent: null },
+        ],
+      }),
+    )
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+
+    const dialog = await openDeleteDialog(user)
+
+    expect(within(dialog).getByText(/Casamento Maria & João/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/15\/10\/2026/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/1 cliente e 2 profissionais/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/cadastros em si não são apagados/)).toBeInTheDocument()
+    expect(eventsApi.deleteEvent).not.toHaveBeenCalled()
+  })
+
+  it('não fala de vínculos quando o evento não tem clientes nem equipe', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ customers: [], eventProfessionals: [] }))
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+
+    const dialog = await openDeleteDialog(user)
+
+    expect(within(dialog).queryByText(/vínculos/)).not.toBeInTheDocument()
+  })
+
+  it('cancelar fecha a confirmação sem chamar a API', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+
+    const dialog = await openDeleteDialog(user)
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(eventsApi.deleteEvent).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Nome do evento')).toBeInTheDocument()
+  })
+
+  it('confirmar exclui, descarta o rascunho de edição e volta para a lista', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
+    vi.mocked(eventsApi.deleteEvent).mockResolvedValue(undefined)
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+
+    const dialog = await openDeleteDialog(user)
+    // qualquer edição grava o rascunho; ele não pode sobreviver ao evento
+    expect(sessionStorage.getItem('gde_draft:event-edit:evt-1')).not.toBeNull()
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByText('Lista de eventos')).toBeInTheDocument()
+    expect(eventsApi.deleteEvent).toHaveBeenCalledWith('evt-1')
+    expect(sessionStorage.getItem('gde_draft:event-edit:evt-1')).toBeNull()
+  })
+
+  it('se a API falhar, mostra o erro no diálogo e mantém o evento na tela', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
+    vi.mocked(eventsApi.deleteEvent).mockRejectedValue(new ApiError(409, 'Evento em uso.'))
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+
+    const dialog = await openDeleteDialog(user)
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
+
+    expect(await within(await screen.findByRole('dialog')).findByText('Evento em uso.')).toBeInTheDocument()
+    expect(screen.queryByText('Lista de eventos')).not.toBeInTheDocument()
+    // o botão volta a ficar utilizável para nova tentativa
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' })).toBeEnabled()
+  })
+
+  it('desabilita o botão durante a exclusão, evitando clique duplo', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
+    vi.mocked(eventsApi.deleteEvent).mockReturnValue(new Promise(() => {}))
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1')
+
+    const dialog = await openDeleteDialog(user)
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
+
+    expect(await within(dialog).findByRole('button', { name: 'Excluindo...' })).toBeDisabled()
+    expect(eventsApi.deleteEvent).toHaveBeenCalledTimes(1)
+  })
+})

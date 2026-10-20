@@ -175,3 +175,8 @@ export function createEvent(dto: CreateEventDto): Promise<EventDto> {
 export function updateEvent(id: string, dto: CreateEventDto): Promise<EventDto> {
   return apiFetch<EventDto>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(dto) })
 }
+
+/** Irreversible. The backend also removes the event's customer/team links and gives its size back to the HD. */
+export function deleteEvent(id: string): Promise<void> {
+  return apiFetch<void>(`/events/${id}`, { method: 'DELETE' })
+}
