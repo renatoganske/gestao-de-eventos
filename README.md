@@ -51,7 +51,7 @@ Capturas do app rodando localmente com dados fictícios.
 
 Cada decisão relevante tem um ADR em [`docs/adr/`](docs/adr/) com contexto, alternativas avaliadas e o custo aceito. As que mais dizem sobre como eu trabalho:
 
-**Consultas composáveis em vez de um endpoint por métrica** ([ADR-0005](docs/adr/0005-metricas-via-filtros-composaveis.md)). Eu não queria uma lista fechada de indicadores, queria descobrir correlações. `EventFilter` são `Predicate`s combináveis, expostos em `GET /events/search`; `ProfessionalFilter` repete o padrão. Uma pergunta nova de negócio não vira código novo.
+**Consultas composáveis em vez de um endpoint por métrica** ([ADR-0005](docs/adr/0005-metricas-via-filtros-composaveis.md)). Eu não queria uma lista fechada de indicadores, queria descobrir correlações. Os critérios de `EventSpecifications` são `Specification`s combináveis que o banco executa ([ADR-0027](docs/adr/0027-busca-de-eventos-no-banco.md)), expostos em `GET /events/search`; `ProfessionalFilter` repete a ideia com `Predicate`s em memória. Uma pergunta nova de negócio não vira código novo.
 
 **O modelo de dados expressa a regra de negócio** ([ADR-0022](docs/adr/0022-professional-type-e-specialty-tags.md), [ADR-0016](docs/adr/0016-event-type-tabela-lookup.md), [ADR-0002](docs/adr/0002-event-professional-entidade-associacao.md)).
 - Tipo de evento saiu de enum para tabela de lookup quando, usando o sistema em produção, percebi que precisava cadastrar tipos sem deploy.

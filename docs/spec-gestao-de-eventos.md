@@ -245,6 +245,8 @@ public interface EventFilter extends Predicate<Event> {
 
 Um endpoint de consulta genérico (ex.: `GET /events/search` aceitando os parâmetros opcionais tipo/local/profissional/período/HD/status) que monta a combinação de `EventFilter` a partir da query string é preferível a criar um endpoint/métrica fixo por pergunta de negócio.
 
+> **Atualização (ADR-0027, GDE-52):** o exemplo acima é o desenho original. Com o volume real (centenas de eventos), os filtros passaram a ser `Specification<Event>` em `EventSpecifications`, executados pelo banco: mesma composição livre, mas só os eventos que casam são lidos.
+
 ### 5.2 Onde **não** forçar
 
 - Entidades JPA continuam mutáveis (setters do Hibernate) — não tentar `record` em `@Entity`.
