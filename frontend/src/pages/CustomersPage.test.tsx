@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import * as customersApi from '../api/customers'
 import type { CustomerDto } from '../api/customers'
@@ -25,6 +26,22 @@ function columnTexts(columnIndex: number): string[] {
     .map((row) => within(row).getAllByRole('cell')[columnIndex].textContent ?? '')
 }
 
+function EventsDestination() {
+  const location = useLocation()
+  return <div>Eventos {location.pathname}{location.search}</div>
+}
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={<CustomersPage />} />
+        <Route path="/eventos" element={<EventsDestination />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
 describe('CustomersPage', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -33,7 +50,7 @@ describe('CustomersPage', () => {
   it('mostra a lista de clientes numa tabela', async () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer({})])
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
     expect(screen.getByText('(11) 99999-0000')).toBeInTheDocument()
@@ -42,7 +59,7 @@ describe('CustomersPage', () => {
   it('mostra o estado vazio quando não há clientes cadastrados', async () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([])
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum cliente cadastrado.')).toBeInTheDocument())
   })
@@ -50,7 +67,7 @@ describe('CustomersPage', () => {
   it('mostra mensagem de erro quando o carregamento falha', async () => {
     vi.mocked(customersApi.fetchCustomers).mockRejectedValue(new ApiError(500, 'Falha ao carregar clientes'))
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falha ao carregar clientes'))
   })
@@ -59,7 +76,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([])
     vi.mocked(customersApi.createCustomer).mockResolvedValue(makeCustomer({ id: 'customer-new', name: 'Cliente Novo' }))
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Nenhum cliente cadastrado.')).toBeInTheDocument())
 
@@ -77,7 +94,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([customer])
     vi.mocked(customersApi.updateCustomer).mockResolvedValue({ ...customer, name: 'Maria Renomeada' })
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
 
@@ -99,7 +116,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([customer])
     vi.mocked(customersApi.deleteCustomer).mockResolvedValue(undefined)
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
 
@@ -124,7 +141,7 @@ describe('CustomersPage', () => {
     vi.mocked(customersApi.fetchCustomers).mockResolvedValue([customer])
     vi.mocked(customersApi.deleteCustomer).mockRejectedValue(new ApiError(409, 'Cliente vinculado a eventos'))
     const user = userEvent.setup()
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Maria Silva')).toBeInTheDocument())
 
@@ -144,7 +161,7 @@ describe('CustomersPage', () => {
       makeCustomer({ id: 'c3', name: 'Bruna' }),
     ])
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Bruna')).toBeInTheDocument())
     expect(columnTexts(0)).toEqual(['Álvaro', 'Bruna', 'zélia'])
@@ -164,7 +181,7 @@ describe('CustomersPage', () => {
       makeCustomer({ id: 'c3', name: 'Caio', contact: '111' }),
     ])
 
-    render(<CustomersPage />)
+    renderPage()
 
     await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument())
     await userEvent.click(screen.getByRole('button', { name: /Contato/ }))
@@ -172,5 +189,39 @@ describe('CustomersPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Contato/ }))
     expect(columnTexts(0)).toEqual(['Bia', 'Caio', 'Ana'])
+  })
+
+  it('navega para os eventos da pessoa ao clicar na linha', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByText('Maria Silva'))
+
+    expect(await screen.findByText('Eventos /eventos?customerId=customer-1')).toBeInTheDocument()
+  })
+
+  it('abre a edição pelo botão Editar sem navegar para os eventos', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Maria Silva')
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(await screen.findByRole('dialog', { name: /Editar/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
+  })
+
+  it('abre a exclusão pelo botão Excluir sem navegar para os eventos', async () => {
+    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([makeCustomer()])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Maria Silva')
+    await user.click(screen.getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByRole('dialog', { name: /Excluir/ })).toBeInTheDocument()
+    expect(screen.queryByText(/^Eventos \//)).not.toBeInTheDocument()
   })
 })

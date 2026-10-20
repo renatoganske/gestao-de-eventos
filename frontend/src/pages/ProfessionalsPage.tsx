@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { deleteProfessional, fetchProfessionals, type ProfessionalDto } from '../api/professionals'
 import { fetchProfessionalTypes, type ProfessionalTypeDto } from '../api/professionalTypes'
@@ -20,6 +21,7 @@ const GENERIC_LOAD_ERROR = 'Não foi possível carregar os profissionais. Tente 
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o profissional. Tente novamente.'
 
 export function ProfessionalsPage() {
+  const navigate = useNavigate()
   const [professionals, setProfessionals] = useState<ProfessionalDto[] | null>(null)
   const [professionalTypes, setProfessionalTypes] = useState<ProfessionalTypeDto[]>([])
   const [specialtyTags, setSpecialtyTags] = useState<SpecialtyTagDto[]>([])
@@ -143,8 +145,9 @@ export function ProfessionalsPage() {
                 {
                   key: 'actions',
                   header: 'Ações',
+                  // Inside a clickable row: stop the click so Editar/Excluir do not also navigate.
                   render: (row) => (
-                    <div className="table-actions">
+                    <div className="table-actions" onClick={(event) => event.stopPropagation()}>
                       <Button type="button" variant="ghost" onClick={() => setModal({ type: 'edit', professional: row })}>
                         Editar
                       </Button>
@@ -158,6 +161,7 @@ export function ProfessionalsPage() {
               rows={professionals}
               rowKey={(row) => row.id}
               defaultSort={{ key: 'name', direction: 'asc' }}
+              onRowClick={(row) => navigate(`/eventos?professionalId=${row.id}`)}
             />
           )}
         </Card>
