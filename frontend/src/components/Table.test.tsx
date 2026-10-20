@@ -153,6 +153,30 @@ describe('Table', () => {
       expect(ids()).toEqual(['Bruno', '—', 'ágata', 'Álvaro'])
     })
 
+    it('ordenação controlada: mostra o sort recebido e só avisa o próximo em onSortChange', async () => {
+      const onSortChange = vi.fn()
+      renderItems({ sort: { key: 'name', direction: 'desc', thenBy: 'qty' }, onSortChange })
+
+      expect(ids()).toEqual(['Bruno', 'Álvaro', 'ágata', '—'])
+      expect(screen.getByRole('columnheader', { name: /Nome/ })).toHaveAttribute('aria-sort', 'descending')
+
+      await userEvent.click(screen.getByRole('button', { name: /Nome/ }))
+
+      expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc', thenBy: 'qty' })
+      // Controlled: the table does not reorder on its own until the parent passes a new sort.
+      expect(ids()).toEqual(['Bruno', 'Álvaro', 'ágata', '—'])
+    })
+
+    it('sem ordenação controlada, onSortChange também é chamado e a tabela ordena sozinha', async () => {
+      const onSortChange = vi.fn()
+      renderItems({ onSortChange })
+
+      await userEvent.click(screen.getByRole('button', { name: 'Nome' }))
+
+      expect(onSortChange).toHaveBeenCalledWith({ key: 'name', direction: 'asc', thenBy: undefined })
+      expect(ids()).toEqual(['ágata', 'Álvaro', 'Bruno', '—'])
+    })
+
     it('clicar no cabeçalho não dispara onRowClick', async () => {
       const onRowClick = vi.fn()
       renderItems({ onRowClick })

@@ -22,10 +22,16 @@ export interface TableProps<T> {
   rowKey: (row: T) => string
   onRowClick?: (row: T) => void
   defaultSort?: TableSort
+  /** Controlled sort: when given, the table shows exactly this sort and `defaultSort` is ignored. */
+  sort?: TableSort
+  /** Called with the next sort when a header is clicked (in controlled and uncontrolled mode). */
+  onSortChange?: (sort: TableSort) => void
 }
 
-export function Table<T>({ columns, rows, rowKey, onRowClick, defaultSort }: TableProps<T>) {
-  const [sort, setSort] = useState<TableSort | undefined>(defaultSort)
+export function Table<T>({ columns, rows, rowKey, onRowClick, defaultSort, sort: controlledSort, onSortChange }: TableProps<T>) {
+  const [internalSort, setInternalSort] = useState<TableSort | undefined>(defaultSort)
+  const isControlled = controlledSort !== undefined
+  const sort = isControlled ? controlledSort : internalSort
 
   const sortValue = sort ? columns.find((column) => column.key === sort.key)?.sortValue : undefined
   const tieValue = sort?.thenBy ? columns.find((column) => column.key === sort.thenBy)?.sortValue : undefined
@@ -43,11 +49,15 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, defaultSort }: Tab
       : rows
 
   function toggleSort(key: string) {
-    setSort((current) => ({
+    const next: TableSort = {
       key,
-      direction: current?.key === key && current.direction === 'asc' ? 'desc' : 'asc',
-      thenBy: current?.thenBy,
-    }))
+      direction: sort?.key === key && sort.direction === 'asc' ? 'desc' : 'asc',
+      thenBy: sort?.thenBy,
+    }
+    if (!isControlled) {
+      setInternalSort(next)
+    }
+    onSortChange?.(next)
   }
 
   return (
