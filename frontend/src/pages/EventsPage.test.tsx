@@ -413,6 +413,50 @@ describe('EventsPage - locais do evento (GDE-51)', () => {
   })
 })
 
+describe('EventsPage - coluna HD (GDE-63)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+  })
+
+  it('mostra o nome do HD do evento, inclusive com a lista filtrada por cliente', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({ hdId: 'hd-1' })])
+    renderEventsPage('/eventos?customerId=customer-1')
+
+    await screen.findByText('EVT-018')
+    expect(screen.getByRole('columnheader', { name: /^HD/ })).toBeInTheDocument()
+    expect(columnTexts(5)).toEqual(['HD Externo 4'])
+  })
+
+  it('mostra um traço quando o evento não tem HD ou o HD não está na lista', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'e1', eventCode: 'RG1', hdId: null }),
+      makeEvent({ id: 'e2', eventCode: 'RG2', hdId: 'hd-desconhecido' }),
+    ])
+    renderEventsPage()
+
+    await screen.findByText('RG1')
+    expect(columnTexts(5)).toEqual(['—', '—'])
+  })
+
+  it('ordena pelo nome do HD', async () => {
+    vi.mocked(hdsApi.fetchHds).mockResolvedValue([
+      { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE', eventCount: 1 },
+      { id: 'hd-2', name: 'Finalizados 1', capacityGb: 500, usedSpaceGb: 400, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE', eventCount: 1 },
+    ])
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ id: 'e1', eventCode: 'RG1', hdId: 'hd-1' }),
+      makeEvent({ id: 'e2', eventCode: 'RG2', hdId: 'hd-2' }),
+    ])
+    renderEventsPage()
+    await screen.findByText('RG1')
+
+    await userEvent.click(screen.getByRole('button', { name: /^HD/ }))
+
+    expect(columnTexts(5)).toEqual(['Finalizados 1', 'HD Externo 4'])
+  })
+})
+
 describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
