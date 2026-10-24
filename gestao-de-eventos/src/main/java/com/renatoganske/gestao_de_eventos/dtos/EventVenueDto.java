@@ -3,7 +3,6 @@ package com.renatoganske.gestao_de_eventos.dtos;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -16,7 +15,6 @@ public record EventVenueDto(
         String city,
         String state,
         String type,
-        List<EventSummaryDto> events,
         int eventCount
 ) implements Serializable {
 }

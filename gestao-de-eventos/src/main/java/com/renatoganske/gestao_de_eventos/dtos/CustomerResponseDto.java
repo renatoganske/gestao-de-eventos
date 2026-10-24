@@ -3,7 +3,6 @@ package com.renatoganske.gestao_de_eventos.dtos;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -15,7 +14,6 @@ public record CustomerResponseDto(
         String contact,
         String address,
         String notes,
-        List<EventSummaryDto> events,
         int eventCount
 ) implements Serializable {
 }

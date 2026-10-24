@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.controllers.impl;
 import com.renatoganske.gestao_de_eventos.controllers.IHdController;
 import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.services.HdService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,10 @@ public class HdController implements IHdController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         hdService.deleteHd(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Override
+    public ResponseEntity<List<OptionDto>> findOptions() {
+        return ResponseEntity.ok(hdService.getHdOptions());
     }
 }

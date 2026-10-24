@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.controllers.impl;
 
 import com.renatoganske.gestao_de_eventos.controllers.IProfessionalController;
 import com.renatoganske.gestao_de_eventos.dtos.CreateProfessionalDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.dtos.ProfessionalDto;
 import com.renatoganske.gestao_de_eventos.services.ProfessionalService;
 import jakarta.validation.Valid;
@@ -52,5 +53,10 @@ public class ProfessionalController implements IProfessionalController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         professionalService.deleteProfessional(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Override
+    public ResponseEntity<List<OptionDto>> findOptions() {
+        return ResponseEntity.ok(professionalService.getProfessionalOptions());
     }
 }

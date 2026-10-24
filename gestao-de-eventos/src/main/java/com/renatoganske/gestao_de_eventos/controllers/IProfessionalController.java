@@ -1,6 +1,7 @@
 package com.renatoganske.gestao_de_eventos.controllers;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateProfessionalDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.dtos.ProfessionalDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,6 +23,10 @@ public interface IProfessionalController {
     @Operation(summary = "List professionals", description = "Fetches all professionals.")
     @GetMapping
     ResponseEntity<List<ProfessionalDto>> findAll();
+
+    @Operation(summary = "List professionals as options", description = "Fetches only the id and name of every one of the professionals, sorted by name, for selects and filters.")
+    @GetMapping("/options")
+    ResponseEntity<List<OptionDto>> findOptions();
 
     @Operation(summary = "Get professional by ID", description = "Fetches a professional by ID.")
     @GetMapping("/{id}")

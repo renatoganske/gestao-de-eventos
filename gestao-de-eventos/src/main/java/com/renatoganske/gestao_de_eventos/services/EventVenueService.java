@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.services;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.entities.EventVenue;
 import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException;
 import com.renatoganske.gestao_de_eventos.repositories.EventCountProjection;
@@ -68,5 +69,10 @@ public class EventVenueService {
 
     private int countEvents(EventVenue eventVenue) {
         return Math.toIntExact(eventVenueRepository.countEventsByEventVenueId(eventVenue.getId()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<OptionDto> getEventVenueOptions() {
+        return eventVenueRepository.findOptions();
     }
 }

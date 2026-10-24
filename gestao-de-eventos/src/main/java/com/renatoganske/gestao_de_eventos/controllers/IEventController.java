@@ -28,6 +28,11 @@ public interface IEventController {
     @GetMapping
     ResponseEntity<List<EventDto>> findAll();
 
+    @Operation(summary = "Upcoming events", description = "Fetches the next events from today on (in the business time zone), soonest first, "
+            + "in the shape of the event list. 'limit' goes from 1 to 50 (default 5). Events without a date are left out.")
+    @GetMapping("/upcoming")
+    ResponseEntity<List<EventListItemDto>> findUpcoming(@RequestParam(defaultValue = "5") int limit);
+
     @Operation(summary = "Get event by ID", description = "Fetches an event by ID.")
     @GetMapping("/{id}")
     ResponseEntity<EventDto> findById(@PathVariable UUID id);

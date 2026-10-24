@@ -903,4 +903,14 @@ class EventServiceTest {
                 .isInstanceOf(InvalidRequestParameterException.class)
                 .hasMessageContaining("1 to " + EventService.MAX_PAGE_SIZE);
     }
+
+    @Test
+    void getUpcomingEvents_rejectsALimitOutOfRangeWithoutQuerying() {
+        assertThatThrownBy(() -> eventService.getUpcomingEvents(0))
+                .isInstanceOf(InvalidRequestParameterException.class);
+        assertThatThrownBy(() -> eventService.getUpcomingEvents(EventService.MAX_UPCOMING_LIMIT + 1))
+                .isInstanceOf(InvalidRequestParameterException.class)
+                .hasMessageContaining("1 to " + EventService.MAX_UPCOMING_LIMIT);
+        verifyNoInteractions(eventRepository);
+    }
 }
