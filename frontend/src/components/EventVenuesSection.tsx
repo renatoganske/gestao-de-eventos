@@ -1,4 +1,4 @@
-import type { EventVenueDto } from '../api/eventVenues'
+import type { OptionDto } from '../api/options'
 import { newVenueRow, type VenueRow } from '../utils/eventVenues'
 import { Autocomplete } from './Autocomplete'
 import { Button } from './Button'
@@ -6,7 +6,7 @@ import { FormField } from './FormField'
 
 export interface EventVenuesSectionProps {
   rows: VenueRow[]
-  venues: EventVenueDto[]
+  venues: OptionDto[]
   onChange: (rows: VenueRow[]) => void
   onCreateNew: (rowKey: string) => void
   disabled?: boolean

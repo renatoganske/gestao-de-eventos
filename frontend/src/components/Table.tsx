@@ -26,9 +26,23 @@ export interface TableProps<T> {
   sort?: TableSort
   /** Called with the next sort when a header is clicked (in controlled and uncontrolled mode). */
   onSortChange?: (sort: TableSort) => void
+  /**
+   * The rows already come in the order of `sort` (a page sorted by the server, ADR-0029): the headers
+   * still show and change the sort, but the table does not reorder the rows itself.
+   */
+  serverSorted?: boolean
 }
 
-export function Table<T>({ columns, rows, rowKey, onRowClick, defaultSort, sort: controlledSort, onSortChange }: TableProps<T>) {
+export function Table<T>({
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+  defaultSort,
+  sort: controlledSort,
+  onSortChange,
+  serverSorted = false,
+}: TableProps<T>) {
   const [internalSort, setInternalSort] = useState<TableSort | undefined>(defaultSort)
   const isControlled = controlledSort !== undefined
   const sort = isControlled ? controlledSort : internalSort
@@ -38,7 +52,7 @@ export function Table<T>({ columns, rows, rowKey, onRowClick, defaultSort, sort:
 
   // Sorting happens on a copy, in memory: no new API call, and the stable sort keeps ties in server order.
   const sortedRows =
-    sort && sortValue
+    !serverSorted && sort && sortValue
       ? [...rows].sort((a, b) => {
           const primary = compareSortValues(sortValue(a), sortValue(b), sort.direction)
           if (primary !== 0 || !tieValue) {

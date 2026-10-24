@@ -1,13 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import * as customersApi from '../api/customers'
 import * as eventsApi from '../api/events'
 import type { EventDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
-import * as eventVenuesApi from '../api/eventVenues'
-import * as hdsApi from '../api/hds'
-import * as professionalsApi from '../api/professionals'
+import * as optionsApi from '../api/options'
 import { EventFormPage } from './EventFormPage'
 
 vi.mock('../api/events')
@@ -17,6 +14,15 @@ vi.mock('../api/hds')
 vi.mock('../api/professionals')
 vi.mock('../api/customers')
 vi.mock('../api/professionalTypes')
+vi.mock('../api/options')
+
+/** The form's selects load only id and name (ADR-0029); fixtures may carry more, which is dropped here. */
+function mockOptions<T extends { id: string; name: string }>(
+  fetchOptions: () => Promise<{ id: string; name: string }[]>,
+  records: T[],
+) {
+  vi.mocked(fetchOptions).mockResolvedValue(records.map(({ id, name }) => ({ id, name })))
+}
 
 const CREATED_EVENT: EventDto = {
   id: 'evt-1',
@@ -68,12 +74,12 @@ describe('EventFormPage - rascunho de novo evento (GDE-41)', () => {
     vi.resetAllMocks()
     sessionStorage.clear()
     vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-other', name: 'PHOTO_SHOOT', hasWeddingFields: false }])
-    vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([])
-    vi.mocked(hdsApi.fetchHds).mockResolvedValue([])
-    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+    mockOptions(optionsApi.fetchEventVenueOptions, [])
+    mockOptions(optionsApi.fetchHdOptions, [])
+    mockOptions(optionsApi.fetchCustomerOptions, [
       { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0 },
     ])
-    vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([])
+    mockOptions(optionsApi.fetchProfessionalOptions, [])
   })
 
   it('abre vazio (inclusive Cliente) depois de salvar e reabrir', async () => {
