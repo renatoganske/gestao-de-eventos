@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { fetchCustomers, type CustomerDto } from '../api/customers'
+import type { CustomerDto } from '../api/customers'
 import {
   DELIVERY_STATUS_LABEL,
   createEvent,
@@ -13,9 +13,16 @@ import {
   type EventDto,
 } from '../api/events'
 import { createEventType, fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
-import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
-import { fetchHds, type HdDto } from '../api/hds'
-import { fetchProfessionals, type ProfessionalDto } from '../api/professionals'
+import type { EventVenueDto } from '../api/eventVenues'
+import type { HdDto } from '../api/hds'
+import {
+  fetchCustomerOptions,
+  fetchEventVenueOptions,
+  fetchHdOptions,
+  fetchProfessionalOptions,
+  type OptionDto,
+} from '../api/options'
+import type { ProfessionalDto } from '../api/professionals'
 import { Autocomplete } from '../components/Autocomplete'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
@@ -85,10 +92,16 @@ type FormErrors = Partial<Record<'eventCode' | 'eventTypeId' | 'name' | 'eventDa
 
 interface ReferenceData {
   eventTypes: EventTypeDto[]
-  venues: EventVenueDto[]
-  hds: HdDto[]
-  customers: CustomerDto[]
-  professionals: ProfessionalDto[]
+  // Only id and name: the selects need nothing else (ADR-0029).
+  venues: OptionDto[]
+  hds: OptionDto[]
+  customers: OptionDto[]
+  professionals: OptionDto[]
+}
+
+/** A record created inline joins its select as an option. */
+function toOption(record: { id: string; name: string }): OptionDto {
+  return { id: record.id, name: record.name }
 }
 
 type QuickCreateTarget = 'customer' | 'venue' | 'hd' | 'eventType' | 'professional' | null
@@ -194,10 +207,10 @@ export function EventFormPage() {
       try {
         const [eventTypes, venues, hds, customers, professionals] = await Promise.all([
           fetchEventTypes(),
-          fetchEventVenues(),
-          fetchHds(),
-          fetchCustomers(),
-          fetchProfessionals(),
+          fetchEventVenueOptions(),
+          fetchHdOptions(),
+          fetchCustomerOptions(),
+          fetchProfessionalOptions(),
         ])
         const loadedEvent = isEditMode && id ? await fetchEventById(id) : null
         if (cancelled) {
@@ -317,7 +330,7 @@ export function EventFormPage() {
 
   function handleProfessionalCreated(professional: ProfessionalDto) {
     setReferenceData((current) =>
-      current ? { ...current, professionals: [...current.professionals, professional] } : current,
+      current ? { ...current, professionals: [...current.professionals, toOption(professional)] } : current,
     )
     const rows = form.professionals ?? []
     updateField(
@@ -337,7 +350,7 @@ export function EventFormPage() {
   }
 
   function handleCustomerCreated(customer: CustomerDto) {
-    setReferenceData((current) => (current ? { ...current, customers: [...current.customers, customer] } : current))
+    setReferenceData((current) => (current ? { ...current, customers: [...current.customers, toOption(customer)] } : current))
     const rows = form.customers ?? []
     updateField(
       'customers',
@@ -349,7 +362,7 @@ export function EventFormPage() {
   }
 
   function handleVenueCreated(venue: EventVenueDto) {
-    setReferenceData((current) => (current ? { ...current, venues: [...current.venues, venue] } : current))
+    setReferenceData((current) => (current ? { ...current, venues: [...current.venues, toOption(venue)] } : current))
     const rows = form.venues ?? []
     updateField(
       'venues',
@@ -361,7 +374,7 @@ export function EventFormPage() {
   }
 
   function handleHdCreated(hd: HdDto) {
-    setReferenceData((current) => (current ? { ...current, hds: [...current.hds, hd] } : current))
+    setReferenceData((current) => (current ? { ...current, hds: [...current.hds, toOption(hd)] } : current))
     updateField('hdId', hd.id)
     setQuickCreateTarget(null)
     setToast({ kind: 'success', text: 'HD criado e selecionado.' })

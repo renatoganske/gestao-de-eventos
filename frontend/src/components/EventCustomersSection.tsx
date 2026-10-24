@@ -1,4 +1,4 @@
-import type { CustomerDto } from '../api/customers'
+import type { OptionDto } from '../api/options'
 import { newCustomerRow, type CustomerRow } from '../utils/eventCustomers'
 import { Autocomplete } from './Autocomplete'
 import { Button } from './Button'
@@ -6,7 +6,7 @@ import { FormField } from './FormField'
 
 export interface EventCustomersSectionProps {
   rows: CustomerRow[]
-  customers: CustomerDto[]
+  customers: OptionDto[]
   onChange: (rows: CustomerRow[]) => void
   onCreateNew: (rowKey: string) => void
   disabled?: boolean
