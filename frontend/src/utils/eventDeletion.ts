@@ -1,4 +1,4 @@
-import type { EventDto } from '../api/events'
+import type { EventDto, EventListItemDto } from '../api/events'
 
 /** What the delete confirmation needs to know about the event; the counts say which links go away with it. */
 export interface DeletableEvent {
@@ -8,12 +8,13 @@ export interface DeletableEvent {
   professionalCount: number
 }
 
-export function deletableEvent(event: EventDto): DeletableEvent {
+export function deletableEvent(event: EventDto | EventListItemDto): DeletableEvent {
   return {
     name: event.name,
     eventDate: event.eventDate,
     customerCount: event.customers.length,
-    professionalCount: event.eventProfessionals.length,
+    // The list row carries only the size of the team; the full event carries the team itself.
+    professionalCount: 'professionalCount' in event ? event.professionalCount : event.eventProfessionals.length,
   }
 }
 

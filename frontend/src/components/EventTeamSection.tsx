@@ -1,4 +1,4 @@
-import type { ProfessionalDto } from '../api/professionals'
+import type { OptionDto } from '../api/options'
 import { newTeamRow, type TeamRow } from '../utils/eventTeam'
 import { Autocomplete } from './Autocomplete'
 import { Button } from './Button'
@@ -6,7 +6,7 @@ import { FormField } from './FormField'
 
 export interface EventTeamSectionProps {
   rows: TeamRow[]
-  professionals: ProfessionalDto[]
+  professionals: OptionDto[]
   onChange: (rows: TeamRow[]) => void
   onCreateNew: (rowKey: string) => void
   disabled?: boolean

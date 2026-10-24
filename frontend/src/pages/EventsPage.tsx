@@ -7,14 +7,19 @@ import {
   deleteEvent,
   searchEvents,
   type DeliveryStatus,
-  type EventDto,
+  type EventListItemDto,
+  type EventSortKey,
+  type PageDto,
   type SearchEventsParams,
 } from '../api/events'
 import { fetchCustomer, type CustomerDto } from '../api/customers'
 import { fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
-import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
-import { fetchHds, type HdDto } from '../api/hds'
-import { fetchProfessionals, type ProfessionalDto } from '../api/professionals'
+import {
+  fetchEventVenueOptions,
+  fetchHdOptions,
+  fetchProfessionalOptions,
+  type OptionDto,
+} from '../api/options'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -25,7 +30,6 @@ import { Toast, type ToastMessage } from '../components/Toast'
 import { TopBar } from '../components/TopBar'
 import { discardFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
-import { codeNumber } from '../utils/sort'
 import { customerNames } from '../utils/eventCustomers'
 import { deletableEvent, deleteConfirmationMessage } from '../utils/eventDeletion'
 import { venueLabels } from '../utils/eventVenues'
@@ -66,15 +70,19 @@ function toBooleanParam(value: WeddingFlagFilter): boolean | undefined {
 
 interface ReferenceData {
   eventTypes: EventTypeDto[]
-  venues: EventVenueDto[]
-  professionals: ProfessionalDto[]
+  // Only id and name, for the filter selects (ADR-0029).
+  venues: OptionDto[]
+  professionals: OptionDto[]
+  hds: OptionDto[]
   // Only the customer from the URL filter (if any); the full customer list is never loaded here.
   filterCustomer: CustomerDto | null
-  hds: HdDto[]
 }
 
 const GENERIC_ERROR_MESSAGE = 'Não foi possível buscar os eventos. Tente novamente em instantes.'
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o evento. Tente novamente.'
+
+// One page of the list; the server sorts and pages (ADR-0029).
+const EVENTS_PAGE_SIZE = 50
 
 function toSearchParams(filters: FilterState): SearchEventsParams {
   return {
@@ -95,8 +103,9 @@ function toSearchParams(filters: FilterState): SearchEventsParams {
 const ID_PATTERN = /^[\w-]{1,64}$/
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
-const DEFAULT_SORT: TableSort = { key: 'date', direction: 'desc', thenBy: 'code' }
-const SORTABLE_KEYS = ['code', 'customer', 'venues', 'type', 'date', 'hd', 'status']
+// Ties are broken by the server (code, then id), so the table needs no thenBy.
+const DEFAULT_SORT: TableSort = { key: 'date', direction: 'desc' }
+const SORTABLE_KEYS: EventSortKey[] = ['code', 'customer', 'venues', 'type', 'date', 'hd', 'status']
 
 interface UrlView {
   freeText: string
@@ -120,7 +129,7 @@ function readWeddingFlag(searchParams: URLSearchParams, name: string): WeddingFl
 }
 
 // The applied view (filters + free text) that lives in the URL; other pages can pre-set it too
-// (e.g. /eventos?customerId=...). The sort is read separately by sortFromSearchParams.
+// (e.g. /eventos?customerId=...). The sort and the page are read separately.
 function viewFromSearchParams(searchParams: URLSearchParams): UrlView {
   const deliveryStatus = searchParams.get('deliveryStatus') ?? ''
   const eventTypeId = readId(searchParams, 'eventTypeId')
@@ -144,14 +153,20 @@ function viewFromSearchParams(searchParams: URLSearchParams): UrlView {
 
 function sortFromSearchParams(searchParams: URLSearchParams): TableSort {
   const [key, direction] = (searchParams.get('sort') ?? '').split(':')
-  if (SORTABLE_KEYS.includes(key) && (direction === 'asc' || direction === 'desc')) {
-    return { key, direction, thenBy: DEFAULT_SORT.thenBy }
+  if ((SORTABLE_KEYS as string[]).includes(key) && (direction === 'asc' || direction === 'desc')) {
+    return { key, direction }
   }
   return DEFAULT_SORT
 }
 
-// Writes only what differs from "no filter" / the default sort, so the default view has a clean URL.
-function toUrlParams(freeText: string, filters: FilterState, sort: TableSort): URLSearchParams {
+// 1-based in the URL ("?page=2" is the second page), 0-based for the API; anything else is the first page.
+function pageFromSearchParams(searchParams: URLSearchParams): number {
+  const value = Number(searchParams.get('page'))
+  return Number.isInteger(value) && value > 1 ? value - 1 : 0
+}
+
+// Writes only what differs from "no filter" / the default sort / the first page, so the default view has a clean URL.
+function toUrlParams(freeText: string, filters: FilterState, sort: TableSort, page = 0): URLSearchParams {
   const params = new URLSearchParams()
   if (freeText.trim()) {
     params.set('q', freeText.trim())
@@ -164,13 +179,17 @@ function toUrlParams(freeText: string, filters: FilterState, sort: TableSort): U
   if (sort.key !== DEFAULT_SORT.key || sort.direction !== DEFAULT_SORT.direction) {
     params.set('sort', `${sort.key}:${sort.direction}`)
   }
+  if (page > 0) {
+    params.set('page', String(page + 1))
+  }
   return params
 }
 
-// Everything but the sort: the sort is applied in memory, so changing it must not trigger a new search.
-function searchKey(searchParams: URLSearchParams): string {
+// Filters and free text only: changing the sort or the page keeps whatever is being typed in the panel.
+function viewKey(searchParams: URLSearchParams): string {
   const copy = new URLSearchParams(searchParams)
   copy.delete('sort')
+  copy.delete('page')
   return copy.toString()
 }
 
@@ -187,24 +206,18 @@ async function loadFilterCustomer(customerId: string): Promise<CustomerDto | nul
   }
 }
 
-async function performSearch(freeText: string, filters: FilterState): Promise<EventDto[]> {
-  const baseParams = toSearchParams(filters)
-  const trimmedText = freeText.trim()
-
-  if (!trimmedText) {
-    return searchEvents(baseParams)
-  }
-
-  const [byCustomerName, byEventCode] = await Promise.all([
-    searchEvents({ ...baseParams, customerName: trimmedText }),
-    searchEvents({ ...baseParams, eventCode: trimmedText }),
-  ])
-
-  const merged = new Map<string, EventDto>()
-  for (const event of [...byCustomerName, ...byEventCode]) {
-    merged.set(event.id, event)
-  }
-  return Array.from(merged.values())
+// One request for the page the URL describes: the free text goes as "q", which the server matches
+// against the event code OR any customer name (ADR-0029).
+function performSearch(searchParams: URLSearchParams): Promise<PageDto<EventListItemDto>> {
+  const view = viewFromSearchParams(searchParams)
+  const sort = sortFromSearchParams(searchParams)
+  return searchEvents({
+    ...toSearchParams(view.filters),
+    q: view.freeText.trim() || undefined,
+    page: pageFromSearchParams(searchParams),
+    size: EVENTS_PAGE_SIZE,
+    sort: { key: sort.key as EventSortKey, direction: sort.direction },
+  })
 }
 
 export function EventsPage() {
@@ -224,115 +237,127 @@ export function EventsPage() {
   }, [])
 
   const [searchParams, setSearchParams] = useSearchParams()
-  // The URL holds the applied view (filters, free text, sort); typing in the panel only changes the draft
-  // below, and "Aplicar filtros" copies it to the URL. The first read happens on mount.
+  // The URL holds the applied view (filters, free text, sort, page); typing in the panel only changes the
+  // draft below, and "Aplicar filtros" copies it to the URL. The first read happens on mount.
   const [initialView] = useState(() => viewFromSearchParams(searchParams))
   const [freeText, setFreeText] = useState(initialView.freeText)
   const [filters, setFilters] = useState<FilterState>(initialView.filters)
-  // Key of the URL view already searched, to tell our own writes from navigation (back/forward).
-  const appliedKey = useRef(searchKey(searchParams))
+  // Key of the URL view the draft was last synced with, to tell our own writes from navigation (back/forward).
+  const appliedKey = useRef(viewKey(searchParams))
+  // Only the answer to the latest search is shown, however the responses arrive.
+  const latestSearch = useRef(0)
   const sort = sortFromSearchParams(searchParams)
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true)
 
   const [referenceData, setReferenceData] = useState<ReferenceData | null>(null)
-  const [events, setEvents] = useState<EventDto[] | null>(null)
+  const [events, setEvents] = useState<PageDto<EventListItemDto> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [eventToDelete, setEventToDelete] = useState<EventDto | null>(null)
+  const [eventToDelete, setEventToDelete] = useState<EventListItemDto | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  // The filter selects only need id and name; the events come from the search below.
   useEffect(() => {
     let cancelled = false
-
-    async function init() {
-      setIsLoading(true)
-      setError(null)
-      try {
-        const [eventTypes, venues, professionals, filterCustomer, hds] = await Promise.all([
-          fetchEventTypes(),
-          fetchEventVenues(),
-          fetchProfessionals(),
-          loadFilterCustomer(initialView.filters.customerId),
-          fetchHds(),
-        ])
-        const initialEvents = await performSearch(initialView.freeText, initialView.filters)
-        if (cancelled) {
-          return
-        }
-        setReferenceData({ eventTypes, venues, professionals, filterCustomer, hds })
-        setEvents(initialEvents)
-      } catch (err) {
-        if (cancelled) {
-          return
-        }
-        setError(err instanceof ApiError ? err.message : GENERIC_ERROR_MESSAGE)
-      } finally {
+    Promise.all([
+      fetchEventTypes(),
+      fetchEventVenueOptions(),
+      fetchProfessionalOptions(),
+      fetchHdOptions(),
+      loadFilterCustomer(initialView.filters.customerId),
+    ])
+      .then(([eventTypes, venues, professionals, hds, filterCustomer]) => {
         if (!cancelled) {
-          setIsLoading(false)
+          setReferenceData({ eventTypes, venues, professionals, hds, filterCustomer })
         }
-      }
-    }
-
-    init()
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof ApiError ? err.message : GENERIC_ERROR_MESSAGE)
+        }
+      })
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function runSearch(text: string, currentFilters: FilterState) {
+  async function runSearch(params: URLSearchParams) {
+    const searchId = ++latestSearch.current
     setIsLoading(true)
     setError(null)
     try {
-      const result = await performSearch(text, currentFilters)
-      setEvents(result)
+      const result = await performSearch(params)
+      if (searchId === latestSearch.current) {
+        setEvents(result)
+      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : GENERIC_ERROR_MESSAGE)
+      if (searchId === latestSearch.current) {
+        setError(err instanceof ApiError ? err.message : GENERIC_ERROR_MESSAGE)
+      }
     } finally {
-      setIsLoading(false)
+      if (searchId === latestSearch.current) {
+        setIsLoading(false)
+      }
     }
   }
 
-  // Back/forward (or any URL change we did not make) restores the view the URL describes.
+  // Every URL change (filters, free text, sort, page) is a new search. Back/forward, or any change we
+  // did not make, also restores the draft in the panel to the view the URL describes.
   useEffect(() => {
-    const key = searchKey(searchParams)
-    if (key === appliedKey.current) {
-      return
+    const key = viewKey(searchParams)
+    if (key !== appliedKey.current) {
+      appliedKey.current = key
+      const view = viewFromSearchParams(searchParams)
+      setFreeText(view.freeText)
+      setFilters(view.filters)
+      if (view.filters.customerId !== referenceData?.filterCustomer?.id) {
+        loadFilterCustomer(view.filters.customerId).then((filterCustomer) =>
+          setReferenceData((current) => (current ? { ...current, filterCustomer } : current)),
+        )
+      }
     }
-    appliedKey.current = key
-    const view = viewFromSearchParams(searchParams)
-    setFreeText(view.freeText)
-    setFilters(view.filters)
-    runSearch(view.freeText, view.filters)
-    if (view.filters.customerId !== referenceData?.filterCustomer?.id) {
-      loadFilterCustomer(view.filters.customerId).then((filterCustomer) =>
-        setReferenceData((current) => (current ? { ...current, filterCustomer } : current)),
-      )
-    }
+    runSearch(searchParams)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
+  // Writing the URL triggers the search; the same URL again (re-applying unchanged filters) does not
+  // change it, so that case searches directly.
+  function applyUrl(next: URLSearchParams) {
+    if (next.toString() === searchParams.toString()) {
+      runSearch(next)
+    } else {
+      setSearchParams(next)
+    }
+  }
+
+  // A new filter or text starts again from the first page.
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     const next = toUrlParams(freeText, filters, sort)
-    appliedKey.current = searchKey(next)
-    setSearchParams(next)
-    runSearch(freeText, filters)
+    appliedKey.current = viewKey(next)
+    applyUrl(next)
   }
 
   function handleClearFilters() {
     setFreeText('')
     setFilters(EMPTY_FILTERS)
     appliedKey.current = ''
-    // Empties the whole query (filters, free text and sort), so a reload does not bring them back.
-    setSearchParams({})
-    runSearch('', EMPTY_FILTERS)
+    // Empties the whole query (filters, free text, sort and page), so a reload does not bring them back.
+    applyUrl(new URLSearchParams())
   }
 
-  // The sort is saved over the applied view in the URL, not over filters still being typed.
+  // The sort is saved over the applied view in the URL, not over filters still being typed; a new
+  // order starts again from the first page.
   function handleSortChange(next: TableSort) {
     const applied = viewFromSearchParams(searchParams)
     setSearchParams(toUrlParams(applied.freeText, applied.filters, next))
+  }
+
+  function handlePageChange(page: number) {
+    const applied = viewFromSearchParams(searchParams)
+    setSearchParams(toUrlParams(applied.freeText, applied.filters, sort, page))
   }
 
   function closeDeleteDialog() {
@@ -340,15 +365,21 @@ export function EventsPage() {
     setDeleteError(null)
   }
 
-  async function handleConfirmDelete(event: EventDto) {
+  async function handleConfirmDelete(event: EventListItemDto) {
     setIsDeleting(true)
     setDeleteError(null)
     try {
       await deleteEvent(event.id)
       discardFormDraft(`event-edit:${event.id}`)
-      setEvents((current) => (current ?? []).filter((item) => item.id !== event.id))
       closeDeleteDialog()
       setToast({ kind: 'success', text: 'Evento excluído com sucesso.' })
+      // Reload the page, so it fills up again from the next one and the total stays right; the last
+      // event of a page that is not the first one sends the user back a page instead of to an empty one.
+      if (events && events.content.length === 1 && events.page > 0) {
+        handlePageChange(events.page - 1)
+      } else {
+        runSearch(searchParams)
+      }
     } catch (err) {
       setDeleteError(err instanceof ApiError ? err.message : GENERIC_DELETE_ERROR)
     } finally {
@@ -356,7 +387,7 @@ export function EventsPage() {
     }
   }
 
-  function openEdit(event: EventDto) {
+  function openEdit(event: EventListItemDto) {
     // Same as "Editar" on the detail page: a stale draft of this event must not replace what is saved.
     discardFormDraft(`event-edit:${event.id}`)
     navigate(`/eventos/${event.id}/editar`)
@@ -369,9 +400,6 @@ export function EventsPage() {
   const activeCustomer = referenceData?.filterCustomer?.id === filters.customerId ? referenceData.filterCustomer : undefined
   const activeProfessional = referenceData?.professionals.find((professional) => professional.id === filters.professionalId)
   const activeVenue = referenceData?.venues.find((venue) => venue.id === filters.venueId)
-
-  // The HD list is already loaded for the filter, so the column resolves names from it instead of a new request.
-  const hdName = (hdId: string | null) => referenceData?.hds.find((hd) => hd.id === hdId)?.name
 
   const selectedEventType = referenceData?.eventTypes.find((type) => type.id === filters.eventTypeId)
   const isWeddingSelected = selectedEventType?.hasWeddingFields === true
@@ -545,7 +573,7 @@ export function EventsPage() {
 
             <div className="filter-footer">
               <span className="result-count">
-                {events ? `${events.length} evento(s) encontrado(s)` : ''}
+                {events ? `${events.totalElements} evento(s) encontrado(s)` : ''}
               </span>
               <Button type="submit" variant="primary">
                 Aplicar filtros
@@ -580,19 +608,18 @@ export function EventsPage() {
             </p>
           )}
 
-          {!isLoading && !error && events && events.length === 0 && (
+          {!isLoading && !error && events && events.content.length === 0 && (
             <p className="events-empty">Nenhum evento encontrado com esses filtros.</p>
           )}
 
-          {!isLoading && !error && events && events.length > 0 && (
+          {!isLoading && !error && events && events.content.length > 0 && (
             <Table
               columns={[
                 {
                   key: 'code',
                   header: 'Código',
                   render: (row) => <span className="mono">{row.eventCode}</span>,
-                  // Numeric suffix, so RG2 comes before RG10.
-                  sortValue: (row) => codeNumber(row.eventCode) ?? row.eventCode,
+                  sortValue: (row) => row.eventCode,
                 },
                 { key: 'customer', header: 'Clientes', render: (row) => customerNames(row.customers) || '—',
                   sortValue: (row) => customerNames(row.customers) || null,
@@ -604,7 +631,7 @@ export function EventsPage() {
                 { key: 'date', header: 'Data', render: (row) => <span className="mono">{row.eventDate}</span>,
                   sortValue: (row) => row.eventDate,
                 },
-                { key: 'hd', header: 'HD', render: (row) => hdName(row.hdId) ?? '—', sortValue: (row) => hdName(row.hdId) ?? null },
+                { key: 'hd', header: 'HD', render: (row) => row.hdName ?? '—', sortValue: (row) => row.hdName },
                 {
                   key: 'status',
                   header: 'Status',
@@ -631,12 +658,37 @@ export function EventsPage() {
                   ),
                 },
               ]}
-              rows={events}
+              rows={events.content}
               rowKey={(row) => row.id}
               sort={sort}
               onSortChange={handleSortChange}
+              serverSorted
               onRowClick={(row) => navigate(`/eventos/${row.id}`)}
             />
+          )}
+
+          {!error && events && events.totalPages > 1 && (
+            <nav className="pagination" aria-label="Paginação">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => handlePageChange(events.page - 1)}
+                disabled={isLoading || events.page === 0}
+              >
+                ← Anterior
+              </Button>
+              <span className="pagination-status">
+                Página {events.page + 1} de {events.totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => handlePageChange(events.page + 1)}
+                disabled={isLoading || events.page + 1 >= events.totalPages}
+              >
+                Próxima →
+              </Button>
+            </nav>
           )}
         </Card>
       </div>

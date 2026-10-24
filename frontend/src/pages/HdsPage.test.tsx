@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import * as eventsApi from '../api/events'
-import type { EventDto } from '../api/events'
+import type { EventListItemDto } from '../api/events'
 import * as hdsApi from '../api/hds'
 import type { HdDto } from '../api/hds'
 import { HdsPage } from './HdsPage'
@@ -11,7 +11,7 @@ import { HdsPage } from './HdsPage'
 vi.mock('../api/hds')
 vi.mock('../api/events', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/events')>()),
-  searchEvents: vi.fn(),
+  searchAllEvents: vi.fn(),
 }))
 
 function renderPage() {
@@ -25,24 +25,19 @@ function renderPage() {
   )
 }
 
-function makeEvent(overrides: Partial<EventDto> = {}): EventDto {
+function makeEvent(overrides: Partial<EventListItemDto> = {}): EventListItemDto {
   return {
     id: 'ev-1',
     eventCode: 'RG10',
     type: { id: 't1', name: 'Casamento' },
     name: 'Casamento Ana e Beto',
     eventDate: '2025-03-15',
-    daytimeWedding: null,
-    outdoorWedding: null,
-    guestCount: null,
-    description: null,
-    amount: null,
-    sizeGb: null,
     deliveryStatus: 'PENDING',
     hdId: 'hd-1',
+    hdName: 'HD Externo 4',
     venues: [],
     customers: [],
-    eventProfessionals: [],
+    professionalCount: 0,
     ...overrides,
   }
 }
@@ -307,7 +302,7 @@ describe('HdsPage', () => {
     })
 
     it('abre o modal com os eventos do HD ao clicar no card e navega ao clicar no evento', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent()])
+      vi.mocked(eventsApi.searchAllEvents).mockResolvedValue([makeEvent()])
       const user = userEvent.setup()
       renderPage()
       await waitFor(() => expect(screen.getByText('HD Externo 4')).toBeInTheDocument())
@@ -315,7 +310,7 @@ describe('HdsPage', () => {
       await user.click(screen.getByRole('button', { name: 'Ver eventos em HD Externo 4' }))
 
       const modal = await screen.findByRole('dialog', { name: 'Eventos em HD Externo 4' })
-      expect(eventsApi.searchEvents).toHaveBeenCalledWith({ hdId: 'hd-1' })
+      expect(eventsApi.searchAllEvents).toHaveBeenCalledWith({ hdId: 'hd-1' })
       expect(await within(modal).findByText('Casamento Ana e Beto')).toBeInTheDocument()
       expect(within(modal).getByText('RG10')).toBeInTheDocument()
       expect(within(modal).getByText('2025-03-15')).toBeInTheDocument()
@@ -326,7 +321,7 @@ describe('HdsPage', () => {
     })
 
     it('abre o modal pelo teclado com Enter e Espaço', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+      vi.mocked(eventsApi.searchAllEvents).mockResolvedValue([])
       const user = userEvent.setup()
       renderPage()
       await waitFor(() => expect(screen.getByText('HD Externo 4')).toBeInTheDocument())
@@ -356,12 +351,12 @@ describe('HdsPage', () => {
       await user.click(within(card).getByRole('button', { name: 'Excluir' }))
       expect(await screen.findByRole('dialog', { name: 'Excluir HD' })).toBeInTheDocument()
 
-      expect(eventsApi.searchEvents).not.toHaveBeenCalled()
+      expect(eventsApi.searchAllEvents).not.toHaveBeenCalled()
       expect(screen.queryByRole('dialog', { name: 'Eventos em HD Externo 4' })).not.toBeInTheDocument()
     })
 
     it('mostra o estado vazio quando o HD não tem eventos', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+      vi.mocked(eventsApi.searchAllEvents).mockResolvedValue([])
       const user = userEvent.setup()
       renderPage()
       await waitFor(() => expect(screen.getByText('HD Externo 4')).toBeInTheDocument())
@@ -372,7 +367,7 @@ describe('HdsPage', () => {
     })
 
     it('mostra o erro da API quando o carregamento dos eventos falha', async () => {
-      vi.mocked(eventsApi.searchEvents).mockRejectedValue(new ApiError(500, 'Falha ao buscar eventos'))
+      vi.mocked(eventsApi.searchAllEvents).mockRejectedValue(new ApiError(500, 'Falha ao buscar eventos'))
       const user = userEvent.setup()
       renderPage()
       await waitFor(() => expect(screen.getByText('HD Externo 4')).toBeInTheDocument())
