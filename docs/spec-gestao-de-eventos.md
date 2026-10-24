@@ -343,6 +343,7 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0026](adr/0026-evento-com-varios-locais.md) | O evento tem vários locais, cada um com um papel opcional (`EventEventVenue`) |
 | [0027](adr/0027-busca-de-eventos-no-banco.md) | Busca de eventos filtra no banco (`Specification<Event>`) e associações carregam em lote (`default_batch_fetch_size`) — revisa a ADR-0005 |
 | [0028](adr/0028-contagem-de-eventos-agregada-no-backend.md) | A contagem de eventos das listas (`eventCount`) vem de uma query `GROUP BY` por tipo, nunca do tamanho das coleções |
+| [0029](adr/0029-consultas-paginadas-enxutas-e-agregadas.md) | Busca de eventos paginada/enxuta com ordenação no servidor, listas de referência sem eventos embutidos e endpoints agregados (dashboard, próximos, `/options`) — mantém o filtro composto, revisa a ADR-0027 |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
