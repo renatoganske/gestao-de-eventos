@@ -92,7 +92,7 @@ const ID_PATTERN = /^[\w-]{1,64}$/
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 const DEFAULT_SORT: TableSort = { key: 'date', direction: 'desc', thenBy: 'code' }
-const SORTABLE_KEYS = ['code', 'customer', 'venues', 'type', 'date', 'status']
+const SORTABLE_KEYS = ['code', 'customer', 'venues', 'type', 'date', 'hd', 'status']
 
 interface UrlView {
   freeText: string
@@ -336,6 +336,9 @@ export function EventsPage() {
   const activeProfessional = referenceData?.professionals.find((professional) => professional.id === filters.professionalId)
   const activeVenue = referenceData?.venues.find((venue) => venue.id === filters.venueId)
 
+  // The HD list is already loaded for the filter, so the column resolves names from it instead of a new request.
+  const hdName = (hdId: string | null) => referenceData?.hds.find((hd) => hd.id === hdId)?.name
+
   const selectedEventType = referenceData?.eventTypes.find((type) => type.id === filters.eventTypeId)
   const isWeddingSelected = selectedEventType?.hasWeddingFields === true
 
@@ -567,6 +570,7 @@ export function EventsPage() {
                 { key: 'date', header: 'Data', render: (row) => <span className="mono">{row.eventDate}</span>,
                   sortValue: (row) => row.eventDate,
                 },
+                { key: 'hd', header: 'HD', render: (row) => hdName(row.hdId) ?? '—', sortValue: (row) => hdName(row.hdId) ?? null },
                 {
                   key: 'status',
                   header: 'Status',
