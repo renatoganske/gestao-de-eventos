@@ -7,10 +7,11 @@ import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.CreateProfessionalDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerAssignmentDto;
-import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventListItemDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.PageDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.services.CustomerService;
 import com.renatoganske.gestao_de_eventos.services.EventService;
@@ -27,6 +28,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -209,6 +211,23 @@ class EventSpecificationsIntegrationTest {
     }
 
     @Test
+    void byText_matchesTheEventCodeOrAnyCustomerName() {
+        assertThat(search(criteria().text(tag.toUpperCase() + "-002"))).contains(birthday).doesNotContain(wedding, bare);
+        // the non-contracting customer of the wedding matches too
+        assertThat(search(criteria().text(tag + "PEREIRA"))).contains(wedding).doesNotContain(birthday, bare);
+        // the tag is in every code and in every customer name: each event comes once
+        List<UUID> all = search(criteria().text(tag));
+        assertThat(all).containsOnlyOnce(wedding, birthday, bare);
+    }
+
+    @Test
+    void byText_matchesWildcardsLiterallyAndCombinesWithTheOtherCriteria() {
+        assertThat(search(criteria().text(tag + "_001"))).doesNotContain(wedding);
+        assertThat(search(criteria().text(tag).deliveryStatus(DeliveryStatus.DELIVERED)))
+                .containsExactly(birthday);
+    }
+
+    @Test
     void byOutdoorWedding_matchesOnlyExplicitValue() {
         assertThat(search(criteria().outdoorWedding(true))).contains(bare).doesNotContain(wedding, birthday);
         assertThat(search(criteria().outdoorWedding(false))).contains(wedding).doesNotContain(bare, birthday);
@@ -234,6 +253,8 @@ class EventSpecificationsIntegrationTest {
         assertThat(EventSpecifications.byEventCode("  ")).isNull();
         assertThat(EventSpecifications.byDaytimeWedding(null)).isNull();
         assertThat(EventSpecifications.byOutdoorWedding(null)).isNull();
+        assertThat(EventSpecifications.byText(null)).isNull();
+        assertThat(EventSpecifications.byText("  ")).isNull();
 
         assertThat(search(criteria())).contains(wedding, birthday, bare);
     }
@@ -301,7 +322,15 @@ class EventSpecificationsIntegrationTest {
     }
 
     private List<UUID> search(Criteria criteria) {
-        return eventService.searchEvents(criteria.build()).stream().map(EventDto::id).toList();
+        // Every page: the local database also holds the imported events, more than one page of them.
+        List<UUID> ids = new ArrayList<>();
+        PageDto<EventListItemDto> page;
+        int index = 0;
+        do {
+            page = eventService.searchEvents(criteria.build(), index++, EventService.MAX_PAGE_SIZE, EventSort.DEFAULT);
+            page.content().stream().map(EventListItemDto::id).forEach(ids::add);
+        } while (index < page.totalPages());
+        return ids;
     }
 
     private static Criteria criteria() {
@@ -334,6 +363,7 @@ class EventSpecificationsIntegrationTest {
         private String eventCode;
         private Boolean daytimeWedding;
         private Boolean outdoorWedding;
+        private String text;
 
         Criteria eventTypeId(UUID value) { this.eventTypeId = value; return this; }
         Criteria venueId(UUID value) { this.venueId = value; return this; }
@@ -347,10 +377,11 @@ class EventSpecificationsIntegrationTest {
         Criteria eventCode(String value) { this.eventCode = value; return this; }
         Criteria daytimeWedding(Boolean value) { this.daytimeWedding = value; return this; }
         Criteria outdoorWedding(Boolean value) { this.outdoorWedding = value; return this; }
+        Criteria text(String value) { this.text = value; return this; }
 
         EventSearchCriteria build() {
             return new EventSearchCriteria(eventTypeId, venueId, professionalId, from, to, hdId,
-                    deliveryStatus, customerId, customerName, eventCode, daytimeWedding, outdoorWedding);
+                    deliveryStatus, customerId, customerName, eventCode, daytimeWedding, outdoorWedding, text);
         }
     }
 }

@@ -1,7 +1,10 @@
 package com.renatoganske.gestao_de_eventos.entities;
 
+import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventListItemDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventSummaryDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventVenueSummaryDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -77,17 +80,8 @@ public class Event {
                 this.sizeGb,
                 this.deliveryStatus,
                 this.hd != null ? this.hd.getId() : null,
-                this.eventVenues == null ? List.of() : this.eventVenues.stream()
-                        // by name, so the order does not depend on how the database returns the rows
-                        .sorted(Comparator.comparing((EventEventVenue ev) -> ev.getEventVenue().getName(),
-                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                        .map(EventEventVenue::toDTO)
-                        .collect(Collectors.toList()),
-                this.eventCustomers == null ? List.of() : this.eventCustomers.stream()
-                        // contracting customer first, so lists and labels can just take the head
-                        .sorted(Comparator.comparing((EventCustomer ec) -> !ec.isContracting()))
-                        .map(EventCustomer::toDTO)
-                        .collect(Collectors.toList()),
+                venueDtos(),
+                customerDtos(),
                 this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
                         // by name too: batch fetching returns the rows in batch order, not in a stable one
                         .sorted(Comparator.comparing((EventProfessional ep) -> ep.getProfessional().getName(),
@@ -95,6 +89,40 @@ public class Event {
                         .map(EventProfessional::toDTO)
                         .collect(Collectors.toList())
         );
+    }
+
+    /** Row of the paged event list (ADR-0029): no team, description or money, only what the list shows. */
+    public EventListItemDto toListItemDto() {
+        return new EventListItemDto(
+                this.id,
+                this.eventCode,
+                this.type != null ? this.type.toResponseDto() : null,
+                this.name,
+                this.eventDate,
+                this.deliveryStatus,
+                this.hd != null ? this.hd.getId() : null,
+                this.hd != null ? this.hd.getName() : null,
+                venueDtos(),
+                customerDtos(),
+                this.eventProfessionals == null ? 0 : this.eventProfessionals.size()
+        );
+    }
+
+    private List<EventVenueSummaryDto> venueDtos() {
+        return this.eventVenues == null ? List.of() : this.eventVenues.stream()
+                // by name, so the order does not depend on how the database returns the rows
+                .sorted(Comparator.comparing((EventEventVenue ev) -> ev.getEventVenue().getName(),
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .map(EventEventVenue::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    private List<EventCustomerSummaryDto> customerDtos() {
+        return this.eventCustomers == null ? List.of() : this.eventCustomers.stream()
+                // contracting customer first, so lists and labels can just take the head
+                .sorted(Comparator.comparing((EventCustomer ec) -> !ec.isContracting()))
+                .map(EventCustomer::toDTO)
+                .collect(Collectors.toList());
     }
 
     public EventSummaryDto toSummaryDto() {

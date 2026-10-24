@@ -22,9 +22,11 @@ public record EventSearchCriteria(
         String customerName,
         String eventCode,
         Boolean daytimeWedding,
-        Boolean outdoorWedding) {
+        Boolean outdoorWedding,
+        // Free text of the list's search box: matches the event code OR any customer name (ADR-0029).
+        String text) {
 
     public static EventSearchCriteria none() {
-        return new EventSearchCriteria(null, null, null, null, null, null, null, null, null, null, null, null);
+        return new EventSearchCriteria(null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 }
