@@ -42,6 +42,6 @@ class HdTest {
         assertThat(dto.serialNumber()).isEqualTo("SN-123456");
         assertThat(dto.acquisitionDate()).isEqualTo(LocalDate.of(2024, 1, 15));
         assertThat(dto.status()).isEqualTo(HdStatus.ACTIVE);
-        assertThat(dto.events()).isEqualTo(events);
+        assertThat(dto.eventCount()).isZero();
     }
 }

@@ -3,6 +3,7 @@ package com.renatoganske.gestao_de_eventos.controllers.impl;
 import com.renatoganske.gestao_de_eventos.controllers.IEventVenueController;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.services.EventVenueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,5 +48,10 @@ public class EventVenueController implements IEventVenueController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         eventVenueService.deleteEventVenue(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Override
+    public ResponseEntity<List<OptionDto>> findOptions() {
+        return ResponseEntity.ok(eventVenueService.getEventVenueOptions());
     }
 }

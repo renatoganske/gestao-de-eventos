@@ -52,9 +52,6 @@ public class Professional {
                         .map(SpecialtyTag::toResponseDto)
                         .collect(Collectors.toList()),
                 this.otherInfo,
-                this.eventProfessionals == null ? List.of() : this.eventProfessionals.stream()
-                        .map(EventProfessional::toDTO)
-                        .collect(Collectors.toList()),
                 eventCount
         );
     }

@@ -45,6 +45,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,6 +62,9 @@ public class EventService {
     /** Large enough for a whole HD's events in one call (the import scripts), small enough to stay cheap. */
     public static final int MAX_PAGE_SIZE = 500;
 
+    /** The dashboard shows a handful; anything beyond this is a list, which the paged search serves. */
+    public static final int MAX_UPCOMING_LIMIT = 50;
+
     private final EventRepository eventRepository;
     private final CustomerRepository customerRepository;
     private final HdRepository hdRepository;
@@ -69,6 +74,7 @@ public class EventService {
     private final EventProfessionalRepository eventProfessionalRepository;
     private final EventCustomerRepository eventCustomerRepository;
     private final EventEventVenueRepository eventEventVenueRepository;
+    private final Clock clock;
 
     @Transactional
     public EventDto createEvent(CreateEventDto createEventDto) {
@@ -187,6 +193,25 @@ public class EventService {
                 EventSpecifications.orderedBy(sort));
 
         return PageDto.of(eventRepository.findAll(spec, PageRequest.of(page, size)), Event::toListItemDto);
+    }
+
+    /**
+     * The next {@code limit} events from today on (ADR-0029), soonest first, in the shape of the list.
+     * Replaces the dashboard's search of every future event just to keep the first five.
+     */
+    @Transactional(readOnly = true)
+    public List<EventListItemDto> getUpcomingEvents(int limit) {
+        if (limit < 1 || limit > MAX_UPCOMING_LIMIT) {
+            throw new InvalidRequestParameterException(
+                    "Invalid limit %d: use 1 to %d events.".formatted(limit, MAX_UPCOMING_LIMIT));
+        }
+        Specification<Event> spec = Specification.allOf(
+                EventSpecifications.byPeriod(LocalDate.now(clock), null),
+                EventSpecifications.orderedBy(new EventSort(EventSort.Key.DATE, true)));
+
+        return eventRepository.findAll(spec, PageRequest.of(0, limit)).stream()
+                .map(Event::toListItemDto)
+                .toList();
     }
 
     private EventType resolveEventType(UUID eventTypeId) {

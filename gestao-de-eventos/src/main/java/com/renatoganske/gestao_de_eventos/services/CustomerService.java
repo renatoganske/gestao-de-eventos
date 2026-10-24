@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.services;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.CustomerResponseDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventCountProjection;
@@ -70,4 +71,8 @@ public class CustomerService {
         return Math.toIntExact(customerRepository.countEventsByCustomerId(customer.getId()));
     }
 
+    @Transactional(readOnly = true)
+    public List<OptionDto> getCustomerOptions() {
+        return customerRepository.findOptions();
+    }
 }

@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventVenueDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,10 @@ public interface IEventVenueController {
     @Operation(summary = "List event venues", description = "Fetches all event venues.")
     @GetMapping
     ResponseEntity<List<EventVenueDto>> findAll();
+
+    @Operation(summary = "List event venues as options", description = "Fetches only the id and name of every one of the event venues, sorted by name, for selects and filters.")
+    @GetMapping("/options")
+    ResponseEntity<List<OptionDto>> findOptions();
 
     @Operation(summary = "Get event venue by ID", description = "Fetches an event venue by ID.")
     @GetMapping("/{id}")

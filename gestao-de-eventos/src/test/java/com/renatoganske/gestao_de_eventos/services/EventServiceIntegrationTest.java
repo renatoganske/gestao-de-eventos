@@ -133,9 +133,7 @@ class EventServiceIntegrationTest {
         assertThat(reloaded.venues())
                 .extracting(EventVenueSummaryDto::venueId, EventVenueSummaryDto::role)
                 .containsExactly(tuple(church.id(), "Cerimônia"), tuple(hall.id(), "Recepção"));
-        assertThat(eventVenueService.getEventVenueById(church.id()).events())
-                .extracting(summary -> summary.id())
-                .containsExactly(created.id());
+        assertThat(eventVenueService.getEventVenueById(church.id()).eventCount()).isEqualTo(1);
     }
 
     @Test
@@ -156,7 +154,7 @@ class EventServiceIntegrationTest {
         entityManager.clear();
 
         assertThat(eventService.getEventById(created.id()).venues()).isEmpty();
-        assertThat(eventVenueService.getEventVenueById(venue.id()).events()).isEmpty();
+        assertThat(eventVenueService.getEventVenueById(venue.id()).eventCount()).isZero();
     }
 
     @Test
@@ -174,7 +172,7 @@ class EventServiceIntegrationTest {
         entityManager.clear();
 
         assertThatThrownBy(() -> eventService.getEventById(created.id())).isInstanceOf(EventNotFoundException.class);
-        assertThat(eventVenueService.getEventVenueById(venue.id()).events()).isEmpty();
+        assertThat(eventVenueService.getEventVenueById(venue.id()).eventCount()).isZero();
     }
 
     /**
@@ -202,9 +200,7 @@ class EventServiceIntegrationTest {
         assertThat(reloaded.customers())
                 .extracting(EventCustomerSummaryDto::customerId, EventCustomerSummaryDto::contracting)
                 .containsExactly(tuple(bride.id(), true), tuple(groom.id(), false));
-        assertThat(customerService.getCustomerById(groom.id()).events())
-                .extracting(summary -> summary.id())
-                .containsExactly(created.id());
+        assertThat(customerService.getCustomerById(groom.id()).eventCount()).isEqualTo(1);
     }
 
     @Test
@@ -242,7 +238,7 @@ class EventServiceIntegrationTest {
         entityManager.clear();
 
         assertThatThrownBy(() -> eventService.getEventById(created.id())).isInstanceOf(EventNotFoundException.class);
-        assertThat(customerService.getCustomerById(customer.id()).events()).isEmpty();
+        assertThat(customerService.getCustomerById(customer.id()).eventCount()).isZero();
     }
 
     /**
