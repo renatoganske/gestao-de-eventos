@@ -6,13 +6,16 @@ import com.renatoganske.gestao_de_eventos.entities.EventEventVenue;
 import com.renatoganske.gestao_de_eventos.entities.EventProfessional;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -107,6 +110,18 @@ public final class EventSpecifications {
         return (root, query, cb) -> containsIgnoringCase(cb, root.get("eventCode"), eventCode);
     }
 
+    /**
+     * The list's search box (ADR-0029): matches the event code OR the name of any of the event's
+     * customers, with the same partial, case-insensitive, literal-wildcard rules as each of them.
+     * One query instead of the two the page used to send and merge.
+     */
+    public static Specification<Event> byText(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        return Specification.anyOf(byEventCode(text), byCustomerName(text));
+    }
+
     // The wedding flags are null for events that are not weddings ("not applicable"), so an active
     // filter only matches an explicit true/false -- which SQL equality already does for a null column.
     public static Specification<Event> byDaytimeWedding(Boolean daytimeWedding) {
@@ -121,6 +136,63 @@ public final class EventSpecifications {
             return null;
         }
         return (root, query, cb) -> cb.equal(root.get("outdoorWedding"), outdoorWedding);
+    }
+
+    /**
+     * Orders the search by a list column (ADR-0029), then by code and id so that pages are stable when
+     * the column ties. Empty values (no date, no type, no customer...) always go last, whatever the
+     * direction. It restricts nothing: it only sets the ORDER BY of the select of events, and leaves the
+     * page's count query alone (Spring Data runs the same specification for both).
+     */
+    public static Specification<Event> orderedBy(EventSort sort) {
+        return (root, query, cb) -> {
+            if (Event.class.equals(query.getResultType())) {
+                Expression<?> column = switch (sort.key()) {
+                    case CODE -> cb.lower(root.get("eventCode"));
+                    case TYPE -> cb.lower(root.join("type", JoinType.LEFT).get("name"));
+                    case DATE -> root.get("eventDate");
+                    case HD -> cb.lower(root.join("hd", JoinType.LEFT).get("name"));
+                    // The enum is stored by name, and ARCHIVED < DELIVERED < PENDING is also the order of
+                    // the labels the list shows (Arquivado < Entregue < Pendente).
+                    case STATUS -> root.get("deliveryStatus");
+                    case CUSTOMER -> cb.coalesce(
+                            firstCustomerName(root, query, cb, true), firstCustomerName(root, query, cb, false));
+                    case VENUES -> firstVenueName(root, query, cb);
+                };
+                query.orderBy(List.of(
+                        cb.asc(cb.selectCase().when(cb.isNull(column), 1).otherwise(0)),
+                        sort.ascending() ? cb.asc(column) : cb.desc(column),
+                        cb.asc(root.get("eventCode")),
+                        cb.asc(root.get("id"))));
+            }
+            return null;
+        };
+    }
+
+    /**
+     * Name the "Clientes" column starts with: the contracting customer's when {@code onlyContracting},
+     * otherwise the first by name. A scalar subquery, so sorting never repeats an event per customer.
+     */
+    private static Expression<String> firstCustomerName(
+            Root<Event> root, CriteriaQuery<?> query, CriteriaBuilder cb,
+            boolean onlyContracting) {
+        Subquery<String> subquery = query.subquery(String.class);
+        Root<EventCustomer> link = subquery.from(EventCustomer.class);
+        Expression<String> name = cb.lower(link.get("customer").get("name"));
+        Predicate ofEvent = cb.equal(link.get("event"), root);
+        subquery.select(cb.least(name))
+                .where(onlyContracting ? cb.and(ofEvent, cb.isTrue(link.get("contracting"))) : ofEvent);
+        return subquery;
+    }
+
+    /** The "Locais" column lists the venues by name, so it sorts by the first of them. */
+    private static Expression<String> firstVenueName(
+            Root<Event> root, CriteriaQuery<?> query, CriteriaBuilder cb) {
+        Subquery<String> subquery = query.subquery(String.class);
+        Root<EventEventVenue> link = subquery.from(EventEventVenue.class);
+        subquery.select(cb.least(cb.lower(link.get("eventVenue").get("name"))))
+                .where(cb.equal(link.get("event"), root));
+        return subquery;
     }
 
     /**

@@ -26,6 +26,12 @@ public class DomainExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    @ExceptionHandler(InvalidRequestParameterException.class)
+    public ResponseEntity<ApiErrorDto> handleInvalidRequestParameter(InvalidRequestParameterException ex) {
+        ApiErrorDto body = new ApiErrorDto(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiErrorDto> handleAuthenticationException(AuthenticationException ex) {
         ApiErrorDto body = new ApiErrorDto(HttpStatus.UNAUTHORIZED.value(), "Invalid credentials");

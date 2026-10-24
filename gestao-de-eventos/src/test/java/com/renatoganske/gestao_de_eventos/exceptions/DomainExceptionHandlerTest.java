@@ -57,6 +57,16 @@ class DomainExceptionHandlerTest {
     }
 
     @Test
+    void mapsInvalidRequestParameterExceptionTo400WithMessage() {
+        ResponseEntity<ApiErrorDto> response = handler.handleInvalidRequestParameter(
+                new InvalidRequestParameterException("Invalid size 0: use 1 to 500 events per page."));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().status()).isEqualTo(400);
+        assertThat(response.getBody().message()).contains("Invalid size 0");
+    }
+
+    @Test
     void mapsDataIntegrityViolationTo409WithMessage() {
         ResponseEntity<ApiErrorDto> response = handler.handleDataIntegrityViolation(
                 new DataIntegrityViolationException("duplicate key value violates unique constraint"));

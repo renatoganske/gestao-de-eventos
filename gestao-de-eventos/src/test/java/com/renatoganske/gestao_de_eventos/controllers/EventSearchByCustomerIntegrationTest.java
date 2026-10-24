@@ -67,17 +67,19 @@ class EventSearchByCustomerIntegrationTest {
         mockMvc.perform(get("/api/events/search").param("customerId", guest.toString())
                         .header("Authorization", authHeader))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[?(@.id == '" + shared + "')]").exists())
-                .andExpect(jsonPath("$[?(@.id == '" + soloOfGuest + "')]").exists());
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[?(@.id == '" + shared + "')]").exists())
+                .andExpect(jsonPath("$.content[?(@.id == '" + soloOfGuest + "')]").exists());
     }
 
     @Test
-    void search_byCustomerIdWithoutEvents_returns200WithEmptyList() throws Exception {
+    void search_byCustomerIdWithoutEvents_returns200WithEmptyPage() throws Exception {
         mockMvc.perform(get("/api/events/search").param("customerId", UUID.randomUUID().toString())
                         .header("Authorization", authHeader))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
