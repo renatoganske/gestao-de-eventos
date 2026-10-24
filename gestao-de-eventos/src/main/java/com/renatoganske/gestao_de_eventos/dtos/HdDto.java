@@ -5,7 +5,6 @@ import com.renatoganske.gestao_de_eventos.enums.HdStatus;
 
 import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -20,7 +19,6 @@ public record HdDto(
         String serialNumber,
         LocalDate acquisitionDate,
         HdStatus status,
-        List<EventSummaryDto> events,
         int eventCount
 ) implements Serializable {
 }

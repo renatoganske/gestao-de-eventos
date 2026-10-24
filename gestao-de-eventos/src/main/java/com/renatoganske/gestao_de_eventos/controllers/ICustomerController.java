@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateCustomerDto;
 import com.renatoganske.gestao_de_eventos.dtos.CustomerResponseDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,10 @@ public interface ICustomerController {
     @Operation(summary = "List customers", description = "Fetches all customers.")
     @GetMapping
     ResponseEntity<List<CustomerResponseDto>> findAll();
+
+    @Operation(summary = "List customers as options", description = "Fetches only the id and name of every one of the customers, sorted by name, for selects and filters.")
+    @GetMapping("/options")
+    ResponseEntity<List<OptionDto>> findOptions();
 
     @Operation(summary = "Get customer by ID", description = "Fetches a customer by ID.")
     @GetMapping("/{id}")

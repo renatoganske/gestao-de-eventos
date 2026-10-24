@@ -1,6 +1,7 @@
 package com.renatoganske.gestao_de_eventos.services;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateProfessionalDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.dtos.ProfessionalDto;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
 import com.renatoganske.gestao_de_eventos.entities.ProfessionalType;
@@ -118,5 +119,10 @@ public class ProfessionalService {
                 .map(tagId -> specialtyTagRepository.findById(tagId)
                         .orElseThrow(() -> new SpecialtyTagNotFoundException(tagId)))
                 .collect(Collectors.toSet());
+    }
+
+    @Transactional(readOnly = true)
+    public List<OptionDto> getProfessionalOptions() {
+        return professionalRepository.findOptions();
     }
 }

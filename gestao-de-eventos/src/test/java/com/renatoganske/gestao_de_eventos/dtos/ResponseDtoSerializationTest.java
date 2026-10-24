@@ -92,7 +92,7 @@ class ResponseDtoSerializationTest {
     }
 
     @Test
-    void customerResponseDtoJsonEmbedsEventSummaryNotRawEntity() throws Exception {
+    void customerResponseDtoJsonCarriesTheEventCountButNoEventsNorRawEntities() throws Exception {
         Customer customer = Customer.builder().id(UUID.randomUUID()).name("Maria Silva").build();
         Event event = Event.builder()
                 .id(UUID.randomUUID())
@@ -108,9 +108,10 @@ class ResponseDtoSerializationTest {
         event.setEventCustomers(List.of(eventCustomer));
         customer.setEventCustomers(List.of(eventCustomer));
 
-        String json = objectMapper.writeValueAsString(customer.toResponseDto(0));
+        String json = objectMapper.writeValueAsString(customer.toResponseDto(1));
 
-        assertThat(json).contains("\"eventCode\":\"EVT-001\"");
-        assertThat(json).doesNotContain("\"customer\"");
+        // ADR-0029: the reference lists say how many events there are, never which
+        assertThat(json).contains("\"eventCount\":1");
+        assertThat(json).doesNotContain("\"events\"").doesNotContain("EVT-001").doesNotContain("\"customer\"");
     }
 }
