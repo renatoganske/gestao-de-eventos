@@ -42,6 +42,10 @@ export function fetchHds(): Promise<HdDto[]> {
   return apiFetch<HdDto[]>('/hds')
 }
 
+export function fetchHd(id: string): Promise<HdDto> {
+  return apiFetch<HdDto>(`/hds/${id}`)
+}
+
 export function createHd(dto: CreateHdDto): Promise<HdDto> {
   return apiFetch<HdDto>('/hds', { method: 'POST', body: JSON.stringify(dto) })
 }

@@ -4,6 +4,7 @@ import { ApiError } from '../api/client'
 import {
   DELIVERY_STATUS_LABEL,
   DELIVERY_STATUS_TO_PILL,
+  deleteEvent,
   searchEvents,
   type DeliveryStatus,
   type EventDto,
@@ -16,6 +17,7 @@ import { fetchHds, type HdDto } from '../api/hds'
 import { fetchProfessionals, type ProfessionalDto } from '../api/professionals'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { FormField } from '../components/FormField'
 import { Pill } from '../components/Pill'
 import { Table, type TableSort } from '../components/Table'
@@ -25,6 +27,7 @@ import { discardFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
 import { codeNumber } from '../utils/sort'
 import { customerNames } from '../utils/eventCustomers'
+import { deletableEvent, deleteConfirmationMessage } from '../utils/eventDeletion'
 import { venueLabels } from '../utils/eventVenues'
 import './EventsPage.css'
 
@@ -71,6 +74,7 @@ interface ReferenceData {
 }
 
 const GENERIC_ERROR_MESSAGE = 'Não foi possível buscar os eventos. Tente novamente em instantes.'
+const GENERIC_DELETE_ERROR = 'Não foi possível excluir o evento. Tente novamente.'
 
 function toSearchParams(filters: FilterState): SearchEventsParams {
   return {
@@ -234,6 +238,9 @@ export function EventsPage() {
   const [events, setEvents] = useState<EventDto[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [eventToDelete, setEventToDelete] = useState<EventDto | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -326,6 +333,33 @@ export function EventsPage() {
   function handleSortChange(next: TableSort) {
     const applied = viewFromSearchParams(searchParams)
     setSearchParams(toUrlParams(applied.freeText, applied.filters, next))
+  }
+
+  function closeDeleteDialog() {
+    setEventToDelete(null)
+    setDeleteError(null)
+  }
+
+  async function handleConfirmDelete(event: EventDto) {
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteEvent(event.id)
+      discardFormDraft(`event-edit:${event.id}`)
+      setEvents((current) => (current ?? []).filter((item) => item.id !== event.id))
+      closeDeleteDialog()
+      setToast({ kind: 'success', text: 'Evento excluído com sucesso.' })
+    } catch (err) {
+      setDeleteError(err instanceof ApiError ? err.message : GENERIC_DELETE_ERROR)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  function openEdit(event: EventDto) {
+    // Same as "Editar" on the detail page: a stale draft of this event must not replace what is saved.
+    discardFormDraft(`event-edit:${event.id}`)
+    navigate(`/eventos/${event.id}/editar`)
   }
 
   function updateFilter<K extends keyof FilterState>(key: K, value: FilterState[K]) {
@@ -581,19 +615,43 @@ export function EventsPage() {
                     </Pill>
                   ),
                 },
+                {
+                  key: 'actions',
+                  header: 'Ações',
+                  // Inside a clickable row: stop the click so Editar/Excluir do not also open the detail.
+                  render: (row) => (
+                    <div className="table-actions" onClick={(event) => event.stopPropagation()}>
+                      <Button type="button" variant="ghost" onClick={() => openEdit(row)}>
+                        Editar
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => setEventToDelete(row)}>
+                        Excluir
+                      </Button>
+                    </div>
+                  ),
+                },
               ]}
               rows={events}
               rowKey={(row) => row.id}
               sort={sort}
               onSortChange={handleSortChange}
-              onRowClick={(row) => {
-                discardFormDraft(`event-edit:${row.id}`)
-                navigate(`/eventos/${row.id}`)
-              }}
+              onRowClick={(row) => navigate(`/eventos/${row.id}`)}
             />
           )}
         </Card>
       </div>
+
+      {eventToDelete && (
+        <ConfirmDialog
+          title="Excluir evento"
+          message={deleteConfirmationMessage(deletableEvent(eventToDelete))}
+          confirmLabel="Excluir"
+          isConfirming={isDeleting}
+          error={deleteError}
+          onConfirm={() => handleConfirmDelete(eventToDelete)}
+          onCancel={closeDeleteDialog}
+        />
+      )}
 
       {toast && <Toast toast={toast} />}
     </section>

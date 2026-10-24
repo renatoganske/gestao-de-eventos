@@ -63,6 +63,7 @@ function renderEventsPage(initialPath = '/eventos') {
         <Route path="/eventos" element={<EventsPage />} />
         <Route path="/eventos/novo" element={<div>Formulário novo</div>} />
         <Route path="/eventos/:id" element={<div>Detalhe do evento</div>} />
+        <Route path="/eventos/:id/editar" element={<div>Formulário de edição</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -96,6 +97,66 @@ describe('EventsPage', () => {
     sessionStorage.clear()
   })
 
+  it('clicar na linha abre o detalhe do evento, em modo leitura (GDE-64)', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    const user = userEvent.setup()
+    renderEventsPage()
+
+    await user.click(await screen.findByText('EVT-018'))
+
+    expect(await screen.findByText('Detalhe do evento')).toBeInTheDocument()
+  })
+
+  it('termina com as colunas Tipo, Data, HD, Status e as ações (GDE-64)', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    renderEventsPage()
+
+    await screen.findByText('EVT-018')
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent?.replace(/[↑↓▲▼\s]+$/u, '').trim())
+    expect(headers.slice(-5)).toEqual(['Tipo', 'Data', 'HD', 'Status', 'Ações'])
+  })
+
+  it('Excluir na lista pede confirmação, exclui e tira o evento da lista sem abrir o detalhe (GDE-64)', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+      makeEvent({ customers: [{ customerId: 'customer-1', customerName: 'Maria Silva', contracting: true }] }),
+      makeEvent({ id: 'evt-2', eventCode: 'EVT-019', name: 'Outro evento' }),
+    ])
+    vi.mocked(eventsApi.deleteEvent).mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderEventsPage()
+
+    const row = (await screen.findByText('EVT-018')).closest('tr') as HTMLElement
+    await user.click(within(row).getByRole('button', { name: 'Excluir' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/Excluir o evento "Casamento Maria & João" \(15\/10\/2026\)\?/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/vínculos com 1 cliente/)).toBeInTheDocument()
+    expect(screen.queryByText('Detalhe do evento')).not.toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
+
+    await waitFor(() => expect(screen.queryByText('EVT-018')).not.toBeInTheDocument())
+    expect(eventsApi.deleteEvent).toHaveBeenCalledWith('evt-1')
+    expect(screen.getByText('EVT-019')).toBeInTheDocument()
+    expect(screen.getByText('Evento excluído com sucesso.')).toBeInTheDocument()
+  })
+
+  it('se a exclusão pela lista falhar, mostra o erro no diálogo e mantém o evento (GDE-64)', async () => {
+    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    vi.mocked(eventsApi.deleteEvent).mockRejectedValue(new ApiError(409, 'Evento em uso.'))
+    const user = userEvent.setup()
+    renderEventsPage()
+
+    await screen.findByText('EVT-018')
+    await user.click(screen.getByRole('button', { name: 'Excluir' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
+
+    expect(await within(dialog).findByText('Evento em uso.')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByText('EVT-018')).toBeInTheDocument()
+  })
+
   it('descarta o rascunho de edicao do evento ao abrir a edicao pela lista, sem tocar nos de outros eventos (GDE-45)', async () => {
     vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
     sessionStorage.setItem('gde_draft:event-edit:evt-1', JSON.stringify({ name: 'abandonado' }))
@@ -103,9 +164,10 @@ describe('EventsPage', () => {
     const user = userEvent.setup()
     renderEventsPage()
 
-    await user.click(await screen.findByText('EVT-018'))
+    await screen.findByText('EVT-018')
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
 
-    expect(await screen.findByText('Detalhe do evento')).toBeInTheDocument()
+    expect(await screen.findByText('Formulário de edição')).toBeInTheDocument()
     expect(sessionStorage.getItem('gde_draft:event-edit:evt-1')).toBeNull()
     expect(sessionStorage.getItem('gde_draft:event-edit:evt-2')).not.toBeNull()
     sessionStorage.clear()
