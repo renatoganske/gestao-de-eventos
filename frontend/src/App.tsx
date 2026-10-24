@@ -4,6 +4,7 @@ import { LoginPage } from './auth/LoginPage'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { CustomersPage } from './pages/CustomersPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { EventDetailPage } from './pages/EventDetailPage'
 import { EventFormPage } from './pages/EventFormPage'
 import { EventVenuesPage } from './pages/EventVenuesPage'
 import { EventsPage } from './pages/EventsPage'
@@ -19,7 +20,8 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/eventos" element={<EventsPage />} />
           <Route path="/eventos/novo" element={<EventFormPage />} />
-          <Route path="/eventos/:id" element={<EventFormPage />} />
+          <Route path="/eventos/:id" element={<EventDetailPage />} />
+          <Route path="/eventos/:id/editar" element={<EventFormPage />} />
           <Route path="/hds" element={<HdsPage />} />
           <Route path="/clientes" element={<CustomersPage />} />
           <Route path="/locais" element={<EventVenuesPage />} />

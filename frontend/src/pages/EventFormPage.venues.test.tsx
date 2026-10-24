@@ -61,7 +61,7 @@ function renderForm(initialPath: string) {
       <Routes>
         <Route path="/eventos" element={<div>Lista de eventos</div>} />
         <Route path="/eventos/novo" element={<EventFormPage />} />
-        <Route path="/eventos/:id" element={<EventFormPage />} />
+        <Route path="/eventos/:id/editar" element={<EventFormPage />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -189,7 +189,7 @@ describe('EventFormPage - vários locais por evento (GDE-51)', () => {
     )
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent())
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     await waitFor(() => expect(screen.getByLabelText('Local 1')).toHaveValue('Igreja Matriz'))
     expect(screen.getByLabelText('Papel do local 1')).toHaveValue('Cerimônia')
@@ -211,7 +211,7 @@ describe('EventFormPage - vários locais por evento (GDE-51)', () => {
     )
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent())
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     await waitFor(() => expect(screen.getByLabelText('Local 1')).toHaveValue('Igreja Matriz'))
     await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
