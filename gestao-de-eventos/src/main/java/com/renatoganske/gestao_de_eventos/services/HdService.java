@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.services;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
 import com.renatoganske.gestao_de_eventos.policies.HdCapacityPolicy;
@@ -80,8 +81,18 @@ public class HdService {
                 .collect(Collectors.toList());
     }
 
+    /** Same rule as {@link #getHdsNearCapacity()}, without building the DTOs or counting their events. */
+    @Transactional(readOnly = true)
+    public int countHdsNearCapacity() {
+        return Math.toIntExact(hdRepository.findAll().stream().filter(HdCapacityPolicy::isNearCapacity).count());
+    }
+
     private int countEvents(Hd hd) {
         return Math.toIntExact(hdRepository.countEventsByHdId(hd.getId()));
     }
 
+    @Transactional(readOnly = true)
+    public List<OptionDto> getHdOptions() {
+        return hdRepository.findOptions();
+    }
 }

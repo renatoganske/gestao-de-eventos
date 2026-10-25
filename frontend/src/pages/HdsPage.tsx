@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { deleteHd, fetchHds, fetchHdsNearCapacity, HD_STATUS_LABEL, type HdDto } from '../api/hds'
-import { DELIVERY_STATUS_LABEL, DELIVERY_STATUS_TO_PILL, searchEvents, type EventDto } from '../api/events'
+import { DELIVERY_STATUS_LABEL, DELIVERY_STATUS_TO_PILL, searchAllEvents, type EventListItemDto } from '../api/events'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -36,12 +36,13 @@ const HD_SORT_OPTIONS: { key: HdSortKey; label: string; value: (hd: HdDto) => So
 
 function HdEventsList({ hd }: { hd: HdDto }) {
   const navigate = useNavigate()
-  const [events, setEvents] = useState<EventDto[] | null>(null)
+  const [events, setEvents] = useState<EventListItemDto[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    searchEvents({ hdId: hd.id })
+    // Every event of the HD (a few hundred at most), sorted here by the table's own headers.
+    searchAllEvents({ hdId: hd.id })
       .then((result) => {
         if (!cancelled) {
           setEvents(result)

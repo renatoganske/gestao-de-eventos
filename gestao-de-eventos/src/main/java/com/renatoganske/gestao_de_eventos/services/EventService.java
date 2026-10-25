@@ -3,8 +3,10 @@ package com.renatoganske.gestao_de_eventos.services;
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventListItemDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueAssignmentDto;
+import com.renatoganske.gestao_de_eventos.dtos.PageDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
@@ -22,9 +24,11 @@ import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.InvalidRequestParameterException;
 import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalNotFoundException;
 import com.renatoganske.gestao_de_eventos.filters.EventSpecifications;
 import com.renatoganske.gestao_de_eventos.filters.EventSearchCriteria;
+import com.renatoganske.gestao_de_eventos.filters.EventSort;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventCustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventEventVenueRepository;
@@ -36,10 +40,13 @@ import com.renatoganske.gestao_de_eventos.repositories.HdRepository;
 import com.renatoganske.gestao_de_eventos.repositories.ProfessionalRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,6 +59,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventService {
 
+    /** Large enough for a whole HD's events in one call (the import scripts), small enough to stay cheap. */
+    public static final int MAX_PAGE_SIZE = 500;
+
+    /** The dashboard shows a handful; anything beyond this is a list, which the paged search serves. */
+    public static final int MAX_UPCOMING_LIMIT = 50;
+
     private final EventRepository eventRepository;
     private final CustomerRepository customerRepository;
     private final HdRepository hdRepository;
@@ -61,6 +74,7 @@ public class EventService {
     private final EventProfessionalRepository eventProfessionalRepository;
     private final EventCustomerRepository eventCustomerRepository;
     private final EventEventVenueRepository eventEventVenueRepository;
+    private final Clock clock;
 
     @Transactional
     public EventDto createEvent(CreateEventDto createEventDto) {
@@ -148,9 +162,20 @@ public class EventService {
         adjustHdUsedSpace(hd, sizeGb == null ? null : -sizeGb);
     }
 
+    /**
+     * One page of the event search (ADR-0029). Filtered, ordered and paged by the database (ADR-0027),
+     * so only the events of the requested page are read; their associations come in batches, so the
+     * number of queries does not grow with the page size.
+     */
     @Transactional(readOnly = true)
-    public List<EventDto> searchEvents(EventSearchCriteria criteria) {
-        // Filtered by the database (ADR-0027): only the matching events are read.
+    public PageDto<EventListItemDto> searchEvents(EventSearchCriteria criteria, int page, int size, EventSort sort) {
+        if (page < 0) {
+            throw new InvalidRequestParameterException("Invalid page %d: pages start at 0.".formatted(page));
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new InvalidRequestParameterException(
+                    "Invalid size %d: use 1 to %d events per page.".formatted(size, MAX_PAGE_SIZE));
+        }
         Specification<Event> spec = Specification.allOf(
                 EventSpecifications.byType(criteria.eventTypeId()),
                 EventSpecifications.byVenue(criteria.venueId()),
@@ -162,11 +187,31 @@ public class EventService {
                 EventSpecifications.byCustomerName(criteria.customerName()),
                 EventSpecifications.byEventCode(criteria.eventCode()),
                 EventSpecifications.byDaytimeWedding(criteria.daytimeWedding()),
-                EventSpecifications.byOutdoorWedding(criteria.outdoorWedding()));
+                EventSpecifications.byOutdoorWedding(criteria.outdoorWedding()),
+                EventSpecifications.byText(criteria.text()),
+                // The order lives in the specification, not in the Pageable: some columns are subqueries.
+                EventSpecifications.orderedBy(sort));
 
-        return eventRepository.findAll(spec).stream()
-                .map(Event::toDTO)
-                .collect(Collectors.toList());
+        return PageDto.of(eventRepository.findAll(spec, PageRequest.of(page, size)), Event::toListItemDto);
+    }
+
+    /**
+     * The next {@code limit} events from today on (ADR-0029), soonest first, in the shape of the list.
+     * Replaces the dashboard's search of every future event just to keep the first five.
+     */
+    @Transactional(readOnly = true)
+    public List<EventListItemDto> getUpcomingEvents(int limit) {
+        if (limit < 1 || limit > MAX_UPCOMING_LIMIT) {
+            throw new InvalidRequestParameterException(
+                    "Invalid limit %d: use 1 to %d events.".formatted(limit, MAX_UPCOMING_LIMIT));
+        }
+        Specification<Event> spec = Specification.allOf(
+                EventSpecifications.byPeriod(LocalDate.now(clock), null),
+                EventSpecifications.orderedBy(new EventSort(EventSort.Key.DATE, true)));
+
+        return eventRepository.findAll(spec, PageRequest.of(0, limit)).stream()
+                .map(Event::toListItemDto)
+                .toList();
     }
 
     private EventType resolveEventType(UUID eventTypeId) {

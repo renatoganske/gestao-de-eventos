@@ -1,33 +1,30 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ApiError } from '../api/client'
+import * as dashboardApi from '../api/dashboard'
 import * as eventsApi from '../api/events'
-import type { EventDto } from '../api/events'
+import type { EventListItemDto } from '../api/events'
 import * as hdsApi from '../api/hds'
 import type { HdDto } from '../api/hds'
 import { DashboardPage } from './DashboardPage'
 
+vi.mock('../api/dashboard')
 vi.mock('../api/events')
 vi.mock('../api/hds')
 
-function makeEvent(overrides: Partial<EventDto>): EventDto {
+function makeEvent(overrides: Partial<EventListItemDto>): EventListItemDto {
   return {
     id: 'evt-1',
     eventCode: 'EVT-018',
     type: { id: 'type-1', name: 'Casamento' },
     name: 'Casamento Maria & João',
     eventDate: '2026-10-15',
-    daytimeWedding: true,
-    outdoorWedding: false,
-    guestCount: 150,
-    description: null,
-    amount: 8000,
-    sizeGb: 45,
     deliveryStatus: 'PENDING',
     hdId: null,
+    hdName: null,
     venues: [],
     customers: [],
-    eventProfessionals: [],
+    professionalCount: 0,
     ...overrides,
   }
 }
@@ -47,16 +44,10 @@ function makeHd(overrides: Partial<HdDto>): HdDto {
   }
 }
 
-function mockSearchEvents(byParams: { period: EventDto[]; pending: EventDto[]; upcoming: EventDto[] }) {
-  vi.mocked(eventsApi.searchEvents).mockImplementation(async (params = {}) => {
-    if (params.deliveryStatus === 'PENDING') {
-      return byParams.pending
-    }
-    if (params.to) {
-      return byParams.period
-    }
-    return byParams.upcoming
-  })
+/** The counts come from the summary endpoint and the next events from /upcoming, already cut and sorted. */
+function mockDashboard(summary: { eventsThisMonth: number; pendingDeliveries: number }, upcoming: EventListItemDto[]) {
+  vi.mocked(dashboardApi.fetchDashboardSummary).mockResolvedValue({ ...summary, hdsNearCapacity: 0 })
+  vi.mocked(eventsApi.fetchUpcomingEvents).mockResolvedValue(upcoming)
 }
 
 function renderDashboard() {
@@ -73,7 +64,7 @@ describe('DashboardPage', () => {
   })
 
   it('mostra o indicador de carregamento antes das respostas chegarem', () => {
-    mockSearchEvents({ period: [], pending: [], upcoming: [] })
+    mockDashboard({ eventsThisMonth: 0, pendingDeliveries: 0 }, [])
     vi.mocked(hdsApi.fetchHdsNearCapacity).mockReturnValue(new Promise(() => {}))
 
     renderDashboard()
@@ -86,7 +77,7 @@ describe('DashboardPage', () => {
       makeEvent({ id: 'evt-1', eventCode: 'EVT-018', eventDate: '2026-10-15', deliveryStatus: 'PENDING' }),
       makeEvent({ id: 'evt-2', eventCode: 'EVT-020', eventDate: '2026-10-10', name: 'Ensaio externo', deliveryStatus: 'DELIVERED' }),
     ]
-    mockSearchEvents({ period: upcoming, pending: [upcoming[0]], upcoming })
+    mockDashboard({ eventsThisMonth: 2, pendingDeliveries: 1 }, upcoming)
     vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([makeHd({})])
 
     const { container } = renderDashboard()
@@ -99,10 +90,13 @@ describe('DashboardPage', () => {
     expect(screen.getByText('EVT-018')).toBeInTheDocument()
     expect(screen.getByText('HD Externo 4')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ver todos →' })).toHaveAttribute('href', '/eventos')
+    // no event search at all: the numbers and the next five come ready from the backend (ADR-0029)
+    expect(eventsApi.searchEvents).not.toHaveBeenCalled()
+    expect(eventsApi.fetchUpcomingEvents).toHaveBeenCalledWith(5)
   })
 
   it('calcula a barra de armazenamento pela capacidade real quando preenchida', async () => {
-    mockSearchEvents({ period: [], pending: [], upcoming: [] })
+    mockDashboard({ eventsThisMonth: 0, pendingDeliveries: 0 }, [])
     vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([
       makeHd({ capacityGb: 2000, realCapacityGb: 1000, usedSpaceGb: 960 }),
     ])
@@ -115,12 +109,12 @@ describe('DashboardPage', () => {
     expect(fill).toHaveClass('crit')
   })
 
-  it('ordena os próximos eventos por data', async () => {
+  it('mostra os próximos eventos na ordem em que o servidor os devolve (por data)', async () => {
     const upcoming = [
-      makeEvent({ id: 'evt-later', eventCode: 'EVT-020', eventDate: '2026-10-20' }),
       makeEvent({ id: 'evt-earlier', eventCode: 'EVT-018', eventDate: '2026-10-05' }),
+      makeEvent({ id: 'evt-later', eventCode: 'EVT-020', eventDate: '2026-10-20' }),
     ]
-    mockSearchEvents({ period: upcoming, pending: [], upcoming })
+    mockDashboard({ eventsThisMonth: 2, pendingDeliveries: 0 }, upcoming)
     vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([])
 
     renderDashboard()
@@ -130,7 +124,7 @@ describe('DashboardPage', () => {
   })
 
   it('mostra estados vazios quando não há eventos nem HDs perto da capacidade', async () => {
-    mockSearchEvents({ period: [], pending: [], upcoming: [] })
+    mockDashboard({ eventsThisMonth: 0, pendingDeliveries: 0 }, [])
     vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([])
 
     renderDashboard()
@@ -140,11 +134,12 @@ describe('DashboardPage', () => {
   })
 
   it('mostra mensagem de erro quando alguma chamada falha', async () => {
-    vi.mocked(eventsApi.searchEvents).mockRejectedValue(new ApiError(500, 'Falha ao chamar /events/search: 500'))
+    vi.mocked(dashboardApi.fetchDashboardSummary).mockRejectedValue(new ApiError(500, 'Falha ao chamar /dashboard/summary: 500'))
+    vi.mocked(eventsApi.fetchUpcomingEvents).mockResolvedValue([])
     vi.mocked(hdsApi.fetchHdsNearCapacity).mockResolvedValue([])
 
     renderDashboard()
 
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falha ao chamar /events/search: 500'))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falha ao chamar /dashboard/summary: 500'))
   })
 })

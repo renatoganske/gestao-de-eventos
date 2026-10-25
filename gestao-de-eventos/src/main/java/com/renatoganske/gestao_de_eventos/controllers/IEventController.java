@@ -2,6 +2,8 @@ package com.renatoganske.gestao_de_eventos.controllers;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateEventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventListItemDto;
+import com.renatoganske.gestao_de_eventos.dtos.PageDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,15 +28,24 @@ public interface IEventController {
     @GetMapping
     ResponseEntity<List<EventDto>> findAll();
 
+    @Operation(summary = "Upcoming events", description = "Fetches the next events from today on (in the business time zone), soonest first, "
+            + "in the shape of the event list. 'limit' goes from 1 to 50 (default 5). Events without a date are left out.")
+    @GetMapping("/upcoming")
+    ResponseEntity<List<EventListItemDto>> findUpcoming(@RequestParam(defaultValue = "5") int limit);
+
     @Operation(summary = "Get event by ID", description = "Fetches an event by ID.")
     @GetMapping("/{id}")
     ResponseEntity<EventDto> findById(@PathVariable UUID id);
 
-    @Operation(summary = "Search events", description = "Searches events combining optional filters (type, venue, professional, period, HD, delivery status, customer id, customer name, event code, daytime wedding, outdoor wedding). "
+    @Operation(summary = "Search events", description = "Searches events combining optional filters (type, venue, professional, period, HD, delivery status, customer id, customer name, event code, daytime wedding, outdoor wedding, free text), one page at a time (ADR-0029). "
             + "'daytimeWedding' and 'outdoorWedding' only match events whose flag is explicitly true or false; "
-            + "events where the flag is not set (for example, non-wedding events) are left out whenever one of them is provided.")
+            + "events where the flag is not set (for example, non-wedding events) are left out whenever one of them is provided. "
+            + "'q' matches the event code OR the name of any of the event's customers (partial, case-insensitive). "
+            + "'page' starts at 0; 'size' goes from 1 to 500 (default 50). "
+            + "'sort' is '<key>,<asc|desc>' with key one of code, customer (contracting customer's name), venues (first venue by name), "
+            + "type, date, hd, status; default 'date,desc'. Empty values always come last, and ties are broken by code.")
     @GetMapping("/search")
-    ResponseEntity<List<EventDto>> search(
+    ResponseEntity<PageDto<EventListItemDto>> search(
             @RequestParam(required = false) UUID eventTypeId,
             @RequestParam(required = false) UUID venueId,
             @RequestParam(required = false) UUID professionalId,
@@ -46,7 +57,11 @@ public interface IEventController {
             @RequestParam(required = false) String customerName,
             @RequestParam(required = false) String eventCode,
             @RequestParam(required = false) Boolean daytimeWedding,
-            @RequestParam(required = false) Boolean outdoorWedding);
+            @RequestParam(required = false) Boolean outdoorWedding,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(required = false) String sort);
 
     @Operation(summary = "Create event", description = "Creates a new event, optionally with the professionals who worked on it. "
             + "The 'professionals' list is saved in the same transaction as the event; omitting it (null) creates the event with no team. "

@@ -4,53 +4,50 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import { ApiError } from '../api/client'
 import * as customersApi from '../api/customers'
 import * as eventsApi from '../api/events'
-import type { EventDto } from '../api/events'
+import type { EventListItemDto, PageDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
-import * as eventVenuesApi from '../api/eventVenues'
-import * as hdsApi from '../api/hds'
-import * as professionalsApi from '../api/professionals'
+import * as optionsApi from '../api/options'
 import { EventsPage } from './EventsPage'
 
 vi.mock('../api/events')
 vi.mock('../api/eventTypes')
-vi.mock('../api/eventVenues')
-vi.mock('../api/professionals')
-vi.mock('../api/hds')
+vi.mock('../api/options')
 vi.mock('../api/customers')
 
-function makeEvent(overrides: Partial<EventDto>): EventDto {
+function makeEvent(overrides: Partial<EventListItemDto>): EventListItemDto {
   return {
     id: 'evt-1',
     eventCode: 'EVT-018',
     type: { id: 'type-1', name: 'Casamento' },
     name: 'Casamento Maria & João',
     eventDate: '2026-10-15',
-    daytimeWedding: null,
-    outdoorWedding: null,
-    guestCount: null,
-    description: null,
-    amount: null,
-    sizeGb: null,
     deliveryStatus: 'PENDING',
     hdId: null,
+    hdName: null,
     venues: [],
     customers: [],
-    eventProfessionals: [],
+    professionalCount: 0,
     ...overrides,
   }
 }
 
+/** One page of results as the server sends it: already filtered, sorted and cut (ADR-0029). */
+function page(content: EventListItemDto[], overrides: Partial<PageDto<EventListItemDto>> = {}): PageDto<EventListItemDto> {
+  return { content, page: 0, size: 50, totalElements: content.length, totalPages: content.length > 0 ? 1 : 0, ...overrides }
+}
+
+function mockSearch(content: EventListItemDto[], overrides: Partial<PageDto<EventListItemDto>> = {}) {
+  vi.mocked(eventsApi.searchEvents).mockResolvedValue(page(content, overrides))
+}
+
+/** What the page asks for when nothing but the given parameters is set. */
+const FIRST_PAGE = { page: 0, size: 50, sort: { key: 'date', direction: 'desc' } }
+
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([{ id: 'type-1', name: 'Casamento', hasWeddingFields: false }])
-  vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
-    { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null, eventCount: 0 },
-  ])
-  vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
-    { id: 'prof-1', name: 'Renato', type: null, contact: null, specialtyTags: [], otherInfo: null, eventCount: 0 },
-  ])
-  vi.mocked(hdsApi.fetchHds).mockResolvedValue([
-    { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE', eventCount: 0 },
-  ])
+  vi.mocked(optionsApi.fetchEventVenueOptions).mockResolvedValue([{ id: 'venue-1', name: 'Buffet Jardim das Rosas' }])
+  vi.mocked(optionsApi.fetchProfessionalOptions).mockResolvedValue([{ id: 'prof-1', name: 'Renato' }])
+  vi.mocked(optionsApi.fetchHdOptions).mockResolvedValue([{ id: 'hd-1', name: 'HD Externo 4' }])
   vi.mocked(customersApi.fetchCustomer).mockResolvedValue({
     id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0,
   })
@@ -63,6 +60,7 @@ function renderEventsPage(initialPath = '/eventos') {
         <Route path="/eventos" element={<EventsPage />} />
         <Route path="/eventos/novo" element={<div>Formulário novo</div>} />
         <Route path="/eventos/:id" element={<div>Detalhe do evento</div>} />
+        <Route path="/eventos/:id/editar" element={<div>Formulário de edição</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -82,7 +80,7 @@ describe('EventsPage', () => {
   })
 
   it('descarta o rascunho de novo evento ao clicar em "+ Novo evento" (GDE-41)', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+    mockSearch([])
     sessionStorage.setItem('gde_draft:event-create', JSON.stringify({ customerId: 'customer-1' }))
     sessionStorage.setItem('gde_draft:event-edit:evt-1', JSON.stringify({ name: 'outro' }))
     const user = userEvent.setup()
@@ -96,41 +94,122 @@ describe('EventsPage', () => {
     sessionStorage.clear()
   })
 
-  it('descarta o rascunho de edicao do evento ao abrir a edicao pela lista, sem tocar nos de outros eventos (GDE-45)', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
-    sessionStorage.setItem('gde_draft:event-edit:evt-1', JSON.stringify({ name: 'abandonado' }))
-    sessionStorage.setItem('gde_draft:event-edit:evt-2', JSON.stringify({ name: 'outro' }))
+  it('clicar na linha abre o detalhe do evento, em modo leitura (GDE-64)', async () => {
+    mockSearch([makeEvent({})])
     const user = userEvent.setup()
     renderEventsPage()
 
     await user.click(await screen.findByText('EVT-018'))
 
     expect(await screen.findByText('Detalhe do evento')).toBeInTheDocument()
+  })
+
+  it('termina com as colunas Tipo, Data, HD, Status e as ações (GDE-64)', async () => {
+    mockSearch([makeEvent({})])
+    renderEventsPage()
+
+    await screen.findByText('EVT-018')
+    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent?.replace(/[↑↓▲▼\s]+$/u, '').trim())
+    expect(headers.slice(-5)).toEqual(['Tipo', 'Data', 'HD', 'Status', 'Ações'])
+  })
+
+  it('Excluir na lista pede confirmação, exclui e recarrega a página sem abrir o detalhe (GDE-64)', async () => {
+    const other = makeEvent({ id: 'evt-2', eventCode: 'EVT-019', name: 'Outro evento' })
+    mockSearch([other])
+    vi.mocked(eventsApi.searchEvents).mockResolvedValueOnce(
+      page([
+        makeEvent({
+          customers: [{ customerId: 'customer-1', customerName: 'Maria Silva', contracting: true }],
+          professionalCount: 2,
+        }),
+        other,
+      ]),
+    )
+    vi.mocked(eventsApi.deleteEvent).mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderEventsPage()
+
+    const row = (await screen.findByText('EVT-018')).closest('tr') as HTMLElement
+    await user.click(within(row).getByRole('button', { name: 'Excluir' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/Excluir o evento "Casamento Maria & João" \(15\/10\/2026\)\?/)).toBeInTheDocument()
+    // the list row carries the size of the team, which the message mentions too
+    expect(within(dialog).getByText(/vínculos com 1 cliente e 2 profissionais/)).toBeInTheDocument()
+    expect(screen.queryByText('Detalhe do evento')).not.toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
+
+    await waitFor(() => expect(screen.queryByText('EVT-018')).not.toBeInTheDocument())
+    expect(eventsApi.deleteEvent).toHaveBeenCalledWith('evt-1')
+    expect(screen.getByText('EVT-019')).toBeInTheDocument()
+    expect(screen.getByText('Evento excluído com sucesso.')).toBeInTheDocument()
+    expect(eventsApi.searchEvents).toHaveBeenCalledTimes(2)
+  })
+
+  it('excluir o último evento de uma página que não é a primeira volta uma página (GDE-68)', async () => {
+    mockSearch([makeEvent({ id: 'evt-51', eventCode: 'EVT-051' })], { page: 1, totalElements: 51, totalPages: 2 })
+    vi.mocked(eventsApi.deleteEvent).mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderWithUrl('/eventos?page=2')
+
+    await screen.findByText('EVT-051')
+    await user.click(screen.getByRole('button', { name: 'Excluir' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Excluir' }))
+
+    await waitFor(() => expect(currentSearch()).toBe(''))
+    expect(vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]?.page).toBe(0)
+  })
+
+  it('se a exclusão pela lista falhar, mostra o erro no diálogo e mantém o evento (GDE-64)', async () => {
+    mockSearch([makeEvent({})])
+    vi.mocked(eventsApi.deleteEvent).mockRejectedValue(new ApiError(409, 'Evento em uso.'))
+    const user = userEvent.setup()
+    renderEventsPage()
+
+    await screen.findByText('EVT-018')
+    await user.click(screen.getByRole('button', { name: 'Excluir' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
+
+    expect(await within(dialog).findByText('Evento em uso.')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByText('EVT-018')).toBeInTheDocument()
+  })
+
+  it('descarta o rascunho de edicao do evento ao abrir a edicao pela lista, sem tocar nos de outros eventos (GDE-45)', async () => {
+    mockSearch([makeEvent({})])
+    sessionStorage.setItem('gde_draft:event-edit:evt-1', JSON.stringify({ name: 'abandonado' }))
+    sessionStorage.setItem('gde_draft:event-edit:evt-2', JSON.stringify({ name: 'outro' }))
+    const user = userEvent.setup()
+    renderEventsPage()
+
+    await screen.findByText('EVT-018')
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(await screen.findByText('Formulário de edição')).toBeInTheDocument()
     expect(sessionStorage.getItem('gde_draft:event-edit:evt-1')).toBeNull()
     expect(sessionStorage.getItem('gde_draft:event-edit:evt-2')).not.toBeNull()
     sessionStorage.clear()
   })
 
   it('busca todos os eventos ao carregar, sem filtro ativo', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    mockSearch([makeEvent({})])
 
     renderEventsPage()
 
     await waitFor(() => expect(screen.getByText('EVT-018')).toBeInTheDocument())
 
-    expect(eventsApi.searchEvents).toHaveBeenCalledWith({
-      eventTypeId: undefined,
-      venueId: undefined,
-      professionalId: undefined,
-      from: undefined,
-      to: undefined,
-      hdId: undefined,
-      deliveryStatus: undefined,
-    })
+    expect(eventsApi.searchEvents).toHaveBeenCalledTimes(1)
+    expect(eventsApi.searchEvents).toHaveBeenCalledWith(FIRST_PAGE)
+    // the filter selects need only id and name, never the full lists
+    expect(optionsApi.fetchHdOptions).toHaveBeenCalled()
+    expect(optionsApi.fetchEventVenueOptions).toHaveBeenCalled()
+    expect(optionsApi.fetchProfessionalOptions).toHaveBeenCalled()
   })
 
   it('mostra o estado vazio quando não há eventos', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+    mockSearch([])
 
     renderEventsPage()
 
@@ -145,35 +224,31 @@ describe('EventsPage', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Falha ao chamar /events/search: 500'))
   })
 
-  it('combina o texto livre com customerName e eventCode, sem duplicar resultados', async () => {
-    const shared = makeEvent({ id: 'evt-shared', eventCode: 'EVT-018', name: 'Casamento Maria & João' })
-    const onlyByCode = makeEvent({ id: 'evt-code', eventCode: 'EVT-020', name: 'Ensaio' })
-
-    vi.mocked(eventsApi.searchEvents).mockImplementation(async (params = {}) => {
-      if (params.customerName === 'maria') {
-        return [shared]
-      }
-      if (params.eventCode === 'maria') {
-        return [shared, onlyByCode]
-      }
-      return []
-    })
-
+  it('manda o texto livre como q, numa busca só, e não como customerName/eventCode (GDE-68)', async () => {
+    mockSearch([makeEvent({})])
     const user = userEvent.setup()
     renderEventsPage()
+    await screen.findByText('EVT-018')
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Aplicar filtros' })).toBeInTheDocument())
-
-    await user.type(screen.getByLabelText('Buscar por nome do cliente ou código do evento'), 'maria')
+    await user.type(screen.getByLabelText('Buscar por nome do cliente ou código do evento'), '  maria ')
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
 
-    await waitFor(() => expect(screen.getAllByText(/EVT-0\d\d/)).toHaveLength(2))
-    expect(eventsApi.searchEvents).toHaveBeenCalledWith(expect.objectContaining({ customerName: 'maria' }))
-    expect(eventsApi.searchEvents).toHaveBeenCalledWith(expect.objectContaining({ eventCode: 'maria' }))
+    await waitFor(() => expect(eventsApi.searchEvents).toHaveBeenCalledTimes(2))
+    expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({ ...FIRST_PAGE, q: 'maria' })
+    const params = vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]
+    expect(params?.customerName).toBeUndefined()
+    expect(params?.eventCode).toBeUndefined()
+  })
+
+  it('mostra o total de eventos do servidor, não o tamanho da página (GDE-68)', async () => {
+    mockSearch([makeEvent({})], { totalElements: 137, totalPages: 3 })
+    renderEventsPage()
+
+    expect(await screen.findByText('137 evento(s) encontrado(s)')).toBeInTheDocument()
   })
 
   it('aplica o filtro estruturado de status de entrega junto da busca', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    mockSearch([makeEvent({})])
 
     const user = userEvent.setup()
     renderEventsPage()
@@ -189,7 +264,7 @@ describe('EventsPage', () => {
   })
 
   it('limpar filtros reseta o texto livre, os filtros estruturados e busca tudo de novo', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    mockSearch([makeEvent({})])
 
     const user = userEvent.setup()
     renderEventsPage()
@@ -202,17 +277,7 @@ describe('EventsPage', () => {
 
     expect(screen.getByLabelText('Buscar por nome do cliente ou código do evento')).toHaveValue('')
     expect(screen.getByLabelText('Status de entrega')).toHaveValue('')
-    await waitFor(() =>
-      expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({
-        eventTypeId: undefined,
-        venueId: undefined,
-        professionalId: undefined,
-        from: undefined,
-        to: undefined,
-        hdId: undefined,
-        deliveryStatus: undefined,
-      }),
-    )
+    await waitFor(() => expect(eventsApi.searchEvents).toHaveBeenLastCalledWith(FIRST_PAGE))
   })
 
   describe('filtros de casamento diurno e ao ar livre (GDE-47)', () => {
@@ -221,7 +286,7 @@ describe('EventsPage', () => {
         { id: 'type-wedding', name: 'WEDDING', hasWeddingFields: true },
         { id: 'type-birthday', name: 'BIRTHDAY', hasWeddingFields: false },
       ])
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+      mockSearch([makeEvent({})])
     })
 
     it('mostra os filtros para qualquer tipo marcado com campos de casamento, mesmo com outro nome, e não pelo nome (GDE-48)', async () => {
@@ -348,7 +413,7 @@ describe('EventsPage', () => {
   })
 
   it('mostra todos os clientes na coluna Clientes (contratante primeiro), e "—" quando o evento não tem cliente', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+    mockSearch([
       makeEvent({
         id: 'evt-with-customer',
         eventCode: 'EVT-018',
@@ -371,7 +436,7 @@ describe('EventsPage', () => {
   })
 
   it('navega para o detalhe do evento ao clicar numa linha', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({ id: 'evt-42', eventCode: 'EVT-042' })])
+    mockSearch([makeEvent({ id: 'evt-42', eventCode: 'EVT-042' })])
 
     const user = userEvent.setup()
     renderEventsPage()
@@ -390,7 +455,7 @@ describe('EventsPage - locais do evento (GDE-51)', () => {
   })
 
   it('lista todos os locais do evento, com o papel quando houver', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+    mockSearch([
       makeEvent({
         venues: [
           { venueId: 'venue-2', venueName: 'Igreja Matriz', role: 'Cerimônia' },
@@ -404,7 +469,7 @@ describe('EventsPage - locais do evento (GDE-51)', () => {
   })
 
   it('mostra um traço quando o evento não tem local', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({ venues: [], customers: [] })])
+    mockSearch([makeEvent({ venues: [], customers: [] })])
     renderEventsPage()
 
     await screen.findByText('EVT-018')
@@ -413,11 +478,55 @@ describe('EventsPage - locais do evento (GDE-51)', () => {
   })
 })
 
+describe('EventsPage - coluna HD (GDE-63)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+  })
+
+  it('mostra o nome do HD do evento, inclusive com a lista filtrada por cliente', async () => {
+    mockSearch([makeEvent({ hdId: 'hd-1', hdName: 'HD Externo 4' })])
+    renderEventsPage('/eventos?customerId=customer-1')
+
+    await screen.findByText('EVT-018')
+    expect(screen.getByRole('columnheader', { name: /^HD/ })).toBeInTheDocument()
+    expect(columnTexts(5)).toEqual(['HD Externo 4'])
+  })
+
+  it('mostra um traço quando o evento não tem HD', async () => {
+    mockSearch([
+      makeEvent({ id: 'e1', eventCode: 'RG1', hdId: null, hdName: null }),
+      makeEvent({ id: 'e2', eventCode: 'RG2', hdId: null, hdName: null }),
+    ])
+    renderEventsPage()
+
+    await screen.findByText('RG1')
+    expect(columnTexts(5)).toEqual(['—', '—'])
+  })
+
+  it('ordenar pelo HD pede ao servidor a ordem por HD e mostra as linhas na ordem que ele devolve', async () => {
+    mockSearch([
+      makeEvent({ id: 'e1', eventCode: 'RG1', hdId: 'hd-1', hdName: 'HD Externo 4' }),
+      makeEvent({ id: 'e2', eventCode: 'RG2', hdId: 'hd-2', hdName: 'Finalizados 1' }),
+    ])
+    renderEventsPage()
+    await screen.findByText('RG1')
+
+    await userEvent.click(screen.getByRole('button', { name: /^HD/ }))
+
+    await waitFor(() =>
+      expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({ ...FIRST_PAGE, sort: { key: 'hd', direction: 'asc' } }),
+    )
+    // the table does not reorder the server's page
+    expect(columnTexts(5)).toEqual(['HD Externo 4', 'Finalizados 1'])
+  })
+})
+
 describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockReferenceData()
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+    mockSearch([])
   })
 
   it('mostra o toast recebido pelo state da navegação e o limpa do histórico', async () => {
@@ -441,41 +550,40 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('abre ordenada por data crescente e, em empate, pelo número do código (RG2 antes de RG10)', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
-      makeEvent({ id: 'e1', eventCode: 'RG10', eventDate: '2026-05-01' }),
+  it('abre pedindo data decrescente (mais recentes primeiro) e mostra as linhas na ordem do servidor', async () => {
+    mockSearch([
       makeEvent({ id: 'e2', eventCode: 'RG3', eventDate: '2026-06-01' }),
       makeEvent({ id: 'e3', eventCode: 'RG2', eventDate: '2026-05-01' }),
+      makeEvent({ id: 'e1', eventCode: 'RG10', eventDate: '2026-05-01' }),
     ])
 
     renderEventsPage()
 
     await waitFor(() => expect(screen.getByText('RG3')).toBeInTheDocument())
-    expect(columnTexts(0)).toEqual(['RG2', 'RG10', 'RG3'])
-    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'ascending')
-
-    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+    expect(eventsApi.searchEvents).toHaveBeenCalledWith(FIRST_PAGE)
     expect(columnTexts(0)).toEqual(['RG3', 'RG2', 'RG10'])
+    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'descending')
   })
 
-  it('ordena pelo código numericamente e não refaz a busca ao ordenar', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
-      makeEvent({ id: 'e1', eventCode: 'RG10' }),
-      makeEvent({ id: 'e2', eventCode: 'RG2' }),
-    ])
+  it('ordenar por uma coluna refaz a busca com a nova ordem, voltando para a primeira página (GDE-68)', async () => {
+    mockSearch([makeEvent({ id: 'e1', eventCode: 'RG10' }), makeEvent({ id: 'e2', eventCode: 'RG2' })], {
+      page: 1,
+      totalElements: 60,
+      totalPages: 2,
+    })
 
-    renderEventsPage()
+    renderEventsPage('/eventos?page=2')
 
     await waitFor(() => expect(screen.getByText('RG10')).toBeInTheDocument())
-    const callsBefore = vi.mocked(eventsApi.searchEvents).mock.calls.length
     await userEvent.click(screen.getByRole('button', { name: /Código/ }))
 
-    expect(columnTexts(0)).toEqual(['RG2', 'RG10'])
-    expect(vi.mocked(eventsApi.searchEvents).mock.calls.length).toBe(callsBefore)
+    await waitFor(() =>
+      expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({ ...FIRST_PAGE, sort: { key: 'code', direction: 'asc' } }),
+    )
   })
 
   it('torna clientes, locais, tipo e status ordenáveis', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    mockSearch([makeEvent({})])
 
     renderEventsPage()
 
@@ -487,7 +595,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
 
   describe('filtros vindos da URL (GDE-56)', () => {
     it('filtra por customerId da URL na primeira busca e mostra o cliente ativo', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+      mockSearch([makeEvent({})])
 
       renderEventsPage('/eventos?customerId=customer-1')
 
@@ -499,7 +607,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     })
 
     it('mostra o nome do cliente no filtro mesmo quando ele não tem eventos', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+      mockSearch([])
 
       renderEventsPage('/eventos?customerId=customer-1')
 
@@ -507,7 +615,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     })
 
     it('usa um texto claro quando o cliente do filtro não é encontrado', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+      mockSearch([])
       vi.mocked(customersApi.fetchCustomer).mockRejectedValue(new ApiError(404, 'Cliente não encontrado'))
 
       renderEventsPage('/eventos?customerId=customer-x')
@@ -516,7 +624,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     })
 
     it('filtra por professionalId, hdId e venueId da URL, preenchendo os campos do painel', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+      mockSearch([makeEvent({})])
 
       renderEventsPage('/eventos?professionalId=prof-1&hdId=hd-1&venueId=venue-1')
 
@@ -530,7 +638,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     })
 
     it('mostra o estado vazio quando a pessoa não tem eventos', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+      mockSearch([])
 
       renderEventsPage('/eventos?customerId=customer-1')
 
@@ -538,7 +646,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     })
 
     it('"Limpar filtros" remove o filtro vindo da URL e busca de novo sem ele', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+      mockSearch([makeEvent({})])
       const user = userEvent.setup()
       renderEventsPage('/eventos?customerId=customer-1')
       await screen.findByText('Cliente: Maria Silva')
@@ -550,7 +658,7 @@ describe('EventsPage - aviso vindo de outra tela (GDE-50)', () => {
     })
 
     it('sem parâmetros na URL não mostra filtro ativo nem filtra', async () => {
-      vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+      mockSearch([makeEvent({})])
 
       renderEventsPage()
 
@@ -570,7 +678,7 @@ describe('EventsPage - filtro de local vindo da URL (GDE-57)', () => {
   })
 
   it('filtra por venueId da URL e mostra o local como filtro ativo', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    mockSearch([makeEvent({})])
 
     renderEventsPage('/eventos?venueId=venue-1')
 
@@ -580,7 +688,7 @@ describe('EventsPage - filtro de local vindo da URL (GDE-57)', () => {
   })
 
   it('mostra o estado vazio quando o local não tem eventos', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([])
+    mockSearch([])
 
     renderEventsPage('/eventos?venueId=venue-1')
 
@@ -588,7 +696,7 @@ describe('EventsPage - filtro de local vindo da URL (GDE-57)', () => {
   })
 
   it('"Limpar filtros" remove o local ativo e busca de novo sem ele', async () => {
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([makeEvent({})])
+    mockSearch([makeEvent({})])
     const user = userEvent.setup()
     renderEventsPage('/eventos?venueId=venue-1')
     await screen.findByText('Local: Buffet Jardim das Rosas')
@@ -630,7 +738,7 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockReferenceData()
-    vi.mocked(eventsApi.searchEvents).mockResolvedValue([
+    mockSearch([
       makeEvent({ id: 'e1', eventCode: 'RG10', eventDate: '2026-05-01' }),
       makeEvent({ id: 'e2', eventCode: 'RG2', eventDate: '2026-06-01' }),
     ])
@@ -644,9 +752,14 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
     expect(screen.getByLabelText('Status de entrega')).toHaveValue('DELIVERED')
     expect(screen.getByLabelText('Data inicial')).toHaveValue('2026-01-01')
     expect(vi.mocked(eventsApi.searchEvents)).toHaveBeenCalledWith(
-      expect.objectContaining({ customerName: 'Maria', deliveryStatus: 'DELIVERED', from: '2026-01-01', to: '2026-12-31' }),
+      expect.objectContaining({
+        q: 'Maria',
+        deliveryStatus: 'DELIVERED',
+        from: '2026-01-01',
+        to: '2026-12-31',
+        sort: { key: 'code', direction: 'desc' },
+      }),
     )
-    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
     expect(screen.getByRole('columnheader', { name: /Código/ })).toHaveAttribute('aria-sort', 'descending')
   })
 
@@ -665,28 +778,64 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
     await waitFor(() => expect(currentSearch()).toBe('?q=Maria&deliveryStatus=PENDING'))
   })
 
-  it('ordenar grava sort na URL sem refazer a busca, mantendo os filtros aplicados', async () => {
+  it('ordenar grava sort na URL e busca de novo no servidor, mantendo os filtros aplicados', async () => {
     renderWithUrl('/eventos?deliveryStatus=PENDING')
     await screen.findByText('RG10')
-    const callsBefore = vi.mocked(eventsApi.searchEvents).mock.calls.length
 
     await userEvent.click(screen.getByRole('button', { name: /Código/ }))
 
     expect(currentSearch()).toBe('?deliveryStatus=PENDING&sort=code%3Aasc')
-    expect(columnTexts(0)).toEqual(['RG2', 'RG10'])
-    expect(vi.mocked(eventsApi.searchEvents).mock.calls.length).toBe(callsBefore)
+    await waitFor(() =>
+      expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({
+        ...FIRST_PAGE,
+        deliveryStatus: 'PENDING',
+        sort: { key: 'code', direction: 'asc' },
+      }),
+    )
+  })
+
+  it('ordenar não descarta o que está sendo digitado no painel e ainda não foi aplicado', async () => {
+    const user = userEvent.setup()
+    renderWithUrl('/eventos')
+    await screen.findByText('RG10')
+
+    await user.type(screen.getByLabelText('Buscar por nome do cliente ou código do evento'), 'Ana')
+    await user.click(screen.getByRole('button', { name: /Código/ }))
+
+    await waitFor(() => expect(currentSearch()).toBe('?sort=code%3Aasc'))
+    expect(screen.getByLabelText('Buscar por nome do cliente ou código do evento')).toHaveValue('Ana')
+    expect(vi.mocked(eventsApi.searchEvents).mock.lastCall?.[0]?.q).toBeUndefined()
   })
 
   it('a ordenação padrão não suja a URL', async () => {
     renderWithUrl('/eventos?sort=code:asc')
     await screen.findByText('RG10')
 
-    // Data asc (the default) -> desc -> asc again.
-    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+    // Data asc (clicking a new column) -> desc (the default, so the URL goes back to empty).
     await userEvent.click(screen.getByRole('button', { name: /Data/ }))
     await userEvent.click(screen.getByRole('button', { name: /Data/ }))
 
     expect(currentSearch()).toBe('')
+  })
+
+  it('ordenar a data de forma crescente grava sort=date:asc na URL', async () => {
+    renderWithUrl('/eventos')
+    await screen.findByText('RG10')
+
+    await userEvent.click(screen.getByRole('button', { name: /Data/ }))
+
+    expect(currentSearch()).toBe('?sort=date%3Aasc')
+    await waitFor(() =>
+      expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({ ...FIRST_PAGE, sort: { key: 'date', direction: 'asc' } }),
+    )
+  })
+
+  it('abre em ordem crescente de data quando a URL traz sort=date:asc', async () => {
+    renderWithUrl('/eventos?sort=date:asc')
+    await screen.findByText('RG10')
+
+    expect(screen.getByRole('columnheader', { name: /Data/ })).toHaveAttribute('aria-sort', 'ascending')
+    expect(eventsApi.searchEvents).toHaveBeenCalledWith({ ...FIRST_PAGE, sort: { key: 'date', direction: 'asc' } })
   })
 
   it('abrir um evento e voltar mantém filtros, busca e ordenação', async () => {
@@ -724,7 +873,7 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
 
   it('ignora parâmetros inválidos sem quebrar a tela', async () => {
     renderWithUrl(
-      '/eventos?deliveryStatus=XYZ&from=ontem&to=2026-13&daytimeWedding=talvez&customerId=<script>&venueId=a%20b&sort=banana:up',
+      '/eventos?deliveryStatus=XYZ&from=ontem&to=2026-13&daytimeWedding=talvez&customerId=<script>&venueId=a%20b&sort=banana:up&page=-3',
     )
 
     await screen.findByText('RG10')
@@ -739,8 +888,9 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
         venueId: undefined,
       }),
     )
-    // Default sort: date ascending.
-    expect(columnTexts(0)).toEqual(['RG10', 'RG2'])
+    // Default sort: date descending (most recent first).
+    expect(params?.sort).toEqual({ key: 'date', direction: 'desc' })
+    expect(params?.page).toBe(0)
   })
 
   it('"Limpar filtros" zera os campos e a URL, inclusive a ordenação', async () => {
@@ -762,5 +912,96 @@ describe('EventsPage - filtros e ordenação na URL (GDE-61)', () => {
     expect(vi.mocked(eventsApi.searchEvents)).toHaveBeenCalledWith(
       expect.objectContaining({ customerId: 'customer-1', professionalId: 'prof-1', hdId: 'hd-1', venueId: 'venue-1' }),
     )
+  })
+})
+
+describe('EventsPage - paginação no servidor (GDE-68)', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockReferenceData()
+  })
+
+  it('não mostra a paginação quando tudo cabe numa página', async () => {
+    mockSearch([makeEvent({})])
+    renderWithUrl()
+
+    await screen.findByText('EVT-018')
+    expect(screen.queryByRole('navigation', { name: 'Paginação' })).not.toBeInTheDocument()
+  })
+
+  it('avança e volta de página pela URL, mantendo filtros e ordenação', async () => {
+    mockSearch([makeEvent({})], { totalElements: 120, totalPages: 3 })
+    const user = userEvent.setup()
+    renderWithUrl('/eventos?deliveryStatus=PENDING&sort=code:asc')
+
+    const nav = await screen.findByRole('navigation', { name: 'Paginação' })
+    expect(within(nav).getByText('Página 1 de 3')).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: '← Anterior' })).toBeDisabled()
+
+    await user.click(within(nav).getByRole('button', { name: 'Próxima →' }))
+
+    await waitFor(() => expect(currentSearch()).toBe('?deliveryStatus=PENDING&sort=code%3Aasc&page=2'))
+    expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({
+      ...FIRST_PAGE,
+      deliveryStatus: 'PENDING',
+      sort: { key: 'code', direction: 'asc' },
+      page: 1,
+    })
+  })
+
+  it('abre na página da URL e desabilita "Próxima" na última', async () => {
+    mockSearch([makeEvent({})], { page: 2, totalElements: 120, totalPages: 3 })
+    renderWithUrl('/eventos?page=3')
+
+    const nav = await screen.findByRole('navigation', { name: 'Paginação' })
+    expect(eventsApi.searchEvents).toHaveBeenCalledWith({ ...FIRST_PAGE, page: 2 })
+    expect(within(nav).getByText('Página 3 de 3')).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'Próxima →' })).toBeDisabled()
+    expect(within(nav).getByRole('button', { name: '← Anterior' })).toBeEnabled()
+  })
+
+  it('aplicar filtros volta para a primeira página', async () => {
+    mockSearch([makeEvent({})], { page: 1, totalElements: 120, totalPages: 3 })
+    const user = userEvent.setup()
+    renderWithUrl('/eventos?page=2')
+    await screen.findByText('EVT-018')
+    await screen.findByRole('option', { name: 'Pendente' })
+
+    await user.selectOptions(screen.getByLabelText('Status de entrega'), 'PENDING')
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    await waitFor(() => expect(currentSearch()).toBe('?deliveryStatus=PENDING'))
+    expect(eventsApi.searchEvents).toHaveBeenLastCalledWith({ ...FIRST_PAGE, deliveryStatus: 'PENDING' })
+  })
+
+  it('aplicar de novo os mesmos filtros busca outra vez, mesmo sem a URL mudar', async () => {
+    mockSearch([makeEvent({})])
+    const user = userEvent.setup()
+    renderWithUrl('/eventos?deliveryStatus=PENDING')
+    await screen.findByText('EVT-018')
+
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+
+    await waitFor(() => expect(eventsApi.searchEvents).toHaveBeenCalledTimes(2))
+    expect(currentSearch()).toBe('?deliveryStatus=PENDING')
+  })
+
+  it('mostra só a resposta da busca mais recente, mesmo que uma anterior chegue depois', async () => {
+    let resolveFirst: (value: PageDto<EventListItemDto>) => void = () => {}
+    vi.mocked(eventsApi.searchEvents)
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+      .mockResolvedValue(page([makeEvent({ id: 'novo', eventCode: 'EVT-NOVO' })]))
+    const user = userEvent.setup()
+    renderWithUrl()
+    await screen.findByRole('option', { name: 'Pendente' })
+
+    await user.selectOptions(screen.getByLabelText('Status de entrega'), 'PENDING')
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+    await screen.findByText('EVT-NOVO')
+
+    resolveFirst(page([makeEvent({ id: 'velho', eventCode: 'EVT-VELHO' })]))
+
+    await waitFor(() => expect(screen.getByText('EVT-NOVO')).toBeInTheDocument())
+    expect(screen.queryByText('EVT-VELHO')).not.toBeInTheDocument()
   })
 })

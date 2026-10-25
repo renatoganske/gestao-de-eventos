@@ -6,10 +6,9 @@ import * as customersApi from '../api/customers'
 import * as eventsApi from '../api/events'
 import type { EventDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
-import * as eventVenuesApi from '../api/eventVenues'
-import * as hdsApi from '../api/hds'
 import * as professionalsApi from '../api/professionals'
 import * as professionalTypesApi from '../api/professionalTypes'
+import * as optionsApi from '../api/options'
 import { EventFormPage } from './EventFormPage'
 
 vi.mock('../api/events')
@@ -19,22 +18,31 @@ vi.mock('../api/hds')
 vi.mock('../api/professionals')
 vi.mock('../api/customers')
 vi.mock('../api/professionalTypes')
+vi.mock('../api/options')
+
+/** The form's selects load only id and name (ADR-0029); fixtures may carry more, which is dropped here. */
+function mockOptions<T extends { id: string; name: string }>(
+  fetchOptions: () => Promise<{ id: string; name: string }[]>,
+  records: T[],
+) {
+  vi.mocked(fetchOptions).mockResolvedValue(records.map(({ id, name }) => ({ id, name })))
+}
 
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
     { id: 'type-wedding', name: 'WEDDING', hasWeddingFields: true },
     { id: 'type-other', name: 'PHOTO_SHOOT', hasWeddingFields: false },
   ])
-  vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
+  mockOptions(optionsApi.fetchEventVenueOptions, [
     { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null, eventCount: 0 },
   ])
-  vi.mocked(hdsApi.fetchHds).mockResolvedValue([
+  mockOptions(optionsApi.fetchHdOptions, [
     { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE', eventCount: 0 },
   ])
-  vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+  mockOptions(optionsApi.fetchCustomerOptions, [
     { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0 },
   ])
-  vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
+  mockOptions(optionsApi.fetchProfessionalOptions, [
     { id: 'prof-1', name: 'Renato Fotógrafo', type: null, contact: null, specialtyTags: [], otherInfo: null, eventCount: 0 },
     { id: 'prof-2', name: 'Ana Videomaker', type: null, contact: null, specialtyTags: [], otherInfo: null, eventCount: 0 },
   ])
@@ -69,7 +77,8 @@ function renderForm(initialPath: string) {
       <Routes>
         <Route path="/eventos" element={<div>Lista de eventos</div>} />
         <Route path="/eventos/novo" element={<EventFormPage />} />
-        <Route path="/eventos/:id" element={<EventFormPage />} />
+        <Route path="/eventos/:id" element={<div>Detalhe do evento</div>} />
+        <Route path="/eventos/:id/editar" element={<EventFormPage />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -278,7 +287,7 @@ describe('EventFormPage', () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ name: 'Casamento Atualizado' }))
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     await waitFor(() => expect(screen.getByLabelText('Nome do evento')).toHaveValue('Casamento Maria & João'))
     expect(screen.getByLabelText('Código do evento')).toHaveValue('EVT-018')
@@ -296,7 +305,21 @@ describe('EventFormPage', () => {
         expect.objectContaining({ name: 'Casamento Atualizado', eventCode: 'EVT-018' }),
       ),
     )
-    expect(await screen.findByText('Evento atualizado com sucesso.')).toBeInTheDocument()
+    // Saving goes back to the read-only detail (GDE-64); the toast travels there as router state.
+    expect(await screen.findByText('Detalhe do evento')).toBeInTheDocument()
+  })
+
+  it('no modo edição, Cancelar e "Voltar para o evento" voltam para o detalhe, não para a lista (GDE-64)', async () => {
+    vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
+    const user = userEvent.setup({ delay: null })
+    renderForm('/eventos/evt-1/editar')
+
+    await waitFor(() => expect(screen.getByLabelText('Nome do evento')).toHaveValue('Casamento Maria & João'))
+    expect(screen.getByRole('link', { name: 'Voltar para o evento' })).toHaveAttribute('href', '/eventos/evt-1')
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    expect(await screen.findByText('Detalhe do evento')).toBeInTheDocument()
   })
 })
 
@@ -305,7 +328,7 @@ describe('EventFormPage - vários clientes por evento (GDE-49)', () => {
     vi.resetAllMocks()
     sessionStorage.clear()
     mockReferenceData()
-    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+    mockOptions(optionsApi.fetchCustomerOptions, [
       { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0 },
       { id: 'customer-2', name: 'Joao Silva', contact: null, address: null, notes: null, eventCount: 0 },
     ])
@@ -415,7 +438,7 @@ describe('EventFormPage - vários clientes por evento (GDE-49)', () => {
     )
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ customers: [] }))
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     await waitFor(() => expect(screen.getByLabelText('Cliente 1')).toHaveValue('Joao Silva'))
     expect(screen.getByLabelText('Cliente 2')).toHaveValue('Maria Silva')
@@ -565,7 +588,7 @@ describe('EventFormPage - equipe do evento (GDE-37)', () => {
 
   it('no modo edição, pré-preenche a equipe a partir do evento', async () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     await waitFor(() => expect(screen.getByLabelText('Profissional 1')).toHaveValue('Renato Fotógrafo'))
     expect(screen.getByLabelText('Papel 1')).toHaveValue('Fotógrafo principal')
@@ -575,7 +598,7 @@ describe('EventFormPage - equipe do evento (GDE-37)', () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
     await waitFor(() => expect(screen.getByLabelText('Profissional 1')).toHaveValue('Renato Fotógrafo'))
 
     await user.click(screen.getByRole('button', { name: 'Salvar evento' }))
@@ -592,7 +615,7 @@ describe('EventFormPage - equipe do evento (GDE-37)', () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ eventProfessionals: EXISTING_TEAM }))
     vi.mocked(eventsApi.updateEvent).mockResolvedValue(makeEvent({ eventProfessionals: [] }))
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
     await waitFor(() => expect(screen.getByLabelText('Profissional 1')).toHaveValue('Renato Fotógrafo'))
 
     await user.click(screen.getByRole('button', { name: 'Remover profissional 1' }))
@@ -707,7 +730,7 @@ describe('EventFormPage - exclusão do evento (GDE-50)', () => {
       }),
     )
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     const dialog = await openDeleteDialog(user)
 
@@ -721,7 +744,7 @@ describe('EventFormPage - exclusão do evento (GDE-50)', () => {
   it('não fala de vínculos quando o evento não tem clientes nem equipe', async () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent({ customers: [], eventProfessionals: [] }))
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     const dialog = await openDeleteDialog(user)
 
@@ -731,7 +754,7 @@ describe('EventFormPage - exclusão do evento (GDE-50)', () => {
   it('cancelar fecha a confirmação sem chamar a API', async () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     const dialog = await openDeleteDialog(user)
     await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
@@ -745,7 +768,7 @@ describe('EventFormPage - exclusão do evento (GDE-50)', () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
     vi.mocked(eventsApi.deleteEvent).mockResolvedValue(undefined)
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     const dialog = await openDeleteDialog(user)
     // qualquer edição grava o rascunho; ele não pode sobreviver ao evento
@@ -761,7 +784,7 @@ describe('EventFormPage - exclusão do evento (GDE-50)', () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
     vi.mocked(eventsApi.deleteEvent).mockRejectedValue(new ApiError(409, 'Evento em uso.'))
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     const dialog = await openDeleteDialog(user)
     await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))
@@ -776,7 +799,7 @@ describe('EventFormPage - exclusão do evento (GDE-50)', () => {
     vi.mocked(eventsApi.fetchEventById).mockResolvedValue(makeEvent())
     vi.mocked(eventsApi.deleteEvent).mockReturnValue(new Promise(() => {}))
     const user = userEvent.setup({ delay: null })
-    renderForm('/eventos/evt-1')
+    renderForm('/eventos/evt-1/editar')
 
     const dialog = await openDeleteDialog(user)
     await user.click(within(dialog).getByRole('button', { name: 'Excluir' }))

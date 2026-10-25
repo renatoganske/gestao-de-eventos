@@ -82,6 +82,35 @@ export interface EventDto {
   eventProfessionals: EventProfessionalSummaryDto[]
 }
 
+/** Row of the paged event search (ADR-0029): only what the list shows. */
+export interface EventListItemDto {
+  id: string
+  eventCode: string
+  type: EventTypeDto
+  name: string
+  eventDate: string
+  deliveryStatus: DeliveryStatus
+  hdId: string | null
+  hdName: string | null
+  /** Sorted by venue name. */
+  venues: EventVenueSummaryDto[]
+  /** Contracting customer first. */
+  customers: EventCustomerSummaryDto[]
+  professionalCount: number
+}
+
+/** One page of a list response; `page` starts at 0. */
+export interface PageDto<T> {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+/** Columns the server can sort the event search by. */
+export type EventSortKey = 'code' | 'customer' | 'venues' | 'type' | 'date' | 'hd' | 'status'
+
 export interface CreateEventDto {
   eventCode: string
   eventTypeId: string | null
@@ -119,7 +148,16 @@ export interface SearchEventsParams {
   eventCode?: string
   daytimeWedding?: boolean
   outdoorWedding?: boolean
+  /** Event code OR any customer name, in one request. */
+  q?: string
+  /** Starts at 0. */
+  page?: number
+  size?: number
+  sort?: { key: EventSortKey; direction: 'asc' | 'desc' }
 }
+
+/** The backend's maximum page size: one page holds every event of an HD, for instance. */
+export const MAX_PAGE_SIZE = 500
 
 function buildSearchQuery(params: SearchEventsParams): string {
   const query = new URLSearchParams()
@@ -160,12 +198,39 @@ function buildSearchQuery(params: SearchEventsParams): string {
   if (params.outdoorWedding !== undefined) {
     query.set('outdoorWedding', String(params.outdoorWedding))
   }
+  if (params.q) {
+    query.set('q', params.q)
+  }
+  if (params.page !== undefined) {
+    query.set('page', String(params.page))
+  }
+  if (params.size !== undefined) {
+    query.set('size', String(params.size))
+  }
+  if (params.sort) {
+    query.set('sort', `${params.sort.key},${params.sort.direction}`)
+  }
   const queryString = query.toString()
   return queryString ? `?${queryString}` : ''
 }
 
-export function searchEvents(params: SearchEventsParams = {}): Promise<EventDto[]> {
-  return apiFetch<EventDto[]>(`/events/search${buildSearchQuery(params)}`)
+export function searchEvents(params: SearchEventsParams = {}): Promise<PageDto<EventListItemDto>> {
+  return apiFetch<PageDto<EventListItemDto>>(`/events/search${buildSearchQuery(params)}`)
+}
+
+/** Every page of a search, for views that show a bounded set whole (an HD's events). */
+export async function searchAllEvents(params: SearchEventsParams = {}): Promise<EventListItemDto[]> {
+  const first = await searchEvents({ ...params, page: 0, size: MAX_PAGE_SIZE })
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(first.totalPages - 1, 0) }, (_, index) =>
+      searchEvents({ ...params, page: index + 1, size: MAX_PAGE_SIZE }),
+    ),
+  )
+  return [first, ...rest].flatMap((page) => page.content)
+}
+
+export function fetchUpcomingEvents(limit = 5): Promise<EventListItemDto[]> {
+  return apiFetch<EventListItemDto[]>(`/events/upcoming?limit=${limit}`)
 }
 
 export function fetchEventById(id: string): Promise<EventDto> {

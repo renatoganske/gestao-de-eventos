@@ -6,8 +6,10 @@ import com.renatoganske.gestao_de_eventos.dtos.EventVenueAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
+import com.renatoganske.gestao_de_eventos.dtos.EventListItemDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalAssignmentDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventProfessionalSummaryDto;
+import com.renatoganske.gestao_de_eventos.dtos.PageDto;
 import com.renatoganske.gestao_de_eventos.entities.Customer;
 import com.renatoganske.gestao_de_eventos.entities.Event;
 import com.renatoganske.gestao_de_eventos.entities.EventCustomer;
@@ -21,11 +23,13 @@ import com.renatoganske.gestao_de_eventos.entities.Hd;
 import com.renatoganske.gestao_de_eventos.entities.Professional;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import com.renatoganske.gestao_de_eventos.filters.EventSearchCriteria;
+import com.renatoganske.gestao_de_eventos.filters.EventSort;
 import com.renatoganske.gestao_de_eventos.exceptions.CustomerNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventTypeNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.EventVenueNotFoundException;
 import com.renatoganske.gestao_de_eventos.exceptions.HdNotFoundException;
+import com.renatoganske.gestao_de_eventos.exceptions.InvalidRequestParameterException;
 import com.renatoganske.gestao_de_eventos.exceptions.ProfessionalNotFoundException;
 import com.renatoganske.gestao_de_eventos.repositories.CustomerRepository;
 import com.renatoganske.gestao_de_eventos.repositories.EventCustomerRepository;
@@ -44,6 +48,9 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -61,6 +68,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class EventServiceTest {
@@ -843,21 +851,66 @@ class EventServiceTest {
     // The filter rules themselves run in the database and are covered by EventSpecificationsIntegrationTest;
     // here only the delegation to the repository and the mapping of what it returns are checked.
     @Test
-    void searchEvents_queriesTheRepositoryWithASpecificationAndMapsTheResult() {
-        when(eventRepository.findAll(any(Specification.class))).thenReturn(List.of(event));
+    void searchEvents_queriesTheRepositoryWithASpecificationAndTheRequestedPageAndMapsTheResult() {
+        when(eventRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<>(List.of(event), invocation.getArgument(1), 41));
 
-        List<EventDto> result = eventService.searchEvents(new EventSearchCriteria(
-                weddingType.getId(), null, null, null, null, null, null, null, "maria", null, null, null));
+        PageDto<EventListItemDto> result = eventService.searchEvents(new EventSearchCriteria(
+                weddingType.getId(), null, null, null, null, null, null, null, "maria", null, null, null, null),
+                2, 20, EventSort.DEFAULT);
 
-        assertThat(result).extracting(EventDto::id).containsExactly(event.getId());
+        assertThat(result.content()).extracting(EventListItemDto::id).containsExactly(event.getId());
+        assertThat(result.page()).isEqualTo(2);
+        assertThat(result.size()).isEqualTo(20);
+        assertThat(result.totalElements()).isEqualTo(41);
+        assertThat(result.totalPages()).isEqualTo(3);
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(eventRepository).findAll(any(Specification.class), pageable.capture());
+        assertThat(pageable.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(pageable.getValue().getPageSize()).isEqualTo(20);
+        // the order is set by the specification (some columns are subqueries), never by the Pageable
+        assertThat(pageable.getValue().getSort().isUnsorted()).isTrue();
         verify(eventRepository, never()).findAll();
     }
 
     @Test
     void searchEvents_withNoCriteria_stillQueriesThroughTheSpecification() {
-        when(eventRepository.findAll(any(Specification.class))).thenReturn(List.of());
+        when(eventRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
 
-        assertThat(eventService.searchEvents(EventSearchCriteria.none())).isEmpty();
-        verify(eventRepository).findAll(any(Specification.class));
+        assertThat(eventService.searchEvents(EventSearchCriteria.none(), 0, 50, EventSort.DEFAULT).content()).isEmpty();
+        verify(eventRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    void searchEvents_rejectsANegativePage() {
+        assertThatThrownBy(() -> eventService.searchEvents(EventSearchCriteria.none(), -1, 50, EventSort.DEFAULT))
+                .isInstanceOf(InvalidRequestParameterException.class)
+                .hasMessageContaining("page -1");
+        verifyNoInteractions(eventRepository);
+    }
+
+    @Test
+    void searchEvents_acceptsSizesFrom1ToTheMaximumAndRejectsTheRest() {
+        when(eventRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(Page.empty());
+
+        eventService.searchEvents(EventSearchCriteria.none(), 0, 1, EventSort.DEFAULT);
+        eventService.searchEvents(EventSearchCriteria.none(), 0, EventService.MAX_PAGE_SIZE, EventSort.DEFAULT);
+
+        assertThatThrownBy(() -> eventService.searchEvents(EventSearchCriteria.none(), 0, 0, EventSort.DEFAULT))
+                .isInstanceOf(InvalidRequestParameterException.class);
+        assertThatThrownBy(() -> eventService.searchEvents(
+                EventSearchCriteria.none(), 0, EventService.MAX_PAGE_SIZE + 1, EventSort.DEFAULT))
+                .isInstanceOf(InvalidRequestParameterException.class)
+                .hasMessageContaining("1 to " + EventService.MAX_PAGE_SIZE);
+    }
+
+    @Test
+    void getUpcomingEvents_rejectsALimitOutOfRangeWithoutQuerying() {
+        assertThatThrownBy(() -> eventService.getUpcomingEvents(0))
+                .isInstanceOf(InvalidRequestParameterException.class);
+        assertThatThrownBy(() -> eventService.getUpcomingEvents(EventService.MAX_UPCOMING_LIMIT + 1))
+                .isInstanceOf(InvalidRequestParameterException.class)
+                .hasMessageContaining("1 to " + EventService.MAX_UPCOMING_LIMIT);
+        verifyNoInteractions(eventRepository);
     }
 }

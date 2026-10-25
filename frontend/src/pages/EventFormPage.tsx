@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { fetchCustomers, type CustomerDto } from '../api/customers'
+import type { CustomerDto } from '../api/customers'
 import {
   DELIVERY_STATUS_LABEL,
   createEvent,
@@ -13,9 +13,16 @@ import {
   type EventDto,
 } from '../api/events'
 import { createEventType, fetchEventTypes, type EventTypeDto } from '../api/eventTypes'
-import { fetchEventVenues, type EventVenueDto } from '../api/eventVenues'
-import { fetchHds, type HdDto } from '../api/hds'
-import { fetchProfessionals, type ProfessionalDto } from '../api/professionals'
+import type { EventVenueDto } from '../api/eventVenues'
+import type { HdDto } from '../api/hds'
+import {
+  fetchCustomerOptions,
+  fetchEventVenueOptions,
+  fetchHdOptions,
+  fetchProfessionalOptions,
+  type OptionDto,
+} from '../api/options'
+import type { ProfessionalDto } from '../api/professionals'
 import { Autocomplete } from '../components/Autocomplete'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
@@ -37,35 +44,13 @@ import { useFormDraft } from '../hooks/useFormDraft'
 import { useToast } from '../hooks/useToast'
 import { customerRowsFromEvent, customerRowsToAssignments, type CustomerRow } from '../utils/eventCustomers'
 import { hasRoleWithoutProfessional, teamRowsFromEvent, teamRowsToAssignments, type TeamRow } from '../utils/eventTeam'
+import { deletableEvent, deleteConfirmationMessage } from '../utils/eventDeletion'
 import { hasRoleWithoutVenue, venueRowsFromEvent, venueRowsToAssignments, type VenueRow } from '../utils/eventVenues'
 import './EventFormPage.css'
 
 const GENERIC_LOAD_ERROR = 'Não foi possível carregar os dados do formulário. Tente novamente em instantes.'
 const GENERIC_SUBMIT_ERROR = 'Não foi possível salvar o evento. Tente novamente.'
 const GENERIC_DELETE_ERROR = 'Não foi possível excluir o evento. Tente novamente.'
-
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`
-}
-
-/** "2026-10-15" -> "15/10/2026"; anything unexpected is shown as received. */
-function formatIsoDate(iso: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  return match ? `${match[3]}/${match[2]}/${match[1]}` : iso
-}
-
-/** Says what goes away with the event and what stays: the customers/professionals themselves are kept. */
-function deleteConfirmationMessage(event: EventDto): string {
-  const unlinked = [
-    event.customers.length > 0 ? plural(event.customers.length, 'cliente', 'clientes') : null,
-    event.eventProfessionals.length > 0 ? plural(event.eventProfessionals.length, 'profissional', 'profissionais') : null,
-  ].filter((part): part is string => part !== null)
-  const base = `Excluir o evento "${event.name}" (${formatIsoDate(event.eventDate)})? Esta ação não pode ser desfeita.`
-  if (unlinked.length === 0) {
-    return base
-  }
-  return `${base} Os vínculos com ${unlinked.join(' e ')} serão removidos; os cadastros em si não são apagados.`
-}
 
 interface EventFormState {
   eventCode: string
@@ -107,10 +92,16 @@ type FormErrors = Partial<Record<'eventCode' | 'eventTypeId' | 'name' | 'eventDa
 
 interface ReferenceData {
   eventTypes: EventTypeDto[]
-  venues: EventVenueDto[]
-  hds: HdDto[]
-  customers: CustomerDto[]
-  professionals: ProfessionalDto[]
+  // Only id and name: the selects need nothing else (ADR-0029).
+  venues: OptionDto[]
+  hds: OptionDto[]
+  customers: OptionDto[]
+  professionals: OptionDto[]
+}
+
+/** A record created inline joins its select as an option. */
+function toOption(record: { id: string; name: string }): OptionDto {
+  return { id: record.id, name: record.name }
 }
 
 type QuickCreateTarget = 'customer' | 'venue' | 'hd' | 'eventType' | 'professional' | null
@@ -216,10 +207,10 @@ export function EventFormPage() {
       try {
         const [eventTypes, venues, hds, customers, professionals] = await Promise.all([
           fetchEventTypes(),
-          fetchEventVenues(),
-          fetchHds(),
-          fetchCustomers(),
-          fetchProfessionals(),
+          fetchEventVenueOptions(),
+          fetchHdOptions(),
+          fetchCustomerOptions(),
+          fetchProfessionalOptions(),
         ])
         const loadedEvent = isEditMode && id ? await fetchEventById(id) : null
         if (cancelled) {
@@ -268,11 +259,11 @@ export function EventFormPage() {
     try {
       const dto = formStateToDto(form, isWedding)
       if (isEditMode && id) {
-        const updated = await updateEvent(id, dto)
+        await updateEvent(id, dto)
         clearDraft()
-        setSavedEvent(updated)
-        setForm(eventToFormState(updated))
-        setToast({ kind: 'success', text: 'Evento atualizado com sucesso.' })
+        // Back to the read-only view; this page unmounts, so the confirmation travels as router state.
+        navigate(`/eventos/${id}`, { state: { toast: { kind: 'success', text: 'Evento atualizado com sucesso.' } } })
+        return
       } else {
         await createEvent(dto)
         clearDraft()
@@ -285,9 +276,12 @@ export function EventFormPage() {
     }
   }
 
+  // Editing comes from the event's detail page, so leaving the form goes back there; creating goes back to the list.
+  const backPath = isEditMode && id ? `/eventos/${id}` : '/eventos'
+
   function handleCancel() {
     clearDraft()
-    navigate('/eventos')
+    navigate(backPath)
   }
 
   function closeDeleteDialog() {
@@ -336,7 +330,7 @@ export function EventFormPage() {
 
   function handleProfessionalCreated(professional: ProfessionalDto) {
     setReferenceData((current) =>
-      current ? { ...current, professionals: [...current.professionals, professional] } : current,
+      current ? { ...current, professionals: [...current.professionals, toOption(professional)] } : current,
     )
     const rows = form.professionals ?? []
     updateField(
@@ -356,7 +350,7 @@ export function EventFormPage() {
   }
 
   function handleCustomerCreated(customer: CustomerDto) {
-    setReferenceData((current) => (current ? { ...current, customers: [...current.customers, customer] } : current))
+    setReferenceData((current) => (current ? { ...current, customers: [...current.customers, toOption(customer)] } : current))
     const rows = form.customers ?? []
     updateField(
       'customers',
@@ -368,7 +362,7 @@ export function EventFormPage() {
   }
 
   function handleVenueCreated(venue: EventVenueDto) {
-    setReferenceData((current) => (current ? { ...current, venues: [...current.venues, venue] } : current))
+    setReferenceData((current) => (current ? { ...current, venues: [...current.venues, toOption(venue)] } : current))
     const rows = form.venues ?? []
     updateField(
       'venues',
@@ -380,7 +374,7 @@ export function EventFormPage() {
   }
 
   function handleHdCreated(hd: HdDto) {
-    setReferenceData((current) => (current ? { ...current, hds: [...current.hds, hd] } : current))
+    setReferenceData((current) => (current ? { ...current, hds: [...current.hds, toOption(hd)] } : current))
     updateField('hdId', hd.id)
     setQuickCreateTarget(null)
     setToast({ kind: 'success', text: 'HD criado e selecionado.' })
@@ -397,8 +391,8 @@ export function EventFormPage() {
                 Excluir evento
               </Button>
             )}
-            <Link to="/eventos" className="btn" onClick={clearDraft}>
-              Voltar para eventos
+            <Link to={backPath} className="btn" onClick={clearDraft}>
+              {isEditMode ? 'Voltar para o evento' : 'Voltar para eventos'}
             </Link>
           </div>
         }
@@ -645,7 +639,7 @@ export function EventFormPage() {
       {isDeleteDialogOpen && savedEvent && (
         <ConfirmDialog
           title="Excluir evento"
-          message={deleteConfirmationMessage(savedEvent)}
+          message={deleteConfirmationMessage(deletableEvent(savedEvent))}
           confirmLabel="Excluir"
           isConfirming={isDeleting}
           error={deleteError}
