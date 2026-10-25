@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.2.0](https://github.com/renatoganske/gestao-de-eventos/compare/v3.1.0...v3.2.0) (2026-10-25)
+
+
+### Features
+
+* busca de eventos paginada, enxuta e ordenada no servidor, com busca textual única (GDE-66) ([e679da8](https://github.com/renatoganske/gestao-de-eventos/commit/e679da84bb989a584f81fd04060223b4cc088e55))
+* busca de eventos paginada, enxuta e ordenada no servidor, com busca textual única (GDE-66) ([53df3b8](https://github.com/renatoganske/gestao-de-eventos/commit/53df3b8fd6e8c10da59a34c105b9118b3a589dcd))
+* coluna HD na lista de Eventos (GDE-63) ([fc994c3](https://github.com/renatoganske/gestao-de-eventos/commit/fc994c3325cb9812bbd361f6c33e03b2350c4062))
+* coluna HD na lista de Eventos (GDE-63) ([b8beeb3](https://github.com/renatoganske/gestao-de-eventos/commit/b8beeb3e45419e7c9d69f0556209e035f339fefd))
+* endpoints agregados (dashboard, próximos eventos, options) e listas sem eventos embutidos (GDE-67) ([24c3fd3](https://github.com/renatoganske/gestao-de-eventos/commit/24c3fd39a5b39afc38d0907f178e9263a5043e1b))
+* endpoints agregados e lista de Eventos paginada (GDE-67, GDE-68) ([34124f5](https://github.com/renatoganske/gestao-de-eventos/commit/34124f5f81c4b3882c29e3d3b28d7e29813686af))
+* lista de Eventos abre com os mais recentes primeiro (GDE-62) ([d067837](https://github.com/renatoganske/gestao-de-eventos/commit/d067837719f57fff1a4bc72192b69480b0e5cdad))
+* lista de Eventos abre com os mais recentes primeiro (GDE-62) ([209b429](https://github.com/renatoganske/gestao-de-eventos/commit/209b429b29271aff499dd3887638a1cadba7dd4d))
+* lista de Eventos paginada no servidor, dashboard e selects pelos novos endpoints (GDE-68) ([38b46ed](https://github.com/renatoganske/gestao-de-eventos/commit/38b46ed8c6fb9e4967b7b2c8dec4548056a5b7ec))
+* lista de Eventos paginada no servidor, dashboard e selects pelos novos endpoints (GDE-68) ([c5823de](https://github.com/renatoganske/gestao-de-eventos/commit/c5823de244ca10fb3af954859362faf3a0b88f82))
+* tela de detalhe do evento com Editar e Excluir, também na lista (GDE-64) ([a4b597b](https://github.com/renatoganske/gestao-de-eventos/commit/a4b597b4f561f91eb08f949a7395b8e93b554ef3))
+* tela de detalhe do evento com Editar e Excluir, também na lista (GDE-64) ([7a09457](https://github.com/renatoganske/gestao-de-eventos/commit/7a094575c8d585e78526e2c268687d397b232f91))
+
 ## [3.1.0](https://github.com/renatoganske/gestao-de-eventos/compare/v3.0.0...v3.1.0) (2026-10-20)
 
 
