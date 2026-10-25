@@ -44,10 +44,8 @@ class EventProfessionalTest {
         assertThat(eventDto.eventProfessionals().get(0).professionalId()).isEqualTo(professionalId);
         assertThat(eventDto.eventProfessionals().get(0).professionalName()).isEqualTo("Fernanda Souza");
 
-        assertThat(professionalDto.eventProfessionals()).hasSize(1);
-        assertThat(professionalDto.eventProfessionals().get(0).roleInEvent()).isEqualTo("Segundo fotógrafo");
-        assertThat(professionalDto.eventProfessionals().get(0).eventId()).isEqualTo(eventId);
-        assertThat(professionalDto.eventProfessionals().get(0).eventName()).isEqualTo("Casamento Ana e Bruno");
+        // the professional side only reports how many events there are (ADR-0028/0029), never the events
+        assertThat(professionalDto.eventCount()).isZero();
 
         assertThat(eventProfessional.getId().eventId()).isEqualTo(eventId);
         assertThat(eventProfessional.getId().professionalId()).isEqualTo(professionalId);

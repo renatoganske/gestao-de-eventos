@@ -6,10 +6,9 @@ import * as customersApi from '../api/customers'
 import * as eventsApi from '../api/events'
 import type { EventDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
-import * as eventVenuesApi from '../api/eventVenues'
-import * as hdsApi from '../api/hds'
 import * as professionalsApi from '../api/professionals'
 import * as professionalTypesApi from '../api/professionalTypes'
+import * as optionsApi from '../api/options'
 import { EventFormPage } from './EventFormPage'
 
 vi.mock('../api/events')
@@ -19,22 +18,31 @@ vi.mock('../api/hds')
 vi.mock('../api/professionals')
 vi.mock('../api/customers')
 vi.mock('../api/professionalTypes')
+vi.mock('../api/options')
+
+/** The form's selects load only id and name (ADR-0029); fixtures may carry more, which is dropped here. */
+function mockOptions<T extends { id: string; name: string }>(
+  fetchOptions: () => Promise<{ id: string; name: string }[]>,
+  records: T[],
+) {
+  vi.mocked(fetchOptions).mockResolvedValue(records.map(({ id, name }) => ({ id, name })))
+}
 
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
     { id: 'type-wedding', name: 'WEDDING', hasWeddingFields: true },
     { id: 'type-other', name: 'PHOTO_SHOOT', hasWeddingFields: false },
   ])
-  vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
+  mockOptions(optionsApi.fetchEventVenueOptions, [
     { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null, eventCount: 0 },
   ])
-  vi.mocked(hdsApi.fetchHds).mockResolvedValue([
+  mockOptions(optionsApi.fetchHdOptions, [
     { id: 'hd-1', name: 'HD Externo 4', capacityGb: 2000, usedSpaceGb: 1000, physicalLocation: null, serialNumber: null, acquisitionDate: null, status: 'ACTIVE', eventCount: 0 },
   ])
-  vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+  mockOptions(optionsApi.fetchCustomerOptions, [
     { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0 },
   ])
-  vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([
+  mockOptions(optionsApi.fetchProfessionalOptions, [
     { id: 'prof-1', name: 'Renato Fotógrafo', type: null, contact: null, specialtyTags: [], otherInfo: null, eventCount: 0 },
     { id: 'prof-2', name: 'Ana Videomaker', type: null, contact: null, specialtyTags: [], otherInfo: null, eventCount: 0 },
   ])
@@ -320,7 +328,7 @@ describe('EventFormPage - vários clientes por evento (GDE-49)', () => {
     vi.resetAllMocks()
     sessionStorage.clear()
     mockReferenceData()
-    vi.mocked(customersApi.fetchCustomers).mockResolvedValue([
+    mockOptions(optionsApi.fetchCustomerOptions, [
       { id: 'customer-1', name: 'Maria Silva', contact: null, address: null, notes: null, eventCount: 0 },
       { id: 'customer-2', name: 'Joao Silva', contact: null, address: null, notes: null, eventCount: 0 },
     ])

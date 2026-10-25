@@ -1,14 +1,12 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import * as customersApi from '../api/customers'
 import * as eventsApi from '../api/events'
 import type { EventDto } from '../api/events'
 import * as eventTypesApi from '../api/eventTypes'
 import * as eventVenuesApi from '../api/eventVenues'
-import * as hdsApi from '../api/hds'
-import * as professionalsApi from '../api/professionals'
 import * as professionalTypesApi from '../api/professionalTypes'
+import * as optionsApi from '../api/options'
 import { EventFormPage } from './EventFormPage'
 
 vi.mock('../api/events')
@@ -18,18 +16,27 @@ vi.mock('../api/hds')
 vi.mock('../api/professionals')
 vi.mock('../api/customers')
 vi.mock('../api/professionalTypes')
+vi.mock('../api/options')
+
+/** The form's selects load only id and name (ADR-0029); fixtures may carry more, which is dropped here. */
+function mockOptions<T extends { id: string; name: string }>(
+  fetchOptions: () => Promise<{ id: string; name: string }[]>,
+  records: T[],
+) {
+  vi.mocked(fetchOptions).mockResolvedValue(records.map(({ id, name }) => ({ id, name })))
+}
 
 function mockReferenceData() {
   vi.mocked(eventTypesApi.fetchEventTypes).mockResolvedValue([
     { id: 'type-other', name: 'PHOTO_SHOOT', hasWeddingFields: false },
   ])
-  vi.mocked(eventVenuesApi.fetchEventVenues).mockResolvedValue([
+  mockOptions(optionsApi.fetchEventVenueOptions, [
     { id: 'venue-1', name: 'Buffet Jardim das Rosas', address: null, city: null, state: null, type: null, eventCount: 0 },
     { id: 'venue-2', name: 'Igreja Matriz', address: null, city: null, state: null, type: null, eventCount: 0 },
   ])
-  vi.mocked(hdsApi.fetchHds).mockResolvedValue([])
-  vi.mocked(customersApi.fetchCustomers).mockResolvedValue([])
-  vi.mocked(professionalsApi.fetchProfessionals).mockResolvedValue([])
+  mockOptions(optionsApi.fetchHdOptions, [])
+  mockOptions(optionsApi.fetchCustomerOptions, [])
+  mockOptions(optionsApi.fetchProfessionalOptions, [])
   vi.mocked(professionalTypesApi.fetchProfessionalTypes).mockResolvedValue([])
 }
 

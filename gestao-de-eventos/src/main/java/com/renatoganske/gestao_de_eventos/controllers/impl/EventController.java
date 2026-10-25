@@ -34,6 +34,11 @@ public class EventController implements IEventController {
     }
 
     @Override
+    public ResponseEntity<List<EventListItemDto>> findUpcoming(int limit) {
+        return ResponseEntity.ok(eventService.getUpcomingEvents(limit));
+    }
+
+    @Override
     public ResponseEntity<EventDto> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(eventService.getEventById(id));
     }

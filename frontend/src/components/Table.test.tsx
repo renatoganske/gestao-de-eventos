@@ -186,4 +186,32 @@ describe('Table', () => {
       expect(onRowClick).not.toHaveBeenCalled()
     })
   })
+
+  it('com serverSorted, mostra as linhas na ordem recebida e só avisa a nova ordem ao clicar no cabeçalho', async () => {
+    const onSortChange = vi.fn()
+    const sortable: TableColumn<Row>[] = [
+      { key: 'code', header: 'Código', render: (row) => row.code, sortValue: (row) => row.code },
+    ]
+    // deliberately out of order for a code-ascending sort: the server already decided the order
+    const serverRows: Row[] = [rows[1], rows[0]]
+    render(
+      <Table
+        columns={sortable}
+        rows={serverRows}
+        rowKey={(row) => row.code}
+        sort={{ key: 'code', direction: 'asc' }}
+        onSortChange={onSortChange}
+        serverSorted
+      />,
+    )
+
+    const cells = () => screen.getAllByRole('cell').map((cell) => cell.textContent)
+    expect(cells()).toEqual(['EVT-019', 'EVT-018'])
+    expect(screen.getByRole('columnheader', { name: /Código/ })).toHaveAttribute('aria-sort', 'ascending')
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /Código/ }))
+
+    expect(onSortChange).toHaveBeenCalledWith({ key: 'code', direction: 'desc', thenBy: undefined })
+    expect(cells()).toEqual(['EVT-019', 'EVT-018'])
+  })
 })

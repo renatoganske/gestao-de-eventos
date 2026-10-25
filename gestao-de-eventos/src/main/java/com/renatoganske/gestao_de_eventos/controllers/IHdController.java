@@ -2,6 +2,7 @@ package com.renatoganske.gestao_de_eventos.controllers;
 
 import com.renatoganske.gestao_de_eventos.dtos.CreateHdDto;
 import com.renatoganske.gestao_de_eventos.dtos.HdDto;
+import com.renatoganske.gestao_de_eventos.dtos.OptionDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,10 @@ public interface IHdController {
     @Operation(summary = "List HDs", description = "Fetches all HDs.")
     @GetMapping
     ResponseEntity<List<HdDto>> findAll();
+
+    @Operation(summary = "List HDs as options", description = "Fetches only the id and name of every one of the HDs, sorted by name, for selects and filters.")
+    @GetMapping("/options")
+    ResponseEntity<List<OptionDto>> findOptions();
 
     @Operation(summary = "Get HD by ID", description = "Fetches an HD by ID.")
     @GetMapping("/{id}")

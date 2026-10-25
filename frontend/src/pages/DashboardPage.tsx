@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchHdsNearCapacity, type HdDto } from '../api/hds'
 import { ApiError } from '../api/client'
-import { DELIVERY_STATUS_LABEL, DELIVERY_STATUS_TO_PILL, searchEvents, type EventDto } from '../api/events'
+import { fetchDashboardSummary } from '../api/dashboard'
+import { DELIVERY_STATUS_LABEL, DELIVERY_STATUS_TO_PILL, fetchUpcomingEvents, type EventListItemDto } from '../api/events'
 import { Card } from '../components/Card'
 import { Pill } from '../components/Pill'
 import { Table } from '../components/Table'
@@ -10,22 +11,10 @@ import { TopBar } from '../components/TopBar'
 import { effectiveCapacityGb, usagePercent } from '../utils/hdCapacity'
 import './DashboardPage.css'
 
-function toIsoDate(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
-
-function startOfMonth(date: Date): string {
-  return toIsoDate(new Date(date.getFullYear(), date.getMonth(), 1))
-}
-
-function endOfMonth(date: Date): string {
-  return toIsoDate(new Date(date.getFullYear(), date.getMonth() + 1, 0))
-}
-
 interface DashboardData {
   periodEventCount: number
   pendingCount: number
-  upcomingEvents: EventDto[]
+  upcomingEvents: EventListItemDto[]
   hdsNearCapacity: HdDto[]
 }
 
@@ -43,20 +32,20 @@ export function DashboardPage() {
       setIsLoading(true)
       setError(null)
       try {
-        const today = new Date()
-        const [periodEvents, pendingEvents, upcomingEvents, hdsNearCapacity] = await Promise.all([
-          searchEvents({ from: startOfMonth(today), to: endOfMonth(today) }),
-          searchEvents({ deliveryStatus: 'PENDING' }),
-          searchEvents({ from: toIsoDate(today) }),
+        // The counts and the next five come ready from the backend (ADR-0029), instead of three full
+        // event searches counted and cut here. The HD list stays: the panel below shows each of them.
+        const [summary, upcomingEvents, hdsNearCapacity] = await Promise.all([
+          fetchDashboardSummary(),
+          fetchUpcomingEvents(5),
           fetchHdsNearCapacity(),
         ])
         if (cancelled) {
           return
         }
         setData({
-          periodEventCount: periodEvents.length,
-          pendingCount: pendingEvents.length,
-          upcomingEvents: [...upcomingEvents].sort((a, b) => a.eventDate.localeCompare(b.eventDate)).slice(0, 5),
+          periodEventCount: summary.eventsThisMonth,
+          pendingCount: summary.pendingDeliveries,
+          upcomingEvents,
           hdsNearCapacity,
         })
       } catch (err) {

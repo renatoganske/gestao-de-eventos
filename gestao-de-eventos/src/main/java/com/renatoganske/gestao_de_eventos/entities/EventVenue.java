@@ -6,7 +6,6 @@ import lombok.*;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Entity(name = "TB_EVENT_VENUE")
 @NoArgsConstructor
@@ -42,9 +41,6 @@ public class EventVenue {
                 this.city,
                 this.state,
                 this.type,
-                this.eventEventVenues == null ? List.of() : this.eventEventVenues.stream()
-                        .map(eventEventVenue -> eventEventVenue.getEvent().toSummaryDto())
-                        .collect(Collectors.toList()),
                 eventCount
         );
     }

@@ -3,7 +3,6 @@ package com.renatoganske.gestao_de_eventos.entities;
 import com.renatoganske.gestao_de_eventos.dtos.EventCustomerSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventListItemDto;
-import com.renatoganske.gestao_de_eventos.dtos.EventSummaryDto;
 import com.renatoganske.gestao_de_eventos.dtos.EventVenueSummaryDto;
 import com.renatoganske.gestao_de_eventos.enums.DeliveryStatus;
 import jakarta.persistence.*;
@@ -123,16 +122,5 @@ public class Event {
                 .sorted(Comparator.comparing((EventCustomer ec) -> !ec.isContracting()))
                 .map(EventCustomer::toDTO)
                 .collect(Collectors.toList());
-    }
-
-    public EventSummaryDto toSummaryDto() {
-        return new EventSummaryDto(
-                this.id,
-                this.eventCode,
-                this.type != null ? this.type.toResponseDto() : null,
-                this.name,
-                this.eventDate,
-                this.deliveryStatus
-        );
     }
 }
