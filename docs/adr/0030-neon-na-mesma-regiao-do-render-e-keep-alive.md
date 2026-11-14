@@ -1,4 +1,4 @@
-# ADR-0030: Banco Neon na mesma região do Render (Oregon) e keep-alive em horário comercial
+# ADR-0030: Banco Neon na mesma região do Render (Oregon) e keep-alive em dias úteis (8h às 23h)
 
 **Data:** 2026-11-14
 **Status:** Aceito (complementa a [ADR-0029](0029-consultas-paginadas-enxutas-e-agregadas.md), que apontava a infraestrutura como o próximo suspeito)
@@ -26,14 +26,14 @@ Outros fatos relevantes (documentação oficial dos planos e painéis, 2026-11-1
 ## Decisão
 
 1. **Criar um novo projeto Neon na região AWS us-west-2 (Oregon)**, a mesma do Render, migrar os dados para ele e apontar o backend para o novo banco (`DATASOURCE_URL`, `DATASOURCE_USERNAME`, `DATASOURCE_PASSWORD` no painel do Render). O projeto antigo (São Paulo) fica como rollback por alguns dias e depois é removido.
-2. **Keep-alive do Render em dias úteis e horário comercial**: um `GET` sem token a uma rota protegida (resposta `401`, sem consulta ao banco), a cada 10 minutos, de segunda a sexta, no fuso `America/Sao_Paulo`, por um agendador externo gratuito (cron-job.org). Sem alteração de código.
+2. **Keep-alive do Render em dias úteis, das 8h às 23h**: um `GET` sem token a uma rota protegida (resposta `401`, sem consulta ao banco), a cada 10 minutos, de segunda a sexta, das 8h às 23h, no fuso `America/Sao_Paulo`, por um agendador externo gratuito (cron-job.org). Sem alteração de código.
 3. A senha do banco novo só existe no painel do Render e no gerenciador de senhas do Renato; nunca em arquivo, commit, memória ou PR.
 
 ## Racional
 
 - Co-locar app e banco troca cada round-trip de ~150 a 200 ms por 1 a 2 ms. É a correção da causa, e as demais opções (reescrever o backend, trocar de linguagem) não atacam essa distância.
 - Manter o Render em Oregon e mover o banco é o caminho possível: o Render não tem região no Brasil, e o Neon não troca região no lugar.
-- O ping de horário comercial usa cerca de 240 horas por mês das 750 gratuitas e evita o cold start de ~1 minuto durante o uso. Como a rota protegida responde `401` sem consultar o banco, o Neon continua dormindo quando ninguém usa, preservando as CU-horas.
+- O ping em dias úteis das 8h às 23h usa cerca de 330 horas por mês das 750 gratuitas e evita o cold start de ~1 minuto durante o uso. Como a rota protegida responde `401` sem consultar o banco, o Neon continua dormindo quando ninguém usa, preservando as CU-horas.
 - Sem endpoint novo e sem mudança de código: nada de superfície nova na API pública.
 
 ## Consequências
