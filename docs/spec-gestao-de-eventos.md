@@ -344,6 +344,7 @@ Cada decisão arquitetural vive em seu próprio documento, um por ADR, em `docs/
 | [0027](adr/0027-busca-de-eventos-no-banco.md) | Busca de eventos filtra no banco (`Specification<Event>`) e associações carregam em lote (`default_batch_fetch_size`) — revisa a ADR-0005 |
 | [0028](adr/0028-contagem-de-eventos-agregada-no-backend.md) | A contagem de eventos das listas (`eventCount`) vem de uma query `GROUP BY` por tipo, nunca do tamanho das coleções |
 | [0029](adr/0029-consultas-paginadas-enxutas-e-agregadas.md) | Busca de eventos paginada/enxuta com ordenação no servidor, listas de referência sem eventos embutidos e endpoints agregados (dashboard, próximos, `/options`) — mantém o filtro composto, revisa a ADR-0027 |
+| [0030](adr/0030-neon-na-mesma-regiao-do-render-e-keep-alive.md) | Banco Neon migra para a mesma região do Render (Oregon) e o Render recebe keep-alive em dias úteis/horário comercial por um ping sem token que não toca o banco |
 
 Nova decisão arquitetural → novo arquivo `docs/adr/NNNN-slug.md` (próximo número sequencial) + uma linha nova nesta tabela.
 
